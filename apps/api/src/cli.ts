@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off globalJsonInEffect:off
-import { readFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
@@ -64,6 +65,7 @@ const AppConfig = Config.all({
   backupDirectory: Config.String('BACKUP_DIRECTORY').pipe(Config.withDefault('./data/backups')),
   backupKeepDays: Config.Int('BACKUP_KEEP_DAYS').pipe(Config.withDefault(7)),
   runRetentionDays: Config.Int('RUN_RETENTION_DAYS').pipe(Config.withDefault(180)),
+  indexRetentionDays: Config.Int('INDEX_RETENTION_DAYS').pipe(Config.withDefault(30)),
   anonBudget: Config.Int('ANON_RESOLVE_BUDGET').pipe(Config.withDefault(1000)),
   anonSeeds: Config.Int('ANON_SEEDS').pipe(Config.withDefault(100)),
   anonCoverageTarget: Config.Number('ANON_COVERAGE_TARGET').pipe(Config.withDefault(0.9)),
@@ -149,6 +151,11 @@ const authCheck = Effect.gen(function* () {
 const migrationsFolder = fileURLToPath(new URL('../../../packages/db/drizzle', import.meta.url))
 const jsonOutput = process.argv.includes('--json')
 const printJson = (value: unknown) => process.stdout.write(`${JSON.stringify(value)}\n`)
+const logRun = <A, E, R>(label: string, effect: Effect.Effect<A, E, R>) =>
+  effect.pipe(
+    Effect.tap((result) => Effect.logInfo(`${label}: ${JSON.stringify(result)}`)),
+    Effect.catch((error) => Effect.logWarning(`${label} failed: ${String(error)}`)),
+  )
 const numericFlag = (name: string, fallback: number) => {
   const index = process.argv.indexOf(name)
   const value = index >= 0 ? Number(process.argv[index + 1]) : Number.NaN
@@ -234,6 +241,54 @@ const backupCommand = Effect.gen(function* () {
       `backup: ${result.path} (${result.bytes} bytes, pruned ${result.pruned.length})`,
     )
   }
+})
+
+const restoreCommand = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const sourcePath = process.argv[3]
+
+  if (!sourcePath) {
+    process.stderr.write('usage: riotid backup:restore <file> --yes\n')
+    process.exitCode = 2
+    return
+  }
+
+  if (!existsSync(sourcePath)) {
+    process.stderr.write(`backup not found: ${sourcePath}\n`)
+    process.exitCode = 1
+    return
+  }
+
+  if (!process.argv.includes('--yes')) {
+    process.stderr.write('refusing to replace the database without --yes\n')
+    process.exitCode = 1
+    return
+  }
+
+  const check = new DatabaseSync(sourcePath, { readOnly: true })
+  try {
+    const integrity = check.prepare('pragma integrity_check').get() as {
+      integrity_check: string
+    }
+    if (integrity.integrity_check !== 'ok') {
+      process.stderr.write(`backup failed integrity check: ${integrity.integrity_check}\n`)
+      process.exitCode = 1
+      return
+    }
+  } finally {
+    check.close()
+  }
+
+  const temporary = `${config.databasePath}.restore`
+  copyFileSync(sourcePath, temporary)
+  copyFileSync(temporary, config.databasePath)
+  rmSync(temporary, { force: true })
+  rmSync(`${config.databasePath}-wal`, { force: true })
+  rmSync(`${config.databasePath}-shm`, { force: true })
+  const now = new Date()
+  yield* bumpIndex(now).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+  yield* Effect.logInfo(`restored ${config.databasePath} from ${sourcePath}; restart the API`)
 })
 
 const pruneCommand = Effect.gen(function* () {
@@ -596,6 +651,11 @@ const main = Effect.gen(function* () {
     return
   }
 
+  if (command === 'backup:restore') {
+    yield* restoreCommand
+    return
+  }
+
   if (command !== 'serve') {
     process.stderr.write(`Unknown command: ${command}\n\n${help}`)
     process.exitCode = 2
@@ -606,7 +666,11 @@ const main = Effect.gen(function* () {
 
   yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
 
-  const app = makeApp({ databasePath: config.databasePath, cookieFile: config.cookieFile })
+  const app = makeApp({
+    databasePath: config.databasePath,
+    cookieFile: config.cookieFile,
+    indexWindowDays: config.indexRetentionDays,
+  })
 
   yield* Effect.logInfo(`riotid api listening on http://localhost:${config.port}`)
   yield* Effect.logInfo(`public origin: ${config.publicOrigin}`)
@@ -627,18 +691,12 @@ const main = Effect.gen(function* () {
         const shouldScan = !latest?.finished_at || now - latest.finished_at >= intervalMs
 
         if (shouldScan) {
-          yield* scanOnce(config, 'boot').pipe(
-            Effect.tap((result) => Effect.logInfo(`boot scan: ${JSON.stringify(result)}`)),
-            Effect.catch((error) => Effect.logWarning(`boot scan failed: ${String(error)}`)),
-          )
+          yield* logRun('boot scan', scanOnce(config, 'boot'))
         }
 
         while (true) {
           yield* Effect.sleep(`${config.scanIntervalHours} hours`)
-          yield* scanOnce(config, 'schedule').pipe(
-            Effect.tap((result) => Effect.logInfo(`scheduled scan: ${JSON.stringify(result)}`)),
-            Effect.catch((error) => Effect.logWarning(`scheduled scan failed: ${String(error)}`)),
-          )
+          yield* logRun('scheduled scan', scanOnce(config, 'schedule'))
         }
       }),
     )
@@ -655,24 +713,12 @@ const main = Effect.gen(function* () {
         const now = yield* Clock.currentTimeMillis
 
         if (now - lastRunAt >= 86_400_000) {
-          yield* resolvePass({ ...config, limit: 500 }).pipe(
-            Effect.tap((result) => Effect.logInfo(`identity boot pass: ${JSON.stringify(result)}`)),
-            Effect.catch((error) =>
-              Effect.logWarning(`identity boot pass failed: ${String(error)}`),
-            ),
-          )
+          yield* logRun('identity boot pass', resolvePass({ ...config, limit: 500 }))
         }
 
         while (true) {
           yield* Effect.sleep('24 hours')
-          yield* resolvePass({ ...config, limit: 500 }).pipe(
-            Effect.tap((result) =>
-              Effect.logInfo(`identity daily pass: ${JSON.stringify(result)}`),
-            ),
-            Effect.catch((error) =>
-              Effect.logWarning(`identity daily pass failed: ${String(error)}`),
-            ),
-          )
+          yield* logRun('identity daily pass', resolvePass({ ...config, limit: 500 }))
         }
       }),
     )

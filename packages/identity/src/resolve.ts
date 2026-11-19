@@ -428,18 +428,24 @@ export const resolveAnonymous = (
       unnamedByRegion.set(player.region, list)
     }
 
-    for (const [region, puuids] of unnamedByRegion) {
-      if (!canSpend()) break
-      spend()
-      const resolved = yield* source
-        .getNameService(config.session, version.riotClientVersion, region, puuids)
-        .pipe(Effect.catchTag('RiotRequestError', () => Effect.succeed([])))
+    const fetchNames = (region: Region, puuids: ReadonlyArray<string>) =>
+      Effect.gen(function* () {
+        if (!canSpend() || puuids.length === 0) return
 
-      for (const entry of resolved) {
-        if (entry.GameName.length > 0) {
-          names.set(entry.Subject.toLowerCase(), { name: entry.GameName, tag: entry.TagLine })
+        spend()
+        const resolved = yield* source
+          .getNameService(config.session, version.riotClientVersion, region, puuids)
+          .pipe(Effect.catchTag('RiotRequestError', () => Effect.succeed([])))
+
+        for (const entry of resolved) {
+          if (entry.GameName.length > 0) {
+            names.set(entry.Subject.toLowerCase(), { name: entry.GameName, tag: entry.TagLine })
+          }
         }
-      }
+      })
+
+    for (const [region, puuids] of unnamedByRegion) {
+      yield* fetchNames(region, puuids)
     }
 
     const linkedByRegion = new Map<Region, string[]>()
@@ -452,18 +458,7 @@ export const resolveAnonymous = (
     }
 
     for (const [region, puuids] of linkedByRegion) {
-      if (!canSpend()) continue
-
-      spend()
-      const resolved = yield* source
-        .getNameService(config.session, version.riotClientVersion, region, puuids)
-        .pipe(Effect.catchTag('RiotRequestError', () => Effect.succeed([])))
-
-      for (const entry of resolved) {
-        if (entry.GameName.length > 0) {
-          names.set(entry.Subject.toLowerCase(), { name: entry.GameName, tag: entry.TagLine })
-        }
-      }
+      yield* fetchNames(region, puuids)
     }
 
     const planned = plans.map((plan) => ({

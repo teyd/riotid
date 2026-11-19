@@ -24,6 +24,7 @@ export type AppOptions = {
   readonly cookieFile?: string
   readonly startedAt?: number
   readonly webRoot?: string
+  readonly indexWindowDays?: number
   readonly rateLimits?: {
     readonly index?: number
     readonly players?: number
@@ -42,7 +43,7 @@ let cachedIndex: CachedIndex | null = null
 const runDb = <A, E>(databasePath: string, effect: Effect.Effect<A, E, Database>) =>
   Effect.runPromise(effect.pipe(Effect.provide(readDatabase(databasePath))))
 
-const getIndex = (databasePath: string) =>
+const getIndex = (databasePath: string, indexWindowDays: number) =>
   Effect.gen(function* () {
     const version = yield* readIndexVersion
     const key = `${databasePath}:${version}`
@@ -51,7 +52,7 @@ const getIndex = (databasePath: string) =>
       return cachedIndex.value
     }
 
-    const value = yield* buildSiteIndex()
+    const value = yield* buildSiteIndex(Date.now(), indexWindowDays)
     cachedIndex = { key, value }
     return value
   })
@@ -143,6 +144,11 @@ export const makeApp = (options: AppOptions) => {
 
   app.use('*', compress())
 
+  app.use('/assets/*', async (c, next) => {
+    await next()
+    c.header('Cache-Control', 'public, max-age=31536000, immutable')
+  })
+
   app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /api\n'))
 
   app.get('/healthz', async (c) => {
@@ -172,7 +178,10 @@ export const makeApp = (options: AppOptions) => {
   app.get('/api/v1/index', async (c) => {
     if (await rateLimit(c, 'index', limits.index)) return rateLimited(c)
 
-    const index = await runDb(options.databasePath, getIndex(options.databasePath))
+    const index = await runDb(
+      options.databasePath,
+      getIndex(options.databasePath, options.indexWindowDays ?? 30),
+    )
     const etag = `"${index.version}-${index.players.length}"`
 
     c.header('ETag', etag)

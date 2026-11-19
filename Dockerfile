@@ -2,21 +2,28 @@
 
 FROM ghcr.io/voidzero-dev/vite-plus:1.7.0 AS build
 WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
+COPY --chown=vp:vp package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
+COPY --chown=vp:vp apps/api/package.json apps/api/package.json
+COPY --chown=vp:vp apps/web/package.json apps/web/package.json
+COPY --chown=vp:vp packages/contracts/package.json packages/contracts/package.json
+COPY --chown=vp:vp packages/riot/package.json packages/riot/package.json
+COPY --chown=vp:vp packages/db/package.json packages/db/package.json
+COPY --chown=vp:vp packages/ingest/package.json packages/ingest/package.json
+COPY --chown=vp:vp packages/identity/package.json packages/identity/package.json
 RUN vp install --frozen-lockfile
-COPY . .
+COPY --chown=vp:vp . .
 RUN vp build apps/web
 
 FROM ghcr.io/voidzero-dev/vite-plus:1.7.0 AS prod-deps
 WORKDIR /app
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
-COPY apps/api/package.json apps/api/package.json
-COPY apps/web/package.json apps/web/package.json
-COPY packages/contracts/package.json packages/contracts/package.json
-COPY packages/riot/package.json packages/riot/package.json
-COPY packages/db/package.json packages/db/package.json
-COPY packages/ingest/package.json packages/ingest/package.json
-COPY packages/identity/package.json packages/identity/package.json
+COPY --chown=vp:vp package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
+COPY --chown=vp:vp apps/api/package.json apps/api/package.json
+COPY --chown=vp:vp apps/web/package.json apps/web/package.json
+COPY --chown=vp:vp packages/contracts/package.json packages/contracts/package.json
+COPY --chown=vp:vp packages/riot/package.json packages/riot/package.json
+COPY --chown=vp:vp packages/db/package.json packages/db/package.json
+COPY --chown=vp:vp packages/ingest/package.json packages/ingest/package.json
+COPY --chown=vp:vp packages/identity/package.json packages/identity/package.json
 RUN vp install --frozen-lockfile --prod
 
 FROM node:26-bookworm-slim AS runtime

@@ -39,7 +39,6 @@ import { sql } from 'drizzle-orm'
 import { Effect } from 'effect'
 
 const dayMs = 86_400_000
-const indexWindowDays = 30
 
 type PlayerRow = {
   puuid: string
@@ -65,7 +64,10 @@ export const readIndexVersion: Effect.Effect<number, unknown, Database> = Effect
   return Number(row?.value ?? '0')
 })
 
-export const buildSiteIndex = (now = Date.now()): Effect.Effect<SiteIndex, unknown, Database> =>
+export const buildSiteIndex = (
+  now = Date.now(),
+  indexWindowDays = 30,
+): Effect.Effect<SiteIndex, unknown, Database> =>
   Effect.gen(function* () {
     const db = yield* Database
     const version = yield* readIndexVersion
