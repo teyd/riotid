@@ -27,6 +27,7 @@ const jsonError = (command: string, cause: unknown) =>
 
 export const makeCliRunner = (options: { readonly dryRun: boolean }): CliRunner => {
   const run = <A>(args: ReadonlyArray<string>) => {
+    // SCHEDULER_DRY_RUN=true logs the job instead of spawning it.
     if (options.dryRun) {
       return Effect.logInfo(`[dry-run] ${args.join(' ')}`).pipe(Effect.as<A | null>(null))
     }
