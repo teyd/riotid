@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Meter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from '@ui-sdk/react/meter'
+import { Meter, MeterIndicator, MeterLabel, MeterTrack } from '@ui-sdk/react/meter'
 
 import { TrendChart } from '../components/trend-chart.tsx'
 import { ErrorState, LoadingState } from '../components/ui.tsx'
