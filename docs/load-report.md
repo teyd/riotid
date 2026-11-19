@@ -1,5 +1,10 @@
 # Load test — 2026-11-19
 
+> [!NOTE]
+> Historical report. The stats and status endpoints and their pages were removed
+> after this measurement. The numbers are kept as a record of the old read path;
+> the current API serves only the index, player detail, and `/healthz`.
+
 Target: p95 < 150 ms for API reads on the target VPS, with 50 concurrent readers.
 
 Environment: local Linux workstation, Node 26.13.1, live database from a real scan
@@ -7,7 +12,7 @@ Environment: local Linux workstation, Node 26.13.1, live database from a real sc
 the in-memory cache. Each run lasted 10 s with 50 concurrent workers. Runs were
 consecutive, not interleaved with other load.
 
-## Detail, stats, and status (the normal read path)
+## Detail, stats, and status (the historical read path)
 
 Mix: 50% player detail, 25% stats, 25% status.
 
@@ -51,9 +56,10 @@ p95 for cache misses exceeds 300 ms there, move the index behind a longer
 ## Reproduce
 
 ```bash
-DATABASE_PATH=./data/riotid.db PORT=8795 node apps/api/src/cli.ts serve
+DATABASE_PATH=./data/riotid.db PORT=8795 mise run serve
 # with rate limits raised in a throwaway server for the load harness
 ```
 
 The rate limiter is intentionally left at production values in the shipped app:
-index 30/min/IP, detail 120/min/IP, stats and status 60/min/IP.
+index 30/min/IP and detail 120/min/IP. The removed stats and status endpoints
+were limited to 60/min/IP at the time of the test.
