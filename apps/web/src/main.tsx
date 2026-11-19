@@ -1,6 +1,4 @@
 import '@fontsource-variable/space-grotesk'
-import '@fontsource/commit-mono/latin-400.css'
-import '@fontsource/commit-mono/latin-500.css'
 import './styles.css'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
