@@ -33,6 +33,9 @@ run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:migrate && pnpm exe
 [tasks.scheduler]
 run = "pnpm exec varlock run -- node apps/scheduler/src/main.ts"
 
+[tasks.cli]
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts"
+
 [tasks."auth:login"]
 run = "pnpm exec varlock run -- node apps/cli/src/main.ts auth:login"
 
@@ -117,4 +120,4 @@ run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:recover"
 run = "pnpm --dir packages/db exec drizzle-kit check"
 
 [tasks.ci]
-run = "mise run check && mise run test && mise run build"
+run = "mise run check && mise run test && mise run build && mise run db:verify"
