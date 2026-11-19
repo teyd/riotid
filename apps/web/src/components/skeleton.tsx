@@ -6,7 +6,7 @@ export const Skeleton = ({ className = '' }: { className?: string }) => (
 )
 
 export const PlayerListSkeleton = () => (
-  <div className="space-y-0" aria-label="Loading players" role="status">
+  <div className="space-y-0" aria-label="Loading players…" role="status">
     {Array.from({ length: 9 }, (_, index) => (
       <div key={index} className="flex h-14 items-center gap-3 border-b border-white/[0.05] px-3">
         <Skeleton className="h-10 w-8 shrink-0" />
@@ -21,7 +21,7 @@ export const PlayerListSkeleton = () => (
 )
 
 export const DetailSkeleton = () => (
-  <div className="flex h-full flex-col" role="status" aria-label="Loading player history">
+  <div className="flex h-full flex-col" role="status" aria-label="Loading player history…">
     <div className="border-b border-white/[0.06] px-6 py-5">
       <div className="flex items-center gap-4">
         <Skeleton className="h-14 w-11" />
