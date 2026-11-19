@@ -336,7 +336,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
             </div>
 
             <div
-              aria-live="polite"
+              role={index.isError ? 'status' : undefined}
               className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] px-4 py-3 font-mono text-[11px] text-zinc-400"
             >
               {index.isError ? (
@@ -345,7 +345,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   <button
                     type="button"
                     onClick={() => void index.refetch()}
-                    className="text-zinc-200 underline decoration-white/30 underline-offset-2 hover:text-white"
+                    className="inline-flex min-h-6 items-center px-1 text-zinc-200 underline decoration-white/30 underline-offset-2 hover:text-white"
                   >
                     Retry now
                   </button>
