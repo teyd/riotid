@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useEffect, useMemo, useRef, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
 import {
   cardArt,
@@ -30,6 +30,8 @@ type Props = {
 const interactiveRoles =
   '[data-slot="select-trigger"],[role="combobox"],[role="radiogroup"],[role="toolbar"],[role="list"],[role="menu"],[role="listbox"],[role="dialog"],[role="separator"]'
 
+const navigationKeys = new Set(['ArrowDown', 'ArrowUp', 'j', 'k', 'Home', 'End'])
+
 export const PlayerList = ({
   rows,
   cards,
@@ -45,6 +47,7 @@ export const PlayerList = ({
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<string | null>(null)
   const focusedOnMount = useRef(false)
+  const [keyboardNavigation, setKeyboardNavigation] = useState(false)
   // TanStack Virtual returns functions the compiler cannot safely memoize.
   // eslint-disable-next-line react/incompatible-library
   const virtualizer = useVirtualizer({
@@ -121,6 +124,8 @@ export const PlayerList = ({
         onSelect(row[P.puuid])
       }
 
+      if (navigationKeys.has(event.key)) setKeyboardNavigation(true)
+
       switch (event.key) {
         case '/':
           event.preventDefault()
@@ -163,7 +168,12 @@ export const PlayerList = ({
 
   return (
     <>
-      <div ref={scrollRef} className="h-full overflow-y-auto overscroll-contain">
+      <div
+        ref={scrollRef}
+        onPointerDown={() => setKeyboardNavigation(false)}
+        onPointerMove={() => setKeyboardNavigation(false)}
+        className="h-full overflow-y-auto overscroll-contain"
+      >
         <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
           {virtualizer.getVirtualItems().map((item) => {
             const row = rows[item.index]
@@ -190,7 +200,9 @@ export const PlayerList = ({
                 onClick={() => onSelect(puuid)}
                 onMouseEnter={() => onPrefetch(puuid)}
                 onFocus={() => onPrefetch(puuid)}
-                className="absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left hover:bg-white/[0.035] focus-visible:outline-none data-[selected=true]:bg-white/10"
+                className={`absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left focus-visible:outline-none data-[selected=true]:bg-white/10 ${
+                  keyboardNavigation ? '' : 'hover:bg-white/[0.035]'
+                }`}
                 style={{ transform: `translateY(${item.start}px)` }}
               >
                 <CardArt
