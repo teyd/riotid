@@ -1,0 +1,10 @@
+# Worktree setup: copy ignored env/deps, then seed per-worktree runtime state.
+
+[[pre-start]]
+copy = "wt step copy-ignored --require-include"
+
+[[pre-start]]
+setup = "node {{ primary_worktree_path }}/tools/worktree-setup.ts {{ primary_worktree_path }} {{ branch | hash_port }} {{ (branch ~ '-api') | hash_port }}"
+
+[list]
+url = "{% if worktree_path == primary_worktree_path %}http://localhost:5173{% else %}http://localhost:{{ branch | hash_port }}{% endif %}"
