@@ -41,8 +41,8 @@ wt switch --create feature/my-change
 The `pre-start` hooks copy `.env`, `node_modules`, and a consistent snapshot of
 `./data` (via SQLite's online backup) into the new worktree. Each worktree gets
 its own API and web ports derived from the branch name, written to
-`.env.worktree` and loaded by mise. Run `mise run dev` inside the worktree and
-open the URL from `wt list`. Remove it with `wt remove`.
+`.env.worktree` and loaded by mise. Run `mise run dev` inside the worktree; the
+setup hook and Vite both print the web URL. Remove it with `wt remove`.
 
 The in-process scheduler runs in production (`NODE_ENV=production`); during local development use `mise run scan` when you want a real scan.
 
