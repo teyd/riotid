@@ -58,9 +58,6 @@ export const cardAccent = (cardId: string | null): string => {
 export const cardArt = (cardId: string | null): string | null =>
   cardId ? `https://media.valorant-api.com/playercards/${cardId}/displayicon.png` : null
 
-export const cardWideArt = (cardId: string | null): string | null =>
-  cardId ? `https://media.valorant-api.com/playercards/${cardId}/wideart.png` : null
-
 export const cardLargeArt = (cardId: string | null): string | null =>
   cardId ? `https://media.valorant-api.com/playercards/${cardId}/largeart.png` : null
 

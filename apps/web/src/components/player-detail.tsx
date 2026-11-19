@@ -1,4 +1,3 @@
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@ui-sdk/react/hover-card'
 import { Toolbar, ToolbarButton, ToolbarLink } from '@ui-sdk/react/toolbar'
 import {
   Timeline,
@@ -14,7 +13,6 @@ import { useState } from 'react'
 import {
   cardArt,
   cardLargeArt,
-  cardWideArt,
   fetchPlayer,
   formatDate,
   formatDateTime,
@@ -202,7 +200,6 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
   const tag = detail?.player.tag ?? row?.[P.tag] ?? ''
   const region = detail?.player.region ?? row?.[P.region] ?? null
   const resolvedCardId = detail?.player.cardId ?? cardId
-  const wideArt = cardWideArt(resolvedCardId)
 
   const copy = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}/puuid/${puuid}`)
@@ -212,21 +209,6 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto">
-      <div className="relative flex h-32 w-full shrink-0 items-center justify-center overflow-hidden border-b border-white/[0.08] bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px]">
-        <div className="h-full w-full max-w-[452px]">
-          <CardArt
-            art={wideArt}
-            name={name}
-            fallback=""
-            width={452}
-            height={128}
-            loading="eager"
-            fetchPriority="high"
-            className="block h-full w-full"
-          />
-        </div>
-      </div>
-
       <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-ink px-6 py-5">
         <button
           type="button"
@@ -238,36 +220,22 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <HoverCard>
-              <HoverCardTrigger
-                href={cardWideArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
-                className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:flex"
-              >
-                <CardArt
-                  art={cardArt(resolvedCardId)}
-                  name={name}
-                  width={56}
-                  height={56}
-                  loading="eager"
-                  className="flex size-14 items-center justify-center font-mono text-sm text-zinc-500"
-                />
-              </HoverCardTrigger>
-              <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
-                <img
-                  src={cardWideArt(resolvedCardId) ?? ''}
-                  alt=""
-                  width={452}
-                  height={128}
-                  loading="lazy"
-                  decoding="async"
-                  className="block h-auto w-full"
-                />
-                <p className="px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-400">
-                  {name || 'Anonymous'}
-                  {tag ? `#${tag}` : ''}
-                </p>
-              </HoverCardContent>
-            </HoverCard>
+            <a
+              href={cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label="Open player card"
+              className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:flex"
+            >
+              <CardArt
+                art={cardArt(resolvedCardId)}
+                name={name}
+                width={56}
+                height={56}
+                loading="eager"
+                className="flex size-14 items-center justify-center font-mono text-sm text-zinc-500"
+              />
+            </a>
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <h1 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
