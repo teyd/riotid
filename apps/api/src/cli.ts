@@ -418,6 +418,14 @@ const startAdminJob = (name: string, run: () => Promise<unknown>) => {
   return { started: true }
 }
 
+const checkBackupAt = (file: string, backupDirectory: string) => {
+  if (!file.startsWith(backupDirectory)) {
+    return Promise.reject(new Error('backup path is outside the backup directory'))
+  }
+
+  return Effect.runPromise(checkDatabase.pipe(Effect.provide(readDatabase(file))))
+}
+
 const scanNow = (config: Parameters<typeof scanOnce>[0]) =>
   Effect.runPromise(scanOnce(config, 'manual'))
 
