@@ -79,6 +79,7 @@ Responses are ETagged and support `If-None-Match`. The API never calls Riot.
 | Group   | Task                                                                                                       |
 | ------- | ---------------------------------------------------------------------------------------------------------- |
 | Develop | `mise run dev` · `mise run install` · `mise run check` · `mise run test` · `mise run build`                |
+| Perf    | `mise run perf:web` · `mise run perf:compare` · `mise run perf`                                            |
 | Data    | `mise run scan` · `mise run stats` · `mise run db:seed` · `mise run db:migrate` · `mise run backup`        |
 | Operate | `mise run serve` · `mise run scheduler` · `mise run cli` · `mise run auth:login` · `mise run anon:resolve` |
 
@@ -108,6 +109,7 @@ the container entrypoint and starts the API as a child process. Deploy with
 - [Runbook](docs/runbook.md) — exact operator commands and incidents
 - [Configuration](docs/configuration.md) — every environment variable
 - [Performance report](docs/perf-report.md) — browser timings and limiter
+- [Benchmarks](docs/benchmarks.md) — strobe A/B checks for the client path
 - [Load report](docs/load-report.md) — API read-path capacity
 - [Probe report](docs/probe-report.md) — live Riot endpoint findings
 

@@ -74,6 +74,18 @@ echo 'Deployment queued'
 [tasks.perf]
 run = "node apps/web/perf-check.mjs"
 
+[tasks."perf:web"]
+run = '''
+export STROBE_BROWSER="${STROBE_BROWSER:-$PWD/tools/strobe-browser.sh}"
+pnpm exec strobe bench perf/app.bench.ts --head . --check --headless
+'''
+
+[tasks."perf:compare"]
+run = '''
+export STROBE_BROWSER="${STROBE_BROWSER:-$PWD/tools/strobe-browser.sh}"
+pnpm exec strobe bench perf/app.bench.ts --base main --head . --headless
+'''
+
 [tasks.scan]
 run = "pnpm exec varlock run -- node apps/cli/src/main.ts scan"
 

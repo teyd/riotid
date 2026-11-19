@@ -178,6 +178,9 @@ importers:
       '@effect/tsgo':
         specifier: 0.70.0
         version: 0.70.0
+      '@hona/strobe':
+        specifier: 0.44.0
+        version: 0.44.0
       '@playwright/test':
         specifier: 1.65.1
         version: 1.65.1
@@ -724,6 +727,40 @@ packages:
 
   '@fontsource-variable/space-grotesk@5.3.0':
     resolution: {integrity: sha512-2IxmvfB08i9vnGB3Ym/AXvhRE+8XOjWMXIyDum03c+tPwH0FUoMNQfGpU8NXPxjbws0Vvss3AH0Zqt4oJBBAdw==}
+
+  '@hona/strobe-darwin-arm64@0.44.0':
+    resolution: {integrity: sha512-ooSBckzKTLcgpjHapuz6lOVgXVEY2AGyVPq1rQAxbe36en0mGzSLf12K0TpGa/H51xygxlXGzS3pjTZukHbxtw==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@hona/strobe-darwin-x64@0.44.0':
+    resolution: {integrity: sha512-Z3wFmxr7dfixJSs8e/vsMwVF9avhZ+8Ihi9x5DU86cyJs2a7zc3avPY/MB+K93wgMOKxjGjTjGAQm8EBtkz88Q==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@hona/strobe-linux-arm64@0.44.0':
+    resolution: {integrity: sha512-rC+gk2VWkKY2rNabanFXr9APUbKfEGZFreo+rLAJ3yzGI2UGzdjNfz984bThJJockrmZBWA5CK5SnDj/J00E/A==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@hona/strobe-linux-x64@0.44.0':
+    resolution: {integrity: sha512-8OMIU0HFTM85u4wGrwamtr9Ztxu/n1CLNEdGGZC9yhSmB6RXT7XM6SVF11gU9CGeXMnW5LwHPiyK0ioExUzVYQ==}
+    cpu: [x64]
+    os: [linux]
+
+  '@hona/strobe-win32-arm64@0.44.0':
+    resolution: {integrity: sha512-5PTylHqx/4ZzvCBYO2xUszczDkHRvzyusc/w7s35eXvbS8SxwoIlvfmCdnlbnprvSgpJRdgQ/vo0gItAZx0Drw==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@hona/strobe-win32-x64@0.44.0':
+    resolution: {integrity: sha512-SxMdKmUDk9WejmVel9FPqG14K7NK5oKjcbDXrrr4icnhzaApXKGdd1zdzvl5omw6OygI37MUHpTG4PQBlSVpLQ==}
+    cpu: [x64]
+    os: [win32]
+
+  '@hona/strobe@0.44.0':
+    resolution: {integrity: sha512-prumAviEtIDu8tqVfv06oydQ0szlMj0UZXwTwWPFJdK7eubWfHk94rCJvXKhZLsXmJJ1Ah4xsHGE4RKERUhIfw==}
+    hasBin: true
 
   '@hono/node-server@2.1.9':
     resolution: {integrity: sha512-Sk4NQd3GFY0WZWCzndwFMPwJhtD0y9qjsQ+pjID0/03nK9pxyBCUoUHCho8QYBLBVhi0ssL8UkNPHqbgSOFPIQ==}
@@ -2906,6 +2943,33 @@ snapshots:
     optional: true
 
   '@fontsource-variable/space-grotesk@5.3.0': {}
+
+  '@hona/strobe-darwin-arm64@0.44.0':
+    optional: true
+
+  '@hona/strobe-darwin-x64@0.44.0':
+    optional: true
+
+  '@hona/strobe-linux-arm64@0.44.0':
+    optional: true
+
+  '@hona/strobe-linux-x64@0.44.0':
+    optional: true
+
+  '@hona/strobe-win32-arm64@0.44.0':
+    optional: true
+
+  '@hona/strobe-win32-x64@0.44.0':
+    optional: true
+
+  '@hona/strobe@0.44.0':
+    optionalDependencies:
+      '@hona/strobe-darwin-arm64': 0.44.0
+      '@hona/strobe-darwin-x64': 0.44.0
+      '@hona/strobe-linux-arm64': 0.44.0
+      '@hona/strobe-linux-x64': 0.44.0
+      '@hona/strobe-win32-arm64': 0.44.0
+      '@hona/strobe-win32-x64': 0.44.0
 
   '@hono/node-server@2.1.9(hono@4.13.19)':
     dependencies:
