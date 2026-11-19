@@ -175,6 +175,45 @@ describe('scan', () => {
     })
   })
 
+  it('is idempotent across identical reruns', async () => {
+    const source = makeSource({
+      regions: {
+        eu: [player('p1', 'One', '0001'), player('p2', 'Two', '0002')],
+        na: [player('p3', 'Three', '0003')],
+      },
+      names: new Map([
+        ['p1', { name: 'One', tag: '0001' }],
+        ['p2', { name: 'Two', tag: '0002' }],
+        ['p3', { name: 'Three', tag: '0003' }],
+      ]),
+    })
+
+    await withScan(source, async (path, runScan) => {
+      await runScan()
+      const second = await runScan()
+
+      expect(second.nameChanges).toBe(0)
+      expect(second.regionChanges).toBe(0)
+      expect(second.bans).toBe(0)
+      expect(second.unbans).toBe(0)
+
+      const rows = await readRows(
+        path,
+        Effect.gen(function* () {
+          const db = yield* Database
+          const allPlayers = yield* db.select().from(players)
+          const names = yield* db.select().from(playerNames)
+          const regions = yield* db.select().from(playerRegions)
+          return { allPlayers, names, regions }
+        }),
+      )
+
+      expect(rows.allPlayers.every((row) => row.timesSeen === 2)).toBe(true)
+      expect(rows.names).toHaveLength(3)
+      expect(rows.regions).toHaveLength(3)
+    })
+  })
+
   it('keeps history when a name changes', async () => {
     const source = makeSource({
       regions: { eu: [player('p1', 'One', '0001')] },
@@ -317,6 +356,31 @@ describe('scan', () => {
 
       expect(rows.current?.region).toBeNull()
       expect(rows.regions).toHaveLength(0)
+    })
+  })
+
+  it('prunes anonymous rows that left the leaderboard', async () => {
+    const source = makeSource({
+      regions: { eu: [anonymousPlayer()] },
+      names: new Map(),
+    })
+
+    await withScan(source, async (path, runScan) => {
+      await runScan()
+      source.getLeaderboard = () =>
+        Effect.succeed({ SeasonID: act.uuid, totalPlayers: 0, Players: [] })
+
+      await runScan()
+
+      const rows = await readRows(
+        path,
+        Effect.gen(function* () {
+          const db = yield* Database
+          return yield* db.select().from(anonymousRows)
+        }),
+      )
+
+      expect(rows).toHaveLength(0)
     })
   })
 

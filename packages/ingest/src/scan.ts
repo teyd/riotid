@@ -1,5 +1,5 @@
 // @effect-diagnostics globalDate:off globalDateInEffect:off
-import { and, eq, isNull, lt, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import {
   anonymousRows,
   bannedPlayers,
@@ -637,6 +637,17 @@ export const scan = (
         for (const batch of chunks(newBans, 500)) {
           yield* tx.insert(bannedPlayers).values(batch)
         }
+
+        yield* tx.delete(anonymousRows).where(
+          and(
+            eq(anonymousRows.seasonId, act.uuid),
+            inArray(
+              anonymousRows.region,
+              crawled.map((region) => region.region),
+            ),
+            lt(anonymousRows.lastSeenAt, observedAt),
+          ),
+        )
 
         for (const batch of chunks(anonymousByRegion, 100)) {
           yield* tx

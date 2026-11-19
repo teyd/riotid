@@ -50,6 +50,15 @@ run = "pnpm --dir packages/db exec drizzle-kit generate"
 [tasks.scan]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts scan"
 
+[tasks.stats]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts stats"
+
+[tasks.backup]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts backup"
+
+[tasks."db:prune"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:prune"
+
 [tasks."db:seed"]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:seed"
 

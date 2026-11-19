@@ -6,9 +6,12 @@ import { fileURLToPath } from 'node:url'
 
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
 import {
-  Database,
+  backupDatabase,
   checkDatabase,
+  Database,
+  databaseStats,
   migrateDatabase,
+  pruneRuns,
   readDatabase,
   seedDatabase,
   writeDatabase,
@@ -46,6 +49,9 @@ const AppConfig = Config.all({
   qrTimeoutSeconds: Config.Int('RIOT_QR_TIMEOUT_SECONDS').pipe(Config.withDefault(300)),
   authRefreshMinutes: Config.Int('AUTH_REFRESH_MINUTES').pipe(Config.withDefault(45)),
   scanIntervalHours: Config.Int('SCAN_INTERVAL_HOURS').pipe(Config.withDefault(6)),
+  backupDirectory: Config.String('BACKUP_DIRECTORY').pipe(Config.withDefault('./data/backups')),
+  backupKeepDays: Config.Int('BACKUP_KEEP_DAYS').pipe(Config.withDefault(7)),
+  runRetentionDays: Config.Int('RUN_RETENTION_DAYS').pipe(Config.withDefault(180)),
 })
 
 const help = `riotid
@@ -117,6 +123,8 @@ const authCheck = Effect.gen(function* () {
 })
 
 const migrationsFolder = fileURLToPath(new URL('../../../packages/db/drizzle', import.meta.url))
+const jsonOutput = process.argv.includes('--json')
+const printJson = (value: unknown) => process.stdout.write(`${JSON.stringify(value)}\n`)
 
 const dbMigrate = Effect.gen(function* () {
   const config = yield* AppConfig
@@ -164,7 +172,52 @@ const scanCommand = Effect.gen(function* () {
   yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
   const result = yield* scanOnce(config, 'manual')
 
-  yield* Effect.logInfo(`scan complete: ${JSON.stringify(result)}`)
+  if (jsonOutput) {
+    printJson(result)
+  } else {
+    yield* Effect.logInfo(`scan complete: ${JSON.stringify(result)}`)
+  }
+})
+
+const statsCommand = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const stats = yield* databaseStats.pipe(Effect.provide(readDatabase(config.databasePath)))
+
+  if (jsonOutput) {
+    printJson(stats)
+  } else {
+    yield* Effect.logInfo(JSON.stringify(stats, null, 2))
+  }
+})
+
+const backupCommand = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const result = yield* backupDatabase({
+    source: config.databasePath,
+    directory: config.backupDirectory,
+    keepDays: config.backupKeepDays,
+  })
+
+  if (jsonOutput) {
+    printJson(result)
+  } else {
+    yield* Effect.logInfo(
+      `backup: ${result.path} (${result.bytes} bytes, pruned ${result.pruned.length})`,
+    )
+  }
+})
+
+const pruneCommand = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const result = yield* pruneRuns({ olderThanDays: config.runRetentionDays }).pipe(
+    Effect.provide(writeDatabase(config.databasePath)),
+  )
+
+  if (jsonOutput) {
+    printJson(result)
+  } else {
+    yield* Effect.logInfo(`pruned ${result.deleted} runs older than ${result.cutoff}`)
+  }
 })
 
 const dbCheck = Effect.gen(function* () {
@@ -186,6 +239,22 @@ const dbCheck = Effect.gen(function* () {
 const status = Effect.gen(function* () {
   const config = yield* AppConfig
   const file = yield* loadCookieFile(config.cookieFile)
+  const stats = yield* databaseStats.pipe(
+    Effect.provide(readDatabase(config.databasePath)),
+    Effect.orElseSucceed(() => null),
+  )
+
+  if (jsonOutput) {
+    printJson({
+      port: config.port,
+      database: config.databasePath,
+      cookieFile: config.cookieFile,
+      cookieSource: file?.source ?? null,
+      cookieUpdatedAt: file?.updatedAt ?? null,
+      stats,
+    })
+    return
+  }
 
   yield* Effect.logInfo(`riotid api ready on port ${config.port}`)
   yield* Effect.logInfo(
@@ -193,6 +262,12 @@ const status = Effect.gen(function* () {
       ? `cookie jar: ${config.cookieFile} · source ${file.source} · updated ${file.updatedAt}`
       : `cookie jar: missing at ${config.cookieFile} · run \`riotid auth:login\``,
   )
+
+  if (stats) {
+    yield* Effect.logInfo(
+      `data: ${stats.players} players · ${stats.anonymous} anonymous (${stats.unresolvedAnonymous} unresolved) · ${stats.runs} runs · latest ${stats.latestRun?.status ?? 'none'}`,
+    )
+  }
 })
 
 const main = Effect.gen(function* () {
@@ -246,6 +321,21 @@ const main = Effect.gen(function* () {
 
   if (command === 'scan') {
     yield* scanCommand
+    return
+  }
+
+  if (command === 'stats') {
+    yield* statsCommand
+    return
+  }
+
+  if (command === 'backup') {
+    yield* backupCommand
+    return
+  }
+
+  if (command === 'db:prune') {
+    yield* pruneCommand
     return
   }
 
