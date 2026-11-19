@@ -2,7 +2,8 @@
 
 Read the root `AGENTS.md` first; follow the `ui-sdk` skill for component work.
 
-- Read `node_modules/@ui-sdk/react/docs/llms.txt` before using UI SDK components.
+- Read `apps/web/node_modules/@ui-sdk/react/docs/llms.txt` before using UI SDK
+  components.
 - `src/styles.css` must start with `@layer ui-sdk;` before `@import 'tailwindcss'`.
   Do not reorder those lines or add a second entry stylesheet.
 - Prefer UI SDK components and native elements to hand-rolled ARIA. Do not add
