@@ -16,14 +16,6 @@ export const P = {
   lastNameChangeAt: 10,
 } as const
 
-export const FLAG = {
-  anonymized: 1,
-  nameChange: 2,
-  regionChange: 4,
-  banHistory: 8,
-  unbanHistory: 16,
-} as const
-
 export type IndexRow = SiteIndex['players'][number]
 export type Region = 'na' | 'eu' | 'ap' | 'kr'
 
@@ -44,17 +36,6 @@ export const regionLabel = (region: string | null): string => {
 
 export const regionShort = (region: string | null): string => region?.toUpperCase() ?? '—'
 
-export const cardAccent = (cardId: string | null): string => {
-  if (!cardId) return 'hsl(160 8% 42%)'
-
-  let hash = 0
-  for (const char of cardId) {
-    hash = (hash * 31 + char.charCodeAt(0)) >>> 0
-  }
-
-  return `hsl(${hash % 360} 62% 56%)`
-}
-
 export const cardArt = (cardId: string | null): string | null =>
   cardId ? `https://media.valorant-api.com/playercards/${cardId}/displayicon.png` : null
 
@@ -62,6 +43,9 @@ export const cardLargeArt = (cardId: string | null): string | null =>
   cardId ? `https://media.valorant-api.com/playercards/${cardId}/largeart.png` : null
 
 export const vtlProfileUrl = (puuid: string): string => `https://vtl.lol/id/${puuid}`
+
+export const playerUrl = (origin: string, puuid: string): string =>
+  `${origin}/puuid/${encodeURIComponent(puuid)}`
 
 export const trackerProfileUrl = (name: string, tag: string): string =>
   `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(`${name}#${tag}`)}/overview`

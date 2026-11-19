@@ -1,4 +1,11 @@
-import { Select, SelectContent, SelectItem, SelectLabel, SelectTrigger } from '@ui-sdk/react/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@ui-sdk/react/select'
 import { Input } from '@ui-sdk/react/input'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
@@ -26,6 +33,8 @@ import {
 type Sort = 'recentChanges' | 'changes' | 'recent' | 'new' | 'name'
 
 let initialSelectionDone = false
+let restoreSearchFocus = false
+let selectionSource: 'list' | 'search' | null = null
 
 const sorts: Array<{ value: Sort; label: string; trigger: string }> = [
   { value: 'recentChanges', label: 'Recent name changes', trigger: 'renames' },
@@ -42,6 +51,9 @@ const regions: ReadonlyArray<{ value: 'all' | Region; label: string }> = [
   { value: 'ap', label: 'AP' },
   { value: 'kr', label: 'KR' },
 ]
+
+const isRegion = (value: string | null): value is 'all' | Region =>
+  value === 'all' || value === 'na' || value === 'eu' || value === 'ap' || value === 'kr'
 
 const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
@@ -66,8 +78,12 @@ export function PlayersPage({ selected }: { selected?: string }) {
     const preload = () => {
       void import('../components/player-detail.tsx')
     }
-    const idle = window.requestIdleCallback(preload, { timeout: 2500 })
-    return () => window.cancelIdleCallback(idle)
+    if (typeof window.requestIdleCallback === 'function') {
+      const idle = window.requestIdleCallback(preload, { timeout: 2500 })
+      return () => window.cancelIdleCallback(idle)
+    }
+    const timer = window.setTimeout(preload, 2500)
+    return () => window.clearTimeout(timer)
   }, [])
 
   const index = useQuery({
@@ -111,7 +127,12 @@ export function PlayersPage({ selected }: { selected?: string }) {
     })
   }, [index.data, deferredQuery, region, sort])
 
-  const selectedRow = p ? (index.data?.players.find((row) => row[P.puuid] === p) ?? null) : null
+  const playersById = useMemo(
+    () => new Map((index.data?.players ?? []).map((row) => [row[P.puuid], row])),
+    [index.data],
+  )
+
+  const selectedRow = p ? (playersById.get(p) ?? null) : null
   const selectedCardIndex = selectedRow?.[P.cardId]
   const selectedCard =
     selectedCardIndex == null ? null : (index.data?.cards[selectedCardIndex] ?? null)
@@ -131,8 +152,19 @@ export function PlayersPage({ selected }: { selected?: string }) {
     }
   }, [p, index.isPending, rows, navigate])
 
-  const select = (puuid: string | null) => {
+  useEffect(() => {
+    if (!restoreSearchFocus) return
+    const frame = window.requestAnimationFrame(() => {
+      restoreSearchFocus = false
+      searchRef.current?.focus()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [])
+
+  const select = (puuid: string | null, source: 'list' | 'search' = 'list') => {
+    if (puuid === p) return
     if (puuid) {
+      selectionSource = source
       void navigate({ to: '/puuid/$puuid', params: { puuid }, replace: true })
       return
     }
@@ -148,10 +180,15 @@ export function PlayersPage({ selected }: { selected?: string }) {
     })
   }
 
+  const backToList = () => {
+    restoreSearchFocus = true
+    select(null)
+  }
+
   const sortOption = sorts.find((item) => item.value === sort) ?? sorts[0]!
   const escape = () => {
     if (p) {
-      select(null)
+      backToList()
       return
     }
     if (query) {
@@ -163,6 +200,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <h1 className="sr-only">Riot ID history</h1>
       <Resizable autoSaveId="riotid:split" className="flex min-h-0 flex-1">
         <ResizablePanel
           id="player-list"
@@ -171,21 +209,49 @@ export function PlayersPage({ selected }: { selected?: string }) {
           maxSize="760px"
           className={`min-h-0 max-lg:!w-full max-lg:!basis-full ${p ? 'hidden lg:flex' : 'flex'}`}
         >
-          <section className="relative flex h-full w-full min-h-0 flex-col border-r border-white/[0.07]">
+          <section
+            aria-labelledby="player-list-heading"
+            className="relative flex h-full w-full min-h-0 flex-col border-r border-white/[0.07]"
+          >
+            <h2 id="player-list-heading" className="sr-only">
+              Player list
+            </h2>
             <div className="border-b border-white/[0.08] px-4 pt-4 pb-3">
-              <div className="flex h-10 min-w-0 items-center gap-2.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-3 focus-within:border-white/30">
-                <SearchIcon className="size-4 shrink-0 text-zinc-500" />
+              <div className="flex h-10 min-w-0 items-center gap-2.5 rounded-md border border-white/40 bg-white/[0.03] px-3 focus-within:ring-1 focus-within:ring-white/40">
+                <SearchIcon aria-hidden className="size-4 shrink-0 text-zinc-400" />
                 <Input
                   ref={searchRef}
                   value={query}
                   onValueChange={setQuery}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && rows[0]) {
+                      event.preventDefault()
+                      select(rows[0][P.puuid], 'search')
+                    }
+                    if (event.key === 'ArrowDown' && rows[0]) {
+                      event.preventDefault()
+                      select(rows[0][P.puuid], 'search')
+                    }
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      if (query) setQuery('')
+                      else searchRef.current?.blur()
+                    }
+                  }}
+                  name="player-search"
+                  type="text"
+                  inputMode="search"
+                  enterKeyHint="search"
                   placeholder="Search players…"
                   aria-label="Search players"
                   spellCheck={false}
                   autoComplete="off"
-                  className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+                  className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
                 />
-                <kbd className="hidden rounded border border-white/10 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 sm:block">
+                <kbd
+                  aria-hidden
+                  className="hidden rounded border border-white/25 px-1.5 py-0.5 font-mono text-[11px] text-zinc-400 sm:block"
+                >
                   /
                 </kbd>
               </div>
@@ -194,25 +260,17 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 <SegmentedControl
                   value={region}
                   onValueChange={(next) => {
-                    if (
-                      next === 'all' ||
-                      next === 'na' ||
-                      next === 'eu' ||
-                      next === 'ap' ||
-                      next === 'kr'
-                    ) {
-                      setRegion(next)
-                    }
+                    if (isRegion(next)) setRegion(next)
                   }}
                   aria-label="Region"
-                  className="relative flex items-center gap-0.5 rounded-md border border-white/[0.07] bg-white/[0.02] p-0.5"
+                  className="relative flex items-center gap-0.5 rounded-md border border-white/40 bg-white/[0.02] p-0.5"
                 >
-                  <SegmentedControlIndicator className="rounded-[5px] bg-white/[0.08]" />
+                  <SegmentedControlIndicator className="rounded-[5px] bg-white/40" />
                   {regions.map((item) => (
                     <SegmentedControlItem
                       key={item.value}
                       value={item.value}
-                      className="rounded-[5px] px-2 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-zinc-300 data-[checked]:text-zinc-100"
+                      className="rounded-[5px] px-2 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-zinc-200 data-[checked]:text-zinc-50"
                     >
                       {item.label}
                     </SegmentedControlItem>
@@ -220,32 +278,38 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 </SegmentedControl>
 
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-[11px] text-zinc-500 tabular-nums">
+                  <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
                     {rows.length.toLocaleString()}
                   </span>
                   <Select
+                    items={sorts}
                     value={sort}
                     onValueChange={(value) => {
                       if (value) setSort(value as Sort)
                     }}
-                    items={sorts}
                   >
                     <SelectLabel className="sr-only">Sort players</SelectLabel>
                     <SelectTrigger
                       aria-label={`Sort players: ${sortOption?.label ?? sort}`}
-                      className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
+                      className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-400 hover:text-zinc-100"
                     >
-                      <span>{sortOption?.trigger ?? sort}</span>
-                      <span aria-hidden className="text-[11px] leading-none text-zinc-500">
+                      <SelectValue>
+                        {(state) =>
+                          sorts.find((item) => item.value === state.value)?.trigger ??
+                          sortOption?.trigger ??
+                          sort
+                        }
+                      </SelectValue>
+                      <span aria-hidden className="text-[11px] leading-none text-zinc-400">
                         ▼
                       </span>
                     </SelectTrigger>
-                    <SelectContent className="z-50 rounded-lg border border-white/10 bg-panel p-1.5 text-sm shadow-2xl">
+                    <SelectContent className="z-50 rounded-lg border border-white/20 bg-panel p-1.5 text-sm shadow-2xl">
                       {sorts.map((item) => (
                         <SelectItem
                           key={item.value}
                           value={item.value}
-                          className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/10 data-[highlighted]:text-zinc-50"
+                          className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/40 data-[highlighted]:text-zinc-50 data-[selected]:text-zinc-50"
                         >
                           {item.label}
                         </SelectItem>
@@ -262,6 +326,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 cards={index.data?.cards ?? []}
                 selected={p ?? null}
                 loading={index.isPending}
+                filtered={deferredQuery.trim() !== '' || region !== 'all'}
+                focusSelectedOnMount={selectionSource === 'list'}
                 searchRef={searchRef}
                 onSelect={select}
                 onPrefetch={prefetch}
@@ -269,9 +335,21 @@ export function PlayersPage({ selected }: { selected?: string }) {
               />
             </div>
 
-            <div className="border-t border-white/[0.06] px-4 py-3 font-mono text-[11px] text-zinc-500">
+            <div
+              role={index.isError ? 'status' : undefined}
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] px-4 py-3 font-mono text-[11px] text-zinc-400"
+            >
               {index.isError ? (
-                <span className="text-zinc-300">API offline — retrying</span>
+                <>
+                  <span className="text-zinc-300">API offline — retrying</span>
+                  <button
+                    type="button"
+                    onClick={() => void index.refetch()}
+                    className="inline-flex min-h-6 items-center px-1 text-zinc-200 underline decoration-white/30 underline-offset-2 hover:text-white"
+                  >
+                    Retry now
+                  </button>
+                </>
               ) : (
                 <span>
                   {index.data?.players.length.toLocaleString() ?? '—'} public players ·{' '}
@@ -285,9 +363,9 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
         <ResizableHandle
           aria-label="Resize player list"
-          className="hidden w-2 cursor-col-resize items-center justify-center focus-visible:outline-none data-[dragging]:bg-accent/40 lg:flex"
+          className="hidden w-2 cursor-col-resize items-center justify-center outline-offset-[-2px] data-[dragging]:bg-accent/40 data-[hovering]:bg-white/10 lg:flex"
         >
-          <span className="h-12 w-px bg-white/10" />
+          <span aria-hidden className="h-12 w-px bg-white/40" />
         </ResizableHandle>
 
         <ResizablePanel
@@ -295,58 +373,78 @@ export function PlayersPage({ selected }: { selected?: string }) {
           minSize="420px"
           className={`min-h-0 max-lg:!w-full max-lg:!basis-full ${p ? 'flex' : 'hidden lg:flex'}`}
         >
-          {p ? (
-            <PlayerDetailLoader
-              puuid={p}
-              row={selectedRow}
-              cardId={selectedCard}
-              onBack={() => select(null)}
-            />
-          ) : index.isPending ? (
-            <LoadingState label="Loading index" />
-          ) : (
-            <div className="relative flex h-full items-center justify-center overflow-hidden p-8">
-              <div className="relative max-w-md text-center">
-                <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-accent">
-                  master–detail
-                </p>
-                <h2 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-100 text-balance">
-                  Pick a player.
-                </h2>
-                <p className="mt-4 text-sm leading-6 text-zinc-400">
-                  Use <kbd className="font-mono text-zinc-200">j</kbd> /{' '}
-                  <kbd className="font-mono text-zinc-200">k</kbd> to move, or{' '}
-                  <kbd className="font-mono text-zinc-200">/</kbd> to search. Every rename, region
-                  transfer, and ban stays on the timeline.
-                </p>
-                <div className="mt-7 flex items-center justify-center gap-6 border-y border-white/[0.08] py-4">
-                  {[
-                    ['players', index.data?.stats.players],
-                    ['linked anon', index.data?.stats.linked],
-                    ['name changes', index.data?.stats.nameChanges],
-                  ].map(([label, value]) => (
-                    <div key={String(label)}>
-                      <p className="text-lg font-semibold text-zinc-100 tabular-nums">
-                        {value?.toLocaleString() ?? '—'}
-                      </p>
-                      <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">
-                        {label}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-5 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
-                  pick a row to open the history
+          <section
+            aria-label="Player detail"
+            className="flex h-full w-full min-h-0 flex-col overflow-hidden"
+          >
+            {p ? (
+              <PlayerDetailLoader
+                puuid={p}
+                row={selectedRow}
+                cardId={selectedCard}
+                focusOnMount={selectionSource !== null}
+                focusHeading={selectionSource === 'search'}
+                onBack={backToList}
+              />
+            ) : index.isPending ? (
+              <LoadingState label="Loading index…" />
+            ) : index.isError ? (
+              <div role="alert" className="flex flex-col items-start gap-3 p-8">
+                <p className="text-base text-zinc-200">Could not load the player index.</p>
+                <p className="font-mono text-xs text-zinc-400">{index.error.message}</p>
+                <button
+                  type="button"
+                  onClick={() => void index.refetch()}
+                  className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (index.data?.players.length ?? 0) === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <EmptyState
+                  title="No public players yet."
+                  hint="Run a scan to populate the index. Banned and unresolved anonymous rows are hidden."
+                />
+              </div>
+            ) : (
+              <div className="relative flex h-full items-center justify-center overflow-hidden p-8">
+                <div className="relative max-w-md text-center">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-accent">
+                    master–detail
+                  </p>
+                  <h2 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-100 text-balance">
+                    Pick a player.
+                  </h2>
+                  <p className="mt-4 text-sm leading-6 text-zinc-300">
+                    Use <kbd className="font-mono text-zinc-100">j</kbd> /{' '}
+                    <kbd className="font-mono text-zinc-100">k</kbd> to move, or{' '}
+                    <kbd className="font-mono text-zinc-100">/</kbd> to search. Every rename, region
+                    transfer, and ban stays on the timeline.
+                  </p>
+                  <div className="mt-7 flex items-center justify-center gap-6 border-y border-white/[0.08] py-4">
+                    {[
+                      ['players', index.data?.stats.players],
+                      ['linked anon', index.data?.stats.linked],
+                      ['name changes', index.data?.stats.nameChanges],
+                    ].map(([label, value]) => (
+                      <div key={String(label)}>
+                        <p className="text-lg font-semibold text-zinc-100 tabular-nums">
+                          {value?.toLocaleString() ?? '—'}
+                        </p>
+                        <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400">
+                          {label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-5 font-mono text-[11px] uppercase tracking-wide text-zinc-400">
+                    pick a row to open the history
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          {!p && !index.isError && (index.data?.players.length ?? 0) === 0 ? (
-            <EmptyState
-              title="No public players yet."
-              hint="Run a scan to populate the index. Banned and unresolved anonymous rows are hidden."
-            />
-          ) : null}
+            )}
+          </section>
         </ResizablePanel>
       </Resizable>
     </div>

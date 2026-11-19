@@ -23,6 +23,19 @@ html {
   background: var(--color-ink);
 }
 
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
+  }
+}
+
+@layer base {
+  :where(a, button, input, [tabindex]):focus-visible {
+    outline: 2px solid #a1a1aa;
+    outline-offset: 2px;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -31,4 +44,31 @@ body {
 
 ::selection {
   background: color-mix(in oklab, var(--color-accent) 30%, transparent);
+}
+
+[data-slot='segmented-control'] {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-slot='segmented-control-indicator'] {
+  position: absolute;
+  z-index: -1;
+  top: var(--segmented-control-indicator-top);
+  left: var(--segmented-control-indicator-left);
+  width: var(--segmented-control-indicator-width);
+  height: var(--segmented-control-indicator-height);
+  transition-property: top, left, width, height;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+[data-slot='segmented-control-indicator'][data-activation-direction='none'] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='segmented-control-indicator'] {
+    transition: none;
+  }
 }

@@ -32,7 +32,7 @@ export const Section = ({
 }) => (
   <section className="border-t border-white/[0.06] px-6 py-6">
     <div className="mb-4 flex items-center justify-between">
-      <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">{title}</h3>
+      <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">{title}</h3>
       {meta}
     </div>
     {children}
@@ -41,21 +41,17 @@ export const Section = ({
 
 export const EmptyState = ({ title, hint }: { title: string; hint?: string }) => (
   <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
-    <p className="text-base text-zinc-300">{title}</p>
-    {hint ? <p className="max-w-sm text-sm leading-6 text-zinc-500">{hint}</p> : null}
+    <h2 className="text-base text-zinc-200 text-balance">{title}</h2>
+    {hint ? <p className="max-w-sm text-sm leading-6 text-zinc-400">{hint}</p> : null}
   </div>
 )
 
 export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
-  <div className="flex items-center gap-3 px-6 py-6 font-mono text-xs uppercase tracking-wide text-zinc-500">
-    <span className="size-1.5 animate-pulse rounded-full bg-accent" />
+  <div
+    role="status"
+    className="flex items-center gap-3 px-6 py-6 font-mono text-xs uppercase tracking-wide text-zinc-400"
+  >
+    <span aria-hidden className="size-1.5 rounded-full bg-accent motion-safe:animate-pulse" />
     {label}
-  </div>
-)
-
-export const ErrorState = ({ error }: { error: Error }) => (
-  <div className="flex flex-col items-start gap-2 p-6">
-    <p className="text-base text-zinc-300">Could not load data.</p>
-    <p className="font-mono text-xs text-zinc-500">{error.message}</p>
   </div>
 )
