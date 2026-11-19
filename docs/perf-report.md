@@ -1,5 +1,10 @@
 # Performance report — 2026-11-19
 
+> [!NOTE]
+> Historical report. The UI, endpoints, and build have changed since this
+> measurement. Timings are preserved; see the [runbook](runbook.md) for current
+> commands and [architecture](architecture.md) for the current surface.
+
 Decision: keep the full public index and optimize the browser/client path. The
 target is p95 < 150 ms for normal API reads (already met) and a first usable
 list under 2 s on a warm connection.
