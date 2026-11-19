@@ -196,7 +196,6 @@ export function PlayersPage({ selected }: { selected?: string }) {
     queryFn: fetchIndex,
     staleTime: 60_000,
     refetchInterval: 120_000,
-    refetchIntervalInBackground: true,
   })
 
   const status = useQuery({
