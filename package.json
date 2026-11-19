@@ -6,6 +6,7 @@
     "dev": "vp run -r --parallel dev",
     "serve": "node apps/cli/src/main.ts db:migrate && node apps/api/src/index.ts",
     "scheduler": "node apps/scheduler/src/main.ts",
+    "cli": "node apps/cli/src/main.ts",
     "check": "effect-tsgo vp check && effect-tsgo tsc -p tsconfig.json",
     "lint": "effect-tsgo vp lint",
     "fmt": "vp fmt",
