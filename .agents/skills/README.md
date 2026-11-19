@@ -6,11 +6,13 @@ Installed with `npx skills@latest` and pinned in `skills-lock.json`. Refresh wit
 | Skill | Use when |
 | --- | --- |
 | `drizzle` | Schema, migrations, drizzle-kit, or anything importing `drizzle-orm/*` |
+| `kubai-icons` | Icon sets, dynamic/static SVG icons, and hover icon animation |
 | `ui-sdk` | Any `@ui-sdk/*` component work, behavior, or tests |
 | `vercel-composition-patterns` | Component API and composition design |
 | `vercel-react-best-practices` | React and Next.js performance work |
 | `vercel-react-view-transitions` | Route, shared-element, and state transitions |
 | `web-design-guidelines` | UI, accessibility, and UX review |
 
-`.agents/skills/**` is excluded from the repository formatter so updates stay
-byte-for-byte comparable with upstream.
+`kubai-icons` is vendored here from the global skill set and is not managed by
+the skills CLI. `.agents/skills/**` is excluded from the repository formatter so
+updates stay byte-for-byte comparable with upstream.
