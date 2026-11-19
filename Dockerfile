@@ -15,6 +15,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/riot/package.json packages/riot/package.json
 COPY packages/db/package.json packages/db/package.json
+COPY packages/ingest/package.json packages/ingest/package.json
 RUN vp install --frozen-lockfile --prod
 
 FROM node:26-bookworm-slim AS runtime

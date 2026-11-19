@@ -1,17 +1,19 @@
 #!/usr/bin/env node
-// @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off
+// @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off globalJsonInEffect:off
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
 import {
+  Database,
   checkDatabase,
   migrateDatabase,
   readDatabase,
   seedDatabase,
   writeDatabase,
 } from '@riotid/db'
+import { RiotSourceLive, scan } from '@riotid/ingest'
 import { serve } from '@hono/node-server'
 import {
   loadCookieFile,
@@ -24,7 +26,7 @@ import {
   saveCookieFile,
   type AuthSession,
 } from '@riotid/riot'
-import { Config, Effect } from 'effect'
+import { Clock, Config, Effect, Layer } from 'effect'
 
 import { makeApp } from './app.ts'
 import { runProbe } from './probe.ts'
@@ -43,6 +45,7 @@ const AppConfig = Config.all({
   countryCode: Config.String('RIOT_COUNTRY_CODE').pipe(Config.withDefault('US')),
   qrTimeoutSeconds: Config.Int('RIOT_QR_TIMEOUT_SECONDS').pipe(Config.withDefault(300)),
   authRefreshMinutes: Config.Int('AUTH_REFRESH_MINUTES').pipe(Config.withDefault(45)),
+  scanIntervalHours: Config.Int('SCAN_INTERVAL_HOURS').pipe(Config.withDefault(6)),
 })
 
 const help = `riotid
@@ -58,6 +61,7 @@ Usage:
   riotid db:migrate            Apply committed database migrations
   riotid db:seed               Seed synthetic development data
   riotid db:check              Check database invariants
+  riotid scan                 Run one leaderboard scan
   riotid help                  Show this help
 `
 
@@ -138,6 +142,31 @@ const dbSeed = Effect.gen(function* () {
   )
 })
 
+const scanOnce = (
+  config: { cookieFile: string; databasePath: string },
+  trigger: 'schedule' | 'manual' | 'boot',
+) =>
+  Effect.gen(function* () {
+    const session = yield* refreshSession(config.cookieFile)
+    return yield* scan({ session, trigger })
+  }).pipe(
+    Effect.provide(
+      Layer.mergeAll(
+        writeDatabase(config.databasePath),
+        RiotSourceLive.pipe(Layer.provide(NodeHttpClient.layerNodeHttp)),
+      ),
+    ),
+  )
+
+const scanCommand = Effect.gen(function* () {
+  const config = yield* AppConfig
+
+  yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
+  const result = yield* scanOnce(config, 'manual')
+
+  yield* Effect.logInfo(`scan complete: ${JSON.stringify(result)}`)
+})
+
 const dbCheck = Effect.gen(function* () {
   const config = yield* AppConfig
   const report = yield* checkDatabase.pipe(Effect.provide(readDatabase(config.databasePath)))
@@ -215,6 +244,11 @@ const main = Effect.gen(function* () {
     return
   }
 
+  if (command === 'scan') {
+    yield* scanCommand
+    return
+  }
+
   if (command !== 'serve') {
     process.stderr.write(`Unknown command: ${command}\n\n${help}`)
     process.exitCode = 2
@@ -231,6 +265,37 @@ const main = Effect.gen(function* () {
   yield* Effect.logInfo(`public origin: ${config.publicOrigin}`)
 
   serve({ fetch: app.fetch, port: config.port })
+
+  if (config.nodeEnv === 'production') {
+    yield* Effect.forkDetach(
+      Effect.gen(function* () {
+        const intervalMs = config.scanIntervalHours * 60 * 60 * 1000
+        const latest = yield* Effect.gen(function* () {
+          const db = yield* Database
+          return yield* db.get<{ finished_at: number | null }>(
+            `select finished_at from runs where status = 'succeeded' order by finished_at desc limit 1`,
+          )
+        }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+        const now = yield* Clock.currentTimeMillis
+        const shouldScan = !latest?.finished_at || now - latest.finished_at >= intervalMs
+
+        if (shouldScan) {
+          yield* scanOnce(config, 'boot').pipe(
+            Effect.tap((result) => Effect.logInfo(`boot scan: ${JSON.stringify(result)}`)),
+            Effect.catch((error) => Effect.logWarning(`boot scan failed: ${String(error)}`)),
+          )
+        }
+
+        while (true) {
+          yield* Effect.sleep(`${config.scanIntervalHours} hours`)
+          yield* scanOnce(config, 'schedule').pipe(
+            Effect.tap((result) => Effect.logInfo(`scheduled scan: ${JSON.stringify(result)}`)),
+            Effect.catch((error) => Effect.logWarning(`scheduled scan failed: ${String(error)}`)),
+          )
+        }
+      }),
+    )
+  }
 
   yield* Effect.forkDetach(
     Effect.gen(function* () {

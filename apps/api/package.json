@@ -12,6 +12,7 @@
     "@hono/node-server": "2.1.9",
     "@riotid/contracts": "workspace:*",
     "@riotid/db": "workspace:*",
+    "@riotid/ingest": "workspace:*",
     "@riotid/riot": "workspace:*",
     "effect": "4.1.4",
     "hono": "4.13.19",

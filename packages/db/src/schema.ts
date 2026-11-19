@@ -63,6 +63,9 @@ export const runs = sqliteTable(
     check('runs_status_check', sql`${table.status} IN ('running', 'succeeded', 'failed')`),
     check('runs_trigger_check', sql`${table.trigger} IN ('schedule', 'manual', 'boot')`),
     index('runs_started_idx').on(table.startedAt),
+    uniqueIndex('runs_running_idx')
+      .on(table.status)
+      .where(sql`${table.status} = 'running'`),
   ],
 )
 

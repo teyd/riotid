@@ -1,0 +1,17 @@
+{
+  "name": "@riotid/ingest",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vp test"
+  },
+  "dependencies": {
+    "@riotid/db": "workspace:*",
+    "@riotid/riot": "workspace:*",
+    "drizzle-orm": "1.0.0-rc.5",
+    "effect": "4.1.4"
+  }
+}

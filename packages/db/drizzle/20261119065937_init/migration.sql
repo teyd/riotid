@@ -217,4 +217,5 @@ CREATE INDEX `players_last_seen_idx` ON `players` (`last_seen_at`);--> statement
 CREATE INDEX `players_name_idx` ON `players` (`name`);--> statement-breakpoint
 CREATE INDEX `run_regions_region_idx` ON `run_regions` (`region`,`status`);--> statement-breakpoint
 CREATE INDEX `runs_started_idx` ON `runs` (`started_at`);--> statement-breakpoint
+CREATE UNIQUE INDEX `runs_running_idx` ON `runs` (`status`) WHERE "runs"."status" = 'running';--> statement-breakpoint
 CREATE INDEX `seasons_active_idx` ON `seasons` (`is_active`,`ends_at`);

@@ -1,7 +1,7 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "9593d8bb-0147-4104-8a24-377c664a1a69",
+  "id": "fdfc87cb-fc6d-4bf5-9b02-63a1f30b0c47",
   "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
@@ -1649,6 +1649,20 @@
       ],
       "isUnique": false,
       "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "runs",
+      "name": "runs_running_idx",
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "\"runs\".\"status\" = 'running'",
       "origin": "manual",
       "entityType": "indexes"
     },

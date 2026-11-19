@@ -34,6 +34,8 @@ const SeasonsResponse = Schema.Struct({
 export type Season = {
   readonly uuid: string
   readonly displayName: string
+  readonly startsAt: Date
+  readonly endsAt: Date
 }
 
 const LeaderboardPlayer = Schema.Struct({
@@ -192,7 +194,12 @@ export const getActiveAct: Effect.Effect<Season, RiotRequestError, HttpClient.Ht
       })
     }
 
-    return { uuid: act.uuid, displayName: act.displayName }
+    return {
+      uuid: act.uuid,
+      displayName: act.displayName,
+      startsAt: new Date(Date.parse(act.startTime)),
+      endsAt: new Date(Date.parse(act.endTime)),
+    }
   })
 
 export const getLeaderboard = (
