@@ -1,15 +1,5 @@
 import { Toolbar, ToolbarButton } from '@ui-sdk/react/toolbar'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Waterfall,
-  WaterfallAxis,
-  WaterfallBar,
-  WaterfallCell,
-  WaterfallColumnHeader,
-  WaterfallHeaderRow,
-  WaterfallRow,
-  WaterfallRowHeader,
-} from '@ui-sdk/react/waterfall'
 import { useState } from 'react'
 
 import { Donut, chartColors } from '../components/charts.tsx'
@@ -23,9 +13,6 @@ const statusColor: Record<string, string> = {
   failed: '#fbbf24',
   running: '#38bdf8',
 }
-
-const formatAxis = (ms: number): string =>
-  ms < 60_000 ? `${Math.round(ms / 1000)}s` : `${Math.round(ms / 60_000)}m`
 
 const explanations: Record<string, string> = {
   uptime: 'Time since the API process started. The process is stateless; SQLite holds the data.',
@@ -111,17 +98,11 @@ export function StatusPage() {
     window.setTimeout(() => setCopied(false), 1200)
   }
 
-  const runs = [...data.recentRuns].reverse()
-  const base = runs[0]?.startedAt ?? 0
-  const items = runs.map((run) => ({
-    value: `run-${run.id}`,
-    label: `#${run.id} · ${run.trigger}`,
-    start: Math.max(0, run.startedAt - base),
-    duration: Math.max(
-      1000,
-      run.durationMs ?? (run.finishedAt ? run.finishedAt - run.startedAt : 1000),
-    ),
-  }))
+  const runs = data.recentRuns
+  const maxDuration = Math.max(
+    ...runs.map((run) => run.durationMs ?? (run.finishedAt ? run.finishedAt - run.startedAt : 0)),
+    1,
+  )
 
   return (
     <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-5 py-9 sm:px-6">
@@ -200,55 +181,47 @@ export function StatusPage() {
           <Panel
             title="Pipeline runs"
             meta={`${data.recentRuns.length} recent`}
-            description="Each bar is one completed or running scan, placed on a shared clock."
+            description="Duration of each recent scan; color shows status."
           >
-            <div className="mt-4">
-              {items.length === 0 ? (
+            <div className="mt-3">
+              {runs.length === 0 ? (
                 <p className="py-3 text-sm text-zinc-500">No scans recorded yet.</p>
               ) : (
-                <Waterfall
-                  aria-label="Recent pipeline runs"
-                  items={items}
-                  format={formatAxis}
-                  className="waterfall"
-                >
-                  <WaterfallHeaderRow>
-                    <WaterfallColumnHeader>run</WaterfallColumnHeader>
-                    <WaterfallColumnHeader>duration</WaterfallColumnHeader>
-                    <WaterfallColumnHeader aria-label="Timeline">
-                      <WaterfallAxis maxTicks={5} />
-                    </WaterfallColumnHeader>
-                  </WaterfallHeaderRow>
-                  {items.map((item) => {
-                    const run = runs.find((entry) => `run-${entry.id}` === item.value)
-                    return (
-                      <WaterfallRow key={item.value} value={item.value}>
-                        <WaterfallRowHeader>{item.label}</WaterfallRowHeader>
-                        <WaterfallCell className="text-right">
-                          {Math.round(item.duration / 1000)}s
-                        </WaterfallCell>
-                        <WaterfallBar
+                runs.map((run) => {
+                  const duration =
+                    run.durationMs ?? (run.finishedAt ? run.finishedAt - run.startedAt : 0)
+                  const color = statusColor[run.status] ?? '#52525b'
+                  return (
+                    <div
+                      key={run.id}
+                      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-t border-white/[0.05] py-2 first:border-t-0"
+                    >
+                      <div className="flex min-w-0 items-center gap-2 font-mono text-[11px]">
+                        <span
+                          className="size-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="truncate text-zinc-300">
+                          #{run.id} · {run.trigger}
+                        </span>
+                        <span className="shrink-0 text-zinc-600">{run.status}</span>
+                      </div>
+                      <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
+                        {Math.round(duration / 1000)}s
+                      </span>
+                      <div className="col-span-2 mt-1.5 h-px bg-white/[0.06]">
+                        <div
+                          className="h-full"
                           style={{
-                            ['--wf-color' as string]: statusColor[run?.status ?? ''] ?? '#52525b',
+                            width: `${Math.max(1, (duration / maxDuration) * 100)}%`,
+                            backgroundColor: color,
                           }}
                         />
-                      </WaterfallRow>
-                    )
-                  })}
-                </Waterfall>
+                      </div>
+                    </div>
+                  )
+                })
               )}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-zinc-500">
-              {[
-                ['succeeded', statusColor.succeeded],
-                ['failed', statusColor.failed],
-                ['running', statusColor.running],
-              ].map(([label, color]) => (
-                <span key={label} className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
-                  {label}
-                </span>
-              ))}
             </div>
           </Panel>
         </div>

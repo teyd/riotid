@@ -40,24 +40,26 @@ export const Donut = ({
   centerLabel: string
 }) => (
   <div className="relative h-52">
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie
-          data={[...data]}
-          dataKey="value"
-          innerRadius="72%"
-          outerRadius="100%"
-          startAngle={90}
-          endAngle={-270}
-          stroke="none"
-        >
-          {data.map((entry) => (
-            <Cell key={entry.name} fill={entry.color} />
-          ))}
-        </Pie>
-        <Tooltip contentStyle={chartTooltipStyle} labelStyle={{ color: '#a1a1aa' }} />
-      </PieChart>
-    </ResponsiveContainer>
+    <div aria-hidden="true" className="h-full w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={[...data]}
+            dataKey="value"
+            innerRadius="72%"
+            outerRadius="100%"
+            startAngle={90}
+            endAngle={-270}
+            stroke="none"
+          >
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip contentStyle={chartTooltipStyle} labelStyle={{ color: '#a1a1aa' }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
       <span className="text-3xl font-semibold tracking-tight text-zinc-50 tabular-nums">
         {centerValue}

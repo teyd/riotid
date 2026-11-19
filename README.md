@@ -116,7 +116,7 @@ the width. Stats shows independent colored signal charts plus a log-scale
 magnitude view, so rare region moves stay visible next to the ladder. The crawler
 renders a Pino-style `crawler.log` from persisted batch events, and the status
 page is a syntax-highlighted `status.json` with hover definitions, a coverage
-donut, and recent pipeline runs as a ui-sdk `Waterfall`.
+donut, and relative duration bars for recent pipeline runs.
 
 ## Deploy (Dokploy)
 
