@@ -212,17 +212,19 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto">
-      <div className="relative h-24 w-full shrink-0 overflow-hidden border-b border-white/[0.08] bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px]">
-        <CardArt
-          art={wideArt}
-          name={name}
-          fallback=""
-          width={452}
-          height={128}
-          loading="eager"
-          fetchPriority="high"
-          className="block h-24 w-full"
-        />
+      <div className="relative flex h-32 w-full shrink-0 items-center justify-center overflow-hidden border-b border-white/[0.08] bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px]">
+        <div className="h-full w-full max-w-[452px]">
+          <CardArt
+            art={wideArt}
+            name={name}
+            fallback=""
+            width={452}
+            height={128}
+            loading="eager"
+            fetchPriority="high"
+            className="block h-full w-full"
+          />
+        </div>
       </div>
 
       <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-ink px-6 py-5">
@@ -258,7 +260,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
                   height={128}
                   loading="lazy"
                   decoding="async"
-                  className="h-36 w-full object-cover"
+                  className="block h-auto w-full"
                 />
                 <p className="px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-400">
                   {name || 'Anonymous'}
