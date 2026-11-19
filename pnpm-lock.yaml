@@ -295,7 +295,7 @@ importers:
         version: 19.3.1(react@19.3.1)
     devDependencies:
       '@babel/core':
-        specifier: ^7.29.13
+        specifier: 7.29.13
         version: 7.29.13
       '@rolldown/plugin-babel':
         specifier: 0.3.1
