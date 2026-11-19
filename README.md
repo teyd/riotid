@@ -87,7 +87,7 @@ Cloudflare. The production scheduler runs a scan every 6 hours, catches up on
 boot, resolves anonymous rows daily, and writes a rotated backup after ten
 minutes and then every 24 hours.
 
-Manual operations use the token-protected admin endpoints (token lives in
+Deploy the current repository branch with `mise run deploy` (it reads the Dokploy key from `~/.config/dokploy/api-key`). Manual operations use the token-protected admin endpoints (token lives in
 `ADMIN_TOKEN`):
 
 ```bash
@@ -97,6 +97,13 @@ curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://riotid.teyd.dev/api/v1/adm
 
 Both return immediately; poll `/api/v1/status` or `/api/v1/stats` for progress.
 The same token is stored locally at `~/.config/opencode/secrets/riotid-admin-token`.
+A backup can be verified without restoring it:
+
+```bash
+curl -X POST -H "x-admin-token: $ADMIN_TOKEN" -H 'content-type: application/json' \
+  -d '{"file":"/app/data/backups/riotid-....db"}' \
+  https://riotid.teyd.dev/api/v1/admin/check
+```
 
 ## Deploy (Dokploy)
 
