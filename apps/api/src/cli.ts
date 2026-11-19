@@ -201,6 +201,20 @@ const dbSeed = Effect.gen(function* () {
   )
 })
 
+const resetInterruptedRuns = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const now = new Date()
+
+  yield* Effect.gen(function* () {
+    const db = yield* Database
+    yield* db.run(sql`
+      update runs
+      set status = 'failed', error = 'container restarted', finished_at = ${now.getTime()}, updated_at = ${now.getTime()}
+      where status = 'running'
+    `)
+  }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+})
+
 const scanOnce = (
   config: { cookieFile: string; databasePath: string },
   trigger: 'schedule' | 'manual' | 'boot',
@@ -695,6 +709,10 @@ const main = Effect.gen(function* () {
         yield* Effect.logInfo('seeded demo development data')
       }
     }
+  }
+
+  if (config.nodeEnv === 'production') {
+    yield* resetInterruptedRuns
   }
 
   const app = makeApp({
