@@ -44,6 +44,7 @@ type PlayerRow = {
   puuid: string
   name: string | null
   tag: string | null
+  card_id: string | null
   region: Region | null
   is_anonymized: number
   name_changes: number
@@ -105,7 +106,7 @@ export const buildSiteIndex = (
     `)
     const rows = yield* db.all<PlayerRow>(sql`
       select
-        puuid, name, tag, region, is_anonymized,
+        puuid, name, tag, card_id, region, is_anonymized,
         name_changes, region_changes, ban_count, unban_count,
         first_seen_at, last_seen_at, last_name_change_at, last_region_change_at
       from players
@@ -133,6 +134,7 @@ export const buildSiteIndex = (
         row.last_seen_at,
         row.last_name_change_at,
         row.last_region_change_at,
+        row.card_id,
       ]
     })
 
@@ -166,6 +168,7 @@ export const loadPlayerDetail = (
       puuid: string
       name: string | null
       tag: string | null
+      card_id: string | null
       region: Region | null
       is_banned: number
       is_anonymized: number
@@ -274,6 +277,7 @@ export const loadPlayerDetail = (
         puuid: player.puuid,
         name: player.name,
         tag: player.tag,
+        cardId: player.card_id,
         region: player.region,
         isBanned: player.is_banned === 1,
         isAnonymized: player.is_anonymized === 1,
@@ -402,17 +406,36 @@ export const buildSiteStats: Effect.Effect<SiteStats, unknown, Database> = Effec
       order by ended_at desc, id desc
       limit 20
     `)
-  const recentRegions = yield* db.all<{ puuid: string; region: Region; ended_at: number }>(sql`
-      select puuid, region, ended_at from player_regions
-      where ended_at is not null
-      order by ended_at desc, id desc
+  const recentRegions = yield* db.all<{
+    puuid: string
+    name: string | null
+    tag: string | null
+    region: Region
+    ended_at: number
+  }>(sql`
+      select r.puuid, p.name, p.tag, r.region, r.ended_at
+      from player_regions r left join players p on p.puuid = r.puuid
+      where r.ended_at is not null
+      order by r.ended_at desc, r.id desc
       limit 20
     `)
-  const recentBans = yield* db.all<{ puuid: string; ended_at: number }>(sql`
-      select puuid, ended_at from banned_players
-      where ended_at is not null
-      order by ended_at desc, id desc
+  const recentBans = yield* db.all<{
+    puuid: string
+    name: string | null
+    tag: string | null
+    ended_at: number
+  }>(sql`
+      select b.puuid, p.name, p.tag, b.ended_at
+      from banned_players b left join players p on p.puuid = b.puuid
+      where b.ended_at is not null
+      order by b.ended_at desc, b.id desc
       limit 20
+    `)
+  const runRows = yield* db.all<{ finished_at: number; stats: string }>(sql`
+      select finished_at, stats from runs
+      where status = 'succeeded' and finished_at is not null
+      order by finished_at desc
+      limit 30
     `)
   const mostChanged = yield* db.all<{
     puuid: string
@@ -492,11 +515,34 @@ export const buildSiteStats: Effect.Effect<SiteStats, unknown, Database> = Effec
       })),
       regions: recentRegions.map((row) => ({
         puuid: row.puuid,
+        name: row.name,
+        tag: row.tag,
         region: row.region,
         endedAt: row.ended_at,
       })),
-      bans: recentBans.map((row) => ({ puuid: row.puuid, endedAt: row.ended_at })),
+      bans: recentBans.map((row) => ({
+        puuid: row.puuid,
+        name: row.name,
+        tag: row.tag,
+        endedAt: row.ended_at,
+      })),
     },
+    history: runRows
+      .map((row) => {
+        const stats = parseEvidence(row.stats)
+        const value = (key: string) => (typeof stats[key] === 'number' ? (stats[key] as number) : 0)
+
+        return {
+          at: row.finished_at,
+          players: value('players'),
+          nameChanges: value('nameChanges'),
+          regionChanges: value('regionChanges'),
+          bans: value('bans'),
+          unbans: value('unbans'),
+          anonymous: value('anonymized'),
+        }
+      })
+      .reverse(),
     mostChanged: mostChanged.map((row) => ({
       puuid: row.puuid,
       name: row.name,

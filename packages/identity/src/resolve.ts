@@ -64,6 +64,7 @@ type LinkPlan = {
   readonly region: Region
   readonly seasonId: string
   readonly matchId: string | null
+  readonly cardId: string
   readonly method: 'direct_puuid' | 'match_graph'
   readonly confidence: number
   readonly evidence: Record<string, unknown>
@@ -177,6 +178,7 @@ export const resolveAnonymous = (
           region: row.region,
           seasonId: row.seasonId,
           matchId: null,
+          cardId: row.cardId,
           method: 'direct_puuid',
           confidence: 10_000,
           evidence: {
@@ -396,6 +398,7 @@ export const resolveAnonymous = (
           region: row.region,
           seasonId: row.seasonId,
           matchId: match.matchId,
+          cardId: row.cardId,
           method: 'match_graph',
           confidence: 9_995,
           evidence: {
@@ -526,6 +529,7 @@ export const resolveAnonymous = (
               puuid: plan.puuid,
               name: plan.name?.name ?? null,
               tag: plan.name?.tag ?? null,
+              cardId: plan.cardId ?? null,
               region: plan.region,
               isAnonymized: true,
               firstSeenAt: nowDate,

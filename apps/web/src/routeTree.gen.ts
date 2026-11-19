@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as PlayersPuuidRouteImport } from './routes/players.$puuid'
+import { Route as PuuidPuuidRouteImport } from './routes/puuid.$puuid'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const PlayersPuuidRoute = PlayersPuuidRouteImport.update({
   path: '/players/$puuid',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PuuidPuuidRoute = PuuidPuuidRouteImport.update({
+  id: '/puuid/$puuid',
+  path: '/puuid/$puuid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/stats': typeof StatsRoute
   '/status': typeof StatusRoute
   '/players/$puuid': typeof PlayersPuuidRoute
+  '/puuid/$puuid': typeof PuuidPuuidRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/stats': typeof StatsRoute
   '/status': typeof StatusRoute
   '/players/$puuid': typeof PlayersPuuidRoute
+  '/puuid/$puuid': typeof PuuidPuuidRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,20 @@ export interface FileRoutesById {
   '/stats': typeof StatsRoute
   '/status': typeof StatusRoute
   '/players/$puuid': typeof PlayersPuuidRoute
+  '/puuid/$puuid': typeof PuuidPuuidRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/stats' | '/status' | '/players/$puuid'
+  fullPaths: '/' | '/stats' | '/status' | '/players/$puuid' | '/puuid/$puuid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/stats' | '/status' | '/players/$puuid'
-  id: '__root__' | '/' | '/stats' | '/status' | '/players/$puuid'
+  to: '/' | '/stats' | '/status' | '/players/$puuid' | '/puuid/$puuid'
+  id:
+    | '__root__'
+    | '/'
+    | '/stats'
+    | '/status'
+    | '/players/$puuid'
+    | '/puuid/$puuid'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +82,7 @@ export interface RootRouteChildren {
   StatsRoute: typeof StatsRoute
   StatusRoute: typeof StatusRoute
   PlayersPuuidRoute: typeof PlayersPuuidRoute
+  PuuidPuuidRoute: typeof PuuidPuuidRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +115,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersPuuidRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/puuid/$puuid': {
+      id: '/puuid/$puuid'
+      path: '/puuid/$puuid'
+      fullPath: '/puuid/$puuid'
+      preLoaderRoute: typeof PuuidPuuidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +130,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatsRoute: StatsRoute,
   StatusRoute: StatusRoute,
   PlayersPuuidRoute: PlayersPuuidRoute,
+  PuuidPuuidRoute: PuuidPuuidRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

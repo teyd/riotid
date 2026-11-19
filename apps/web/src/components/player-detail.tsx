@@ -11,6 +11,9 @@ import ExternalLinkIcon from 'kubai-icons-react/icons/external-link'
 import { useState } from 'react'
 
 import {
+  cardAccent,
+  cardArt,
+  cardWideArt,
   fetchPlayer,
   FLAG,
   formatDate,
@@ -41,8 +44,8 @@ const TimelineRow = ({
 }) => (
   <div className="flex items-baseline justify-between gap-4 py-2">
     <div className="min-w-0">
-      <p className="truncate text-[13px] text-zinc-200">{title}</p>
-      <p className="mt-0.5 font-mono text-[10px] text-zinc-600">{subtitle}</p>
+      <p className="truncate text-sm text-zinc-100">{title}</p>
+      <p className="mt-1 font-mono text-[11px] text-zinc-500">{subtitle}</p>
     </div>
     {current ? <Badge tone="accent">now</Badge> : null}
   </div>
@@ -118,18 +121,46 @@ export const PlayerDetailPanel = ({ puuid, row, onBack }: Props) => {
   const name = detail?.player.name ?? row?.[P.name] ?? ''
   const tag = detail?.player.tag ?? row?.[P.tag] ?? ''
   const region = detail?.player.region ?? row?.[P.region] ?? null
+  const cardId = detail?.player.cardId ?? row?.[P.cardId] ?? null
+  const wideArt = cardWideArt(cardId)
 
   const copy = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}/players/${puuid}`)
+    await navigator.clipboard.writeText(`${window.location.origin}/puuid/${puuid}`)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1200)
   }
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="sticky top-0 z-10 border-b border-white/[0.06] bg-ink/95 px-5 py-4 backdrop-blur">
+      <div
+        className="sticky top-0 z-10 border-b border-white/[0.06] bg-ink/95 px-6 py-5 backdrop-blur"
+        style={
+          wideArt
+            ? {
+                backgroundImage: `linear-gradient(90deg, rgba(9,9,11,0.96) 0%, rgba(9,9,11,0.82) 55%, rgba(9,9,11,0.55) 100%), url(${wideArt})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : undefined
+        }
+      >
         <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-start gap-3">
+          <div className="flex min-w-0 items-start gap-4">
+            {cardArt(cardId) ? (
+              <span
+                className="hidden h-14 w-11 shrink-0 overflow-hidden rounded-sm ring-1 ring-white/15 sm:block"
+                style={{ backgroundColor: cardAccent(cardId) }}
+              >
+                <img
+                  src={cardArt(cardId) ?? ''}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                />
+              </span>
+            ) : null}
             <button
               type="button"
               onClick={onBack}
@@ -140,10 +171,10 @@ export const PlayerDetailPanel = ({ puuid, row, onBack }: Props) => {
             </button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <h1 className="truncate text-xl font-semibold tracking-tight text-zinc-50">
+                <h1 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
                   {name || 'Anonymous'}
                 </h1>
-                {tag ? <span className="font-mono text-xs text-zinc-500">#{tag}</span> : null}
+                {tag ? <span className="font-mono text-sm text-zinc-400">#{tag}</span> : null}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <Badge>{regionLabel(region)}</Badge>
@@ -168,22 +199,22 @@ export const PlayerDetailPanel = ({ puuid, row, onBack }: Props) => {
           </button>
         </div>
 
-        <dl className="mt-4 grid grid-cols-3 gap-3 font-mono text-[10px]">
+        <dl className="mt-5 grid grid-cols-3 gap-3 font-mono text-[11px]">
           <div>
             <dt className="text-zinc-600">first seen</dt>
-            <dd className="mt-0.5 text-zinc-300">
+            <dd className="mt-1 text-sm text-zinc-200">
               {formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
             </dd>
           </div>
           <div>
             <dt className="text-zinc-600">last seen</dt>
-            <dd className="mt-0.5 text-zinc-300">
+            <dd className="mt-1 text-sm text-zinc-200">
               {formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
             </dd>
           </div>
           <div>
             <dt className="text-zinc-600">observations</dt>
-            <dd className="mt-0.5 text-zinc-300">{detail?.player.timesSeen ?? '—'}</dd>
+            <dd className="mt-1 text-sm text-zinc-200">{detail?.player.timesSeen ?? '—'}</dd>
           </div>
         </dl>
       </div>

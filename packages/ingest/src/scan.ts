@@ -496,6 +496,7 @@ export const scan = (
         puuid,
         name: nextName,
         tag: nextTag,
+        cardId: entry.player.PlayerCardID,
         region: nextRegion,
         isBanned: isBanned,
         isAnonymized: false,
@@ -585,6 +586,7 @@ export const scan = (
               set: {
                 name: sql`excluded.name`,
                 tag: sql`excluded.tag`,
+                cardId: sql`excluded.card_id`,
                 region: sql`excluded.region`,
                 isBanned: sql`excluded.is_banned`,
                 isAnonymized: sql`excluded.is_anonymized`,
