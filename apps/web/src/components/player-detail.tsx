@@ -56,7 +56,7 @@ const HistoryTimeline = ({
         className="relative grid grid-cols-[12px_1fr] gap-x-4 pb-6 last:pb-0"
       >
         <div className="relative flex justify-center">
-          <TimelineMarker className="relative z-[1] mt-1.5 size-2 rounded-full bg-zinc-700 ring-4 ring-ink data-[current]:size-2.5 data-[current]:bg-accent data-[current]:ring-white/15" />
+          <TimelineMarker className="relative z-[1] mt-1.5 size-2 rounded-full bg-zinc-700 ring-4 ring-ink data-[current]:size-2.5 data-[current]:bg-accent" />
         </div>
         {index < items.length - 1 ? (
           <TimelineConnector className="absolute top-3.5 -bottom-1.5 left-1.5 w-px bg-white/[0.09]" />
