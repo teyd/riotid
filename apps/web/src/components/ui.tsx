@@ -16,7 +16,7 @@ export const Badge = ({
 
   return (
     <span
-      className={`inline-flex items-center rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${tones[tone]}`}
+      className={`inline-flex items-center rounded border px-2 py-1 font-mono text-[11px] uppercase tracking-wide ${tones[tone]}`}
     >
       {children}
     </span>
@@ -43,9 +43,9 @@ export const Section = ({
   meta?: ReactNode
   children: ReactNode
 }) => (
-  <section className="border-t border-white/[0.06] px-5 py-4">
-    <div className="mb-3 flex items-center justify-between">
-      <h3 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{title}</h3>
+  <section className="border-t border-white/[0.06] px-6 py-6">
+    <div className="mb-4 flex items-center justify-between">
+      <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">{title}</h3>
       {meta}
     </div>
     {children}
@@ -53,14 +53,14 @@ export const Section = ({
 )
 
 export const EmptyState = ({ title, hint }: { title: string; hint?: string }) => (
-  <div className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center">
-    <p className="text-sm text-zinc-400">{title}</p>
-    {hint ? <p className="max-w-sm text-xs text-zinc-600">{hint}</p> : null}
+  <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
+    <p className="text-base text-zinc-300">{title}</p>
+    {hint ? <p className="max-w-sm text-sm leading-6 text-zinc-500">{hint}</p> : null}
   </div>
 )
 
 export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
-  <div className="flex items-center gap-2 px-5 py-4 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
+  <div className="flex items-center gap-3 px-6 py-6 font-mono text-xs uppercase tracking-wide text-zinc-500">
     <span className="size-1.5 animate-pulse rounded-full bg-accent" />
     {label}
   </div>
@@ -68,7 +68,7 @@ export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
 
 export const ErrorState = ({ error }: { error: Error }) => (
   <div className="flex flex-col items-start gap-2 p-6">
-    <p className="text-sm text-amber-300">Could not load data.</p>
-    <p className="font-mono text-[11px] text-zinc-600">{error.message}</p>
+    <p className="text-base text-amber-300">Could not load data.</p>
+    <p className="font-mono text-xs text-zinc-500">{error.message}</p>
   </div>
 )

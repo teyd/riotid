@@ -1,0 +1,2240 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "id": "5beea0df-8b4d-4a1c-9ce6-5c56824d4bb4",
+  "prevIds": ["1fae1ca6-9e19-473d-92f9-259b047b2382"],
+  "ddl": [
+    {
+      "name": "anonymous_rows",
+      "entityType": "tables"
+    },
+    {
+      "name": "banned_players",
+      "entityType": "tables"
+    },
+    {
+      "name": "identity_links",
+      "entityType": "tables"
+    },
+    {
+      "name": "leaderboard_seeds",
+      "entityType": "tables"
+    },
+    {
+      "name": "match_candidates",
+      "entityType": "tables"
+    },
+    {
+      "name": "meta",
+      "entityType": "tables"
+    },
+    {
+      "name": "player_names",
+      "entityType": "tables"
+    },
+    {
+      "name": "player_regions",
+      "entityType": "tables"
+    },
+    {
+      "name": "players",
+      "entityType": "tables"
+    },
+    {
+      "name": "run_regions",
+      "entityType": "tables"
+    },
+    {
+      "name": "runs",
+      "entityType": "tables"
+    },
+    {
+      "name": "seasons",
+      "entityType": "tables"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "region",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "season_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "leaderboard_rank",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "ranked_rating",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "number_of_wins",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "competitive_tier",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "card_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "title_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "puuid",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "resolved_puuid",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "status",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'unresolved'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "first_seen_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "last_seen_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "last_tried_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "puuid",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "started_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "ended_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "last_seen_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "started_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "ended_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "evidence",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'leaderboard'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "banned_players",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "anonymous_row_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "puuid",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "region",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "season_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "match_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "method",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "confidence",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "evidence",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{}'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "identity_links",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "puuid",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "region",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "season_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_rank",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "ranked_rating",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "number_of_wins",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "competitive_tier",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "last_seen_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "match_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "puuid",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "region",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "game_start_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "card_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "title_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "account_level",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "competitive_tier",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "match_candidates",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "meta",
+      "name": "key",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "meta",
+      "name": "value",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "meta",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "puuid",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "tag",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "started_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "ended_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "started_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "ended_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "source",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'name_service'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_names",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "puuid",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "region",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "started_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "ended_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "started_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "ended_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "evidence",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'leaderboard'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "player_regions",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "puuid",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "name",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "tag",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "card_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "region",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "is_banned",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "is_anonymized",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "first_seen_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "last_seen_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "first_seen_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "last_seen_run_id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "times_seen",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "name_changes",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "region_changes",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "ban_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "unban_count",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "last_name_change_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "last_region_change_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "last_ban_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "last_unban_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "players",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "run_id",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "region",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "status",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'running'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "pages",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "players",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "page_overlaps",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "cross_region_overlaps",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "stale_names",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "unresolved_names",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "banned",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "anonymized",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "stats",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{}'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "error",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "run_regions",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "id",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "status",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'running'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "trigger",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "season_id",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "client_version",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "started_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "finished_at",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "duration_ms",
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "stats",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{}'",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "error",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "runs",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "uuid",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "display_name",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "type",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "starts_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "ends_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "parent_uuid",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "is_active",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "false",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "seasons",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_row_idx",
+      "columns": [
+        {
+          "value": "region",
+          "isExpression": false
+        },
+        {
+          "value": "season_id",
+          "isExpression": false
+        },
+        {
+          "value": "leaderboard_rank",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_status_idx",
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        },
+        {
+          "value": "region",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_queue_idx",
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        },
+        {
+          "value": "last_tried_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "banned_players",
+      "name": "banned_players_open_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "\"banned_players\".\"ended_at\" IS NULL",
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "banned_players",
+      "name": "banned_players_puuid_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        },
+        {
+          "value": "started_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "identity_links",
+      "name": "identity_links_anonymous_idx",
+      "columns": [
+        {
+          "value": "anonymous_row_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "identity_links",
+      "name": "identity_links_player_season_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        },
+        {
+          "value": "season_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "identity_links",
+      "name": "identity_links_puuid_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_seeds_lookup_idx",
+      "columns": [
+        {
+          "value": "region",
+          "isExpression": false
+        },
+        {
+          "value": "season_id",
+          "isExpression": false
+        },
+        {
+          "value": "leaderboard_rank",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "match_candidates",
+      "name": "match_candidates_lookup_idx",
+      "columns": [
+        {
+          "value": "region",
+          "isExpression": false
+        },
+        {
+          "value": "competitive_tier",
+          "isExpression": false
+        },
+        {
+          "value": "card_id",
+          "isExpression": false
+        },
+        {
+          "value": "title_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "match_candidates",
+      "name": "match_candidates_puuid_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "match_candidates",
+      "name": "match_candidates_created_idx",
+      "columns": [
+        {
+          "value": "created_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "player_names",
+      "name": "player_names_open_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "\"player_names\".\"ended_at\" IS NULL",
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "player_names",
+      "name": "player_names_puuid_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        },
+        {
+          "value": "started_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "player_regions",
+      "name": "player_regions_open_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "\"player_regions\".\"ended_at\" IS NULL",
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "player_regions",
+      "name": "player_regions_puuid_idx",
+      "columns": [
+        {
+          "value": "puuid",
+          "isExpression": false
+        },
+        {
+          "value": "started_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "players",
+      "name": "players_region_idx",
+      "columns": [
+        {
+          "value": "region",
+          "isExpression": false
+        },
+        {
+          "value": "last_seen_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "players",
+      "name": "players_last_seen_idx",
+      "columns": [
+        {
+          "value": "last_seen_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "players",
+      "name": "players_name_idx",
+      "columns": [
+        {
+          "value": "name",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "run_regions",
+      "name": "run_regions_region_idx",
+      "columns": [
+        {
+          "value": "region",
+          "isExpression": false
+        },
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "runs",
+      "name": "runs_started_idx",
+      "columns": [
+        {
+          "value": "started_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "runs",
+      "name": "runs_running_idx",
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": "\"runs\".\"status\" = 'running'",
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "seasons",
+      "name": "seasons_active_idx",
+      "columns": [
+        {
+          "value": "is_active",
+          "isExpression": false
+        },
+        {
+          "value": "ends_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "fk_anonymous_rows_resolved_puuid_players_puuid_fk",
+      "columns": ["resolved_puuid"],
+      "tableTo": "players",
+      "columnsTo": ["puuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "banned_players",
+      "name": "fk_banned_players_puuid_players_puuid_fk",
+      "columns": ["puuid"],
+      "tableTo": "players",
+      "columnsTo": ["puuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "banned_players",
+      "name": "fk_banned_players_started_run_id_runs_id_fk",
+      "columns": ["started_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "banned_players",
+      "name": "fk_banned_players_ended_run_id_runs_id_fk",
+      "columns": ["ended_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "identity_links",
+      "name": "fk_identity_links_anonymous_row_id_anonymous_rows_id_fk",
+      "columns": ["anonymous_row_id"],
+      "tableTo": "anonymous_rows",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "identity_links",
+      "name": "fk_identity_links_puuid_players_puuid_fk",
+      "columns": ["puuid"],
+      "tableTo": "players",
+      "columnsTo": ["puuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "fk_leaderboard_seeds_puuid_players_puuid_fk",
+      "columns": ["puuid"],
+      "tableTo": "players",
+      "columnsTo": ["puuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "player_names",
+      "name": "fk_player_names_puuid_players_puuid_fk",
+      "columns": ["puuid"],
+      "tableTo": "players",
+      "columnsTo": ["puuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "player_names",
+      "name": "fk_player_names_started_run_id_runs_id_fk",
+      "columns": ["started_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "player_names",
+      "name": "fk_player_names_ended_run_id_runs_id_fk",
+      "columns": ["ended_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "player_regions",
+      "name": "fk_player_regions_puuid_players_puuid_fk",
+      "columns": ["puuid"],
+      "tableTo": "players",
+      "columnsTo": ["puuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "player_regions",
+      "name": "fk_player_regions_started_run_id_runs_id_fk",
+      "columns": ["started_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "player_regions",
+      "name": "fk_player_regions_ended_run_id_runs_id_fk",
+      "columns": ["ended_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "players",
+      "name": "fk_players_first_seen_run_id_runs_id_fk",
+      "columns": ["first_seen_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "players",
+      "name": "fk_players_last_seen_run_id_runs_id_fk",
+      "columns": ["last_seen_run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "run_regions",
+      "name": "fk_run_regions_run_id_runs_id_fk",
+      "columns": ["run_id"],
+      "tableTo": "runs",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "runs",
+      "name": "fk_runs_season_id_seasons_uuid_fk",
+      "columns": ["season_id"],
+      "tableTo": "seasons",
+      "columnsTo": ["uuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "SET NULL",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
+      "table": "match_candidates",
+      "name": "match_candidates_pk",
+      "columns": ["match_id", "puuid"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "run_regions",
+      "name": "run_regions_pk",
+      "columns": ["run_id", "region"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "banned_players",
+      "name": "banned_players_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "identity_links",
+      "name": "identity_links_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_seeds_pk",
+      "columns": ["puuid"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "meta",
+      "name": "meta_pk",
+      "columns": ["key"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "player_names",
+      "name": "player_names_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "player_regions",
+      "name": "player_regions_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "players",
+      "name": "players_pk",
+      "columns": ["puuid"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "runs",
+      "name": "runs_pk",
+      "columns": ["id"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "seasons",
+      "name": "seasons_pk",
+      "columns": ["uuid"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_region_check",
+      "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
+      "entityType": "checks"
+    },
+    {
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_status_check",
+      "value": "\"status\" IN ('unresolved', 'linked', 'ignored')",
+      "entityType": "checks"
+    },
+    {
+      "table": "banned_players",
+      "name": "banned_players_evidence_check",
+      "value": "\"evidence\" = 'leaderboard'",
+      "entityType": "checks"
+    },
+    {
+      "table": "banned_players",
+      "name": "banned_players_interval_check",
+      "value": "\"ended_at\" IS NULL OR \"ended_at\" >= \"started_at\"",
+      "entityType": "checks"
+    },
+    {
+      "table": "identity_links",
+      "name": "identity_links_region_check",
+      "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
+      "entityType": "checks"
+    },
+    {
+      "table": "identity_links",
+      "name": "identity_links_method_check",
+      "value": "\"method\" IN ('direct_puuid', 'mmr_fingerprint', 'match_graph')",
+      "entityType": "checks"
+    },
+    {
+      "table": "identity_links",
+      "name": "identity_links_confidence_check",
+      "value": "\"confidence\" BETWEEN 0 AND 10000",
+      "entityType": "checks"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_seeds_region_check",
+      "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
+      "entityType": "checks"
+    },
+    {
+      "table": "match_candidates",
+      "name": "match_candidates_region_check",
+      "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
+      "entityType": "checks"
+    },
+    {
+      "table": "player_names",
+      "name": "player_names_source_check",
+      "value": "\"source\" IN ('name_service', 'match_link')",
+      "entityType": "checks"
+    },
+    {
+      "table": "player_names",
+      "name": "player_names_interval_check",
+      "value": "\"ended_at\" IS NULL OR \"ended_at\" >= \"started_at\"",
+      "entityType": "checks"
+    },
+    {
+      "table": "player_regions",
+      "name": "player_regions_region_check",
+      "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
+      "entityType": "checks"
+    },
+    {
+      "table": "player_regions",
+      "name": "player_regions_evidence_check",
+      "value": "\"evidence\" IN ('leaderboard', 'mmr_probe')",
+      "entityType": "checks"
+    },
+    {
+      "table": "player_regions",
+      "name": "player_regions_interval_check",
+      "value": "\"ended_at\" IS NULL OR \"ended_at\" >= \"started_at\"",
+      "entityType": "checks"
+    },
+    {
+      "table": "players",
+      "name": "players_name_pair_check",
+      "value": "(\"name\" IS NULL) = (\"tag\" IS NULL)",
+      "entityType": "checks"
+    },
+    {
+      "table": "players",
+      "name": "players_region_check",
+      "value": "\"region\" IS NULL OR \"region\" IN ('na', 'eu', 'ap', 'kr')",
+      "entityType": "checks"
+    },
+    {
+      "table": "players",
+      "name": "players_counters_check",
+      "value": "\"times_seen\" >= 0 AND \"name_changes\" >= 0 AND \"region_changes\" >= 0 AND \"ban_count\" >= 0 AND \"unban_count\" >= 0",
+      "entityType": "checks"
+    },
+    {
+      "table": "run_regions",
+      "name": "run_regions_region_check",
+      "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
+      "entityType": "checks"
+    },
+    {
+      "table": "run_regions",
+      "name": "run_regions_status_check",
+      "value": "\"status\" IN ('running', 'succeeded', 'failed')",
+      "entityType": "checks"
+    },
+    {
+      "table": "runs",
+      "name": "runs_status_check",
+      "value": "\"status\" IN ('running', 'succeeded', 'failed')",
+      "entityType": "checks"
+    },
+    {
+      "table": "runs",
+      "name": "runs_trigger_check",
+      "value": "\"trigger\" IN ('schedule', 'manual', 'boot')",
+      "entityType": "checks"
+    }
+  ],
+  "renames": []
+}

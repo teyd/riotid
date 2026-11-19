@@ -9,7 +9,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import SearchIcon from 'kubai-icons-react/icons/search'
-import { useDeferredValue, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
 import { PlayerDetailPanel } from '../components/player-detail.tsx'
 import { PlayerList } from '../components/player-list.tsx'
@@ -58,7 +58,37 @@ function Home() {
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState<'all' | Region>('all')
   const [sort, setSort] = useState<Sort>('recent')
+  const [split, setSplit] = useState(() => {
+    const stored = Number(window.localStorage.getItem('riotid:split'))
+    return Number.isFinite(stored) && stored >= 360 ? stored : 460
+  })
+  const [dragging, setDragging] = useState(false)
+  const splitRef = useRef(split)
   const deferredQuery = useDeferredValue(query)
+
+  useEffect(() => {
+    splitRef.current = split
+  }, [split])
+
+  useEffect(() => {
+    if (!dragging) return
+
+    const move = (event: PointerEvent) => {
+      setSplit(Math.max(360, Math.min(760, event.clientX)))
+    }
+    const stop = () => {
+      setDragging(false)
+      window.localStorage.setItem('riotid:split', String(splitRef.current))
+    }
+
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', stop, { once: true })
+
+    return () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', stop)
+    }
+  }, [dragging])
 
   const index = useQuery({
     queryKey: ['index'],
@@ -126,46 +156,61 @@ function Home() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(320px,430px)_minmax(0,1fr)]">
+      <div
+        className="grid min-h-0 flex-1 lg:grid-cols-[var(--split)_minmax(0,1fr)]"
+        style={{ ['--split' as string]: `${split}px` }}
+      >
         <section
-          className={`min-h-0 flex-col border-r border-white/[0.06] ${p ? 'hidden lg:flex' : 'flex'}`}
+          className={`relative min-h-0 flex-col border-r border-white/[0.07] ${p ? 'hidden lg:flex' : 'flex'}`}
         >
-          <div className="border-b border-white/[0.06] px-3 py-3">
-            <div className="flex items-center gap-2">
-              <label className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-white/10 bg-black/25 px-2.5 focus-within:border-accent/50">
-                <SearchIcon className="size-3.5 shrink-0 text-zinc-600" />
-                <input
-                  ref={searchRef}
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search name, tag, puuid"
-                  spellCheck={false}
-                  autoComplete="off"
-                  className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
-                />
-                <kbd className="hidden rounded border border-white/10 px-1 font-mono text-[9px] text-zinc-600 sm:block">
-                  /
-                </kbd>
-              </label>
-            </div>
+          <button
+            type="button"
+            aria-label="Resize player list"
+            onPointerDown={(event) => {
+              event.preventDefault()
+              setDragging(true)
+            }}
+            className="absolute top-0 right-0 z-20 hidden h-full w-2 translate-x-1/2 cursor-col-resize touch-none items-center justify-center lg:flex"
+          >
+            <span
+              className={`h-12 w-0.5 rounded-full transition-colors ${dragging ? 'bg-accent' : 'bg-white/10 hover:bg-white/25'}`}
+            />
+          </button>
 
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-0.5 rounded-md border border-white/[0.08] p-0.5">
+          <div className="border-b border-white/[0.07] px-4 py-4">
+            <label className="flex h-11 min-w-0 items-center gap-2.5 rounded-lg border border-white/10 bg-black/25 px-3 focus-within:border-accent/50">
+              <SearchIcon className="size-4 shrink-0 text-zinc-500" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search name, tag, puuid"
+                spellCheck={false}
+                autoComplete="off"
+                className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+              />
+              <kbd className="hidden rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 sm:block">
+                /
+              </kbd>
+            </label>
+
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] p-1">
                 {regions.map((item) => (
                   <button
                     key={item.value}
                     type="button"
                     onClick={() => setRegion(item.value)}
                     data-active={region === item.value}
-                    className="rounded px-1.5 py-1 font-mono text-[9px] uppercase tracking-wide text-zinc-500 hover:text-zinc-300 data-[active=true]:bg-white/10 data-[active=true]:text-zinc-100"
+                    className="rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 data-[active=true]:bg-white/10 data-[active=true]:text-zinc-100"
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-zinc-600">
+              <div className="flex items-center gap-2.5">
+                <span className="font-mono text-[11px] text-zinc-500">
                   {rows.length.toLocaleString()}
                 </span>
                 <Select
@@ -176,15 +221,15 @@ function Home() {
                   items={sorts}
                 >
                   <SelectLabel className="sr-only">Sort players</SelectLabel>
-                  <SelectTrigger className="flex h-6 items-center gap-1 rounded border border-white/10 px-1.5 font-mono text-[9px] uppercase tracking-wide text-zinc-400 hover:border-white/25">
+                  <SelectTrigger className="flex h-8 items-center gap-1.5 rounded-md border border-white/10 px-2.5 font-mono text-[10px] uppercase tracking-wide text-zinc-400 hover:border-white/25">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="z-50 rounded-md border border-white/10 bg-panel p-1 text-xs shadow-2xl">
+                  <SelectContent className="z-50 rounded-lg border border-white/10 bg-panel p-1.5 text-sm shadow-2xl">
                     {sorts.map((item) => (
                       <SelectItem
                         key={item.value}
                         value={item.value}
-                        className="rounded px-2 py-1.5 text-zinc-300 data-[highlighted]:bg-white/10 data-[highlighted]:text-zinc-50"
+                        className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/10 data-[highlighted]:text-zinc-50"
                       >
                         {item.label}
                       </SelectItem>
@@ -207,7 +252,7 @@ function Home() {
             />
           </div>
 
-          <div className="border-t border-white/[0.06] px-3 py-2 font-mono text-[9px] text-zinc-600">
+          <div className="border-t border-white/[0.06] px-4 py-3 font-mono text-[10px] text-zinc-500">
             {index.isError ? (
               <span className="text-amber-400">API offline — retrying</span>
             ) : (

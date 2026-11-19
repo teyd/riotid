@@ -106,6 +106,7 @@ export const players = sqliteTable(
     puuid: text('puuid').primaryKey(),
     name: text('name'),
     tag: text('tag'),
+    cardId: text('card_id'),
     region: text('region', { enum: regions }),
     isBanned: integer('is_banned', { mode: 'boolean' }).notNull().default(false),
     isAnonymized: integer('is_anonymized', { mode: 'boolean' }).notNull().default(false),

@@ -17,9 +17,9 @@ const Row = ({
   value: string
   hint?: string | undefined
 }) => (
-  <div className="flex items-baseline justify-between gap-4 border-b border-white/[0.04] py-2 last:border-0">
-    <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-600">{label}</span>
-    <span className="text-right font-mono text-[11px] text-zinc-300">
+  <div className="flex items-baseline justify-between gap-4 border-b border-white/[0.04] py-3 last:border-0">
+    <span className="font-mono text-[11px] uppercase tracking-wide text-zinc-500">{label}</span>
+    <span className="text-right font-mono text-xs text-zinc-300">
       {value}
       {hint ? <span className="ml-2 text-zinc-600">{hint}</span> : null}
     </span>
@@ -43,17 +43,17 @@ function StatusPage() {
   const data = status.data
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-5">
+    <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">readiness</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Service status</h1>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Service status</h1>
         </div>
         <Badge tone={data.ok ? 'accent' : 'warn'}>{data.ok ? 'operational' : 'degraded'}</Badge>
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-2">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-5 py-3">
           <Row
             label="api"
             value={data.ok ? 'ok' : 'error'}
@@ -76,7 +76,7 @@ function StatusPage() {
           />
         </div>
 
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-2">
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-5 py-3">
           <Row
             label="latest run"
             value={data.latestRun ? `#${data.latestRun.id} ${data.latestRun.status}` : '—'}
@@ -99,7 +99,7 @@ function StatusPage() {
         </div>
       </div>
 
-      <p className="mt-5 font-mono text-[10px] leading-5 text-zinc-600">
+      <p className="mt-6 font-mono text-xs leading-6 text-zinc-500">
         Data freshness follows the scan scheduler. The API is read-only and never calls Riot. Cookie
         jar path: {data.auth.cookieFile}.
       </p>

@@ -1,8 +1,8 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useRef, type RefObject } from 'react'
 
-import { FLAG, formatRelative, P, regionShort, type IndexRow } from '../lib/api.ts'
-import { Dot, EmptyState, LoadingState } from './ui.tsx'
+import { cardAccent, cardArt, formatRelative, P, regionShort, type IndexRow } from '../lib/api.ts'
+import { EmptyState, LoadingState } from './ui.tsx'
 
 type Props = {
   readonly rows: ReadonlyArray<IndexRow>
@@ -27,7 +27,7 @@ export const PlayerList = ({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 44,
+    estimateSize: () => 56,
     overscan: 14,
   })
 
@@ -105,11 +105,13 @@ export const PlayerList = ({
           const row = rows[item.index]
           if (!row) return null
           const puuid = row[P.puuid]
-          const flags = row[P.flags]
           const region = row[P.region]
           const active = puuid === selected
           const name = row[P.name]
           const tag = row[P.tag]
+
+          const cardId = row[P.cardId]
+          const art = cardArt(cardId)
 
           return (
             <button
@@ -119,37 +121,46 @@ export const PlayerList = ({
               onClick={() => onSelect(puuid)}
               onMouseEnter={() => onPrefetch(puuid)}
               onFocus={() => onPrefetch(puuid)}
-              className="absolute top-0 left-0 flex h-11 w-full items-center gap-3 border-b border-white/[0.04] px-4 text-left transition-colors hover:bg-white/[0.035] focus-visible:bg-white/[0.05] focus-visible:outline-none data-[selected=true]:bg-white/[0.06]"
-              style={{ transform: `translateY(${item.start}px)` }}
+              className="absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left transition-colors hover:bg-white/[0.035] focus-visible:bg-white/[0.05] focus-visible:outline-none data-[selected=true]:bg-white/[0.065]"
+              style={{
+                transform: `translateY(${item.start}px)`,
+                boxShadow: `inset 3px 0 0 ${active ? cardAccent(cardId) : 'transparent'}`,
+              }}
             >
-              <div className="flex w-3 shrink-0 items-center justify-center gap-1">
-                {flags & FLAG.anonymized ? <Dot tone="info" /> : null}
-                {flags & FLAG.banHistory ? <Dot tone="warn" /> : null}
-                {flags === 0 ? <Dot tone="muted" /> : null}
-              </div>
+              <span
+                className="relative block h-10 w-8 shrink-0 overflow-hidden rounded-sm bg-white/[0.06]"
+                style={{ backgroundColor: cardAccent(cardId) }}
+              >
+                {art ? (
+                  <img
+                    src={art}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                  />
+                ) : null}
+              </span>
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="truncate text-[13px] font-medium text-zinc-100">
+                  <span className="truncate text-[15px] font-medium tracking-tight text-zinc-100">
                     {name || 'Anonymous'}
                   </span>
                   {tag ? (
-                    <span className="shrink-0 font-mono text-[10px] text-zinc-500">#{tag}</span>
+                    <span className="shrink-0 font-mono text-xs text-zinc-500">#{tag}</span>
                   ) : null}
                 </div>
-                <div className="mt-0.5 flex items-center gap-2 font-mono text-[10px] text-zinc-500">
+                <div className="mt-1 flex items-center gap-2 font-mono text-[11px] text-zinc-500">
                   <span>{regionShort(region)}</span>
-                  {row[P.nameChanges] > 0 ? (
-                    <span className="text-sky-400/80">{row[P.nameChanges]} name</span>
-                  ) : null}
-                  {row[P.regionChanges] > 0 ? (
-                    <span className="text-emerald-400/80">{row[P.regionChanges]} region</span>
-                  ) : null}
-                  {flags & FLAG.anonymized ? <span className="text-sky-300/80">linked</span> : null}
+                  {row[P.nameChanges] > 0 ? <span>{row[P.nameChanges]} name</span> : null}
+                  {row[P.regionChanges] > 0 ? <span>{row[P.regionChanges]} region</span> : null}
                 </div>
               </div>
 
-              <div className="shrink-0 font-mono text-[10px] text-zinc-600">
+              <div className="shrink-0 font-mono text-[11px] text-zinc-600">
                 {formatRelative(row[P.lastSeenAt])}
               </div>
             </button>

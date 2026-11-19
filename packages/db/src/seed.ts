@@ -238,6 +238,14 @@ const demoNames = [
   'Reyna Leer',
 ]
 const daysAgo = (now: Date, days: number) => new Date(now.getTime() - days * 86_400_000)
+const demoCards = [
+  '00000000-0000-4000-8000-000000000101',
+  '00000000-0000-4000-8000-000000000102',
+  '00000000-0000-4000-8000-000000000103',
+  '00000000-0000-4000-8000-000000000104',
+  '00000000-0000-4000-8000-000000000105',
+  '00000000-0000-4000-8000-000000000106',
+]
 
 export const seedDemoDatabase = Effect.gen(function* () {
   const db = yield* Database
@@ -412,6 +420,7 @@ export const seedDemoDatabase = Effect.gen(function* () {
       puuid,
       name: baseName,
       tag: finalTag,
+      cardId: demoCards[index % demoCards.length] ?? null,
       region,
       isBanned,
       isAnonymized: linked,

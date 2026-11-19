@@ -30,6 +30,7 @@ export const IndexPlayer = Schema.Tuple([
   Schema.Finite,
   Schema.NullOr(Schema.Finite),
   Schema.NullOr(Schema.Finite),
+  Schema.NullOr(Schema.String),
 ])
 
 export type IndexPlayer = typeof IndexPlayer.Type
@@ -109,6 +110,7 @@ export const PlayerDetail = Schema.Struct({
     puuid: Schema.String,
     name: Schema.NullOr(Schema.String),
     tag: Schema.NullOr(Schema.String),
+    cardId: Schema.NullOr(Schema.String),
     region: Schema.NullOr(Region),
     isBanned: Schema.Boolean,
     isAnonymized: Schema.Boolean,
@@ -178,6 +180,8 @@ export const SiteStats = Schema.Struct({
     regions: Schema.Array(
       Schema.Struct({
         puuid: Schema.String,
+        name: Schema.NullOr(Schema.String),
+        tag: Schema.NullOr(Schema.String),
         region: Region,
         endedAt: Schema.Finite,
       }),
@@ -185,6 +189,8 @@ export const SiteStats = Schema.Struct({
     bans: Schema.Array(
       Schema.Struct({
         puuid: Schema.String,
+        name: Schema.NullOr(Schema.String),
+        tag: Schema.NullOr(Schema.String),
         endedAt: Schema.Finite,
       }),
     ),
@@ -197,6 +203,17 @@ export const SiteStats = Schema.Struct({
       region: Schema.NullOr(Region),
       nameChanges: Schema.Finite,
       regionChanges: Schema.Finite,
+    }),
+  ),
+  history: Schema.Array(
+    Schema.Struct({
+      at: Schema.Finite,
+      players: Schema.Finite,
+      nameChanges: Schema.Finite,
+      regionChanges: Schema.Finite,
+      bans: Schema.Finite,
+      unbans: Schema.Finite,
+      anonymous: Schema.Finite,
     }),
   ),
 })
