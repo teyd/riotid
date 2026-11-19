@@ -105,6 +105,13 @@ export const TrendChart = ({ history }: { history: SiteStats['history'] }) => {
         role="img"
         aria-label={`${metrics.find((item) => item.key === metric)?.label} over the last ${history.length} scans`}
       >
+        <defs>
+          <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#4ade80" stopOpacity="0.20" />
+            <stop offset="100%" stopColor="#4ade80" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
         {[0.25, 0.5, 0.75].map((fraction) => (
           <line
             key={fraction}
@@ -117,7 +124,7 @@ export const TrendChart = ({ history }: { history: SiteStats['history'] }) => {
           />
         ))}
 
-        {area ? <polygon points={area} fill="rgba(74,222,128,0.10)" /> : null}
+        {area ? <polygon points={area} fill="url(#trend-fill)" /> : null}
         {points.length > 1 ? (
           <polyline
             points={points.map((point) => `${point.x},${point.y}`).join(' ')}
