@@ -124,8 +124,8 @@ child process and spawns CLI jobs instead of running Riot work inside the API.
 
 - Scan: catch up on boot when the last success is older than
   `SCAN_INTERVAL_HOURS`, then repeat on that interval.
-- Identity: bounded `anon:resolve` batches; pause while a scan runs and resume at
-  00:00 UTC when the daily Riot budget is spent.
+- Identity: bounded `anon:resolve` batches; pause while a scan runs and resume
+  after midnight UTC when the daily Riot budget is spent.
 - Auth: refresh the cookie jar before Riot work and while the process runs.
 - Maintenance: create a backup shortly after boot and at most once per 24 hours,
   then prune runs older than `RUN_RETENTION_DAYS`.
@@ -138,8 +138,8 @@ active.
 
 `packages/contracts` defines the wire shapes with Effect schemas: the tuple index,
 player detail with timelines and identity evidence, health, and API errors. The
-API encodes those shapes and the web decodes them, so a change to a field name or
-tuple position is a breaking API change. Bump `meta.indexVersion` or coordinate
+API and web both type against those shapes, so a change to a field name or tuple
+position is a breaking API change. Bump `meta.indexVersion` or coordinate
 the change; never silently reshape the index.
 
 ## What not to change
