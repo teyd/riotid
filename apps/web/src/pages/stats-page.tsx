@@ -118,6 +118,7 @@ const SignalCard = ({
               domain={['dataMin', 'dataMax']}
               tick={chartAxisTick}
               tickFormatter={tickFormatter}
+              {...(data.length <= 6 ? { ticks: data.map((point) => point.at) } : {})}
               axisLine={false}
               tickLine={false}
               minTickGap={28}
@@ -153,6 +154,7 @@ const SignalCard = ({
               domain={['dataMin', 'dataMax']}
               tick={chartAxisTick}
               tickFormatter={tickFormatter}
+              {...(data.length <= 6 ? { ticks: data.map((point) => point.at) } : {})}
               axisLine={false}
               tickLine={false}
               minTickGap={28}
