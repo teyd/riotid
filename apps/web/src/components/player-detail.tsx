@@ -1,3 +1,13 @@
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@ui-sdk/react/hover-card'
+import { Toolbar, ToolbarButton, ToolbarLink } from '@ui-sdk/react/toolbar'
+import {
+  Timeline,
+  TimelineConnector,
+  TimelineItem,
+  TimelineMarker,
+  TimelineTime,
+  TimelineTitle,
+} from '@ui-sdk/react/timeline'
 import { useQuery } from '@tanstack/react-query'
 import ArrowLeftIcon from 'kubai-icons-react/icons/arrow-left'
 import { useState } from 'react'
@@ -28,22 +38,36 @@ type Props = {
   readonly onBack: () => void
 }
 
-const TimelineRow = ({
-  title,
-  subtitle,
-  current,
+const HistoryTimeline = ({
+  label,
+  items,
 }: {
-  title: string
-  subtitle: string
-  current: boolean
+  label: string
+  items: ReadonlyArray<{ title: string; subtitle: string; current: boolean; at: number }>
 }) => (
-  <div className="flex items-baseline justify-between gap-4 py-2">
-    <div className="min-w-0">
-      <p className="truncate text-sm text-zinc-100">{title}</p>
-      <p className="mt-1 font-mono text-[11px] text-zinc-500">{subtitle}</p>
-    </div>
-    {current ? <Badge tone="accent">now</Badge> : null}
-  </div>
+  <Timeline aria-label={label} className="space-y-0">
+    {items.map((item, index) => (
+      <TimelineItem
+        key={`${item.at}-${index}`}
+        status={item.current ? 'current' : 'complete'}
+        className="relative grid grid-cols-[10px_1fr] gap-x-4 pb-5 last:pb-0"
+      >
+        <div className="relative flex justify-center">
+          <TimelineMarker className="mt-1.5 size-2 rounded-full bg-zinc-600 data-[current]:bg-accent" />
+          <TimelineConnector className="absolute top-3.5 bottom-0 w-px bg-white/[0.09] data-[last]:hidden" />
+        </div>
+        <div className="min-w-0">
+          <TimelineTitle className="truncate text-sm text-zinc-100">{item.title}</TimelineTitle>
+          <TimelineTime
+            dateTime={new Date(item.at).toISOString()}
+            className="mt-1 block font-mono text-[11px] text-zinc-500"
+          >
+            {item.subtitle}
+          </TimelineTime>
+        </div>
+      </TimelineItem>
+    ))}
+  </Timeline>
 )
 
 const EvidenceDetail = ({ label, value }: { label: string; value: string | number }) => (
@@ -171,19 +195,33 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">
             {cardArt(resolvedCardId) ? (
-              <span
-                className="hidden h-14 w-11 shrink-0 overflow-hidden rounded-sm ring-1 ring-white/15 sm:block"
-                style={{ backgroundColor: cardAccent(resolvedCardId) }}
-              >
-                <img
-                  src={cardArt(resolvedCardId) ?? ''}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none'
-                  }}
-                />
-              </span>
+              <HoverCard>
+                <HoverCardTrigger
+                  href={cardWideArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
+                  className="hidden h-14 w-11 shrink-0 overflow-hidden rounded-sm ring-1 ring-white/15 sm:block"
+                  style={{ backgroundColor: cardAccent(resolvedCardId) }}
+                >
+                  <img
+                    src={cardArt(resolvedCardId) ?? ''}
+                    alt={`${name || 'Player'} card`}
+                    className="h-full w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                  />
+                </HoverCardTrigger>
+                <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
+                  <img
+                    src={cardWideArt(resolvedCardId) ?? ''}
+                    alt=""
+                    className="h-36 w-full object-cover"
+                  />
+                  <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
+                    {name || 'Anonymous'}
+                    {tag ? `#${tag}` : ''}
+                  </p>
+                </HoverCardContent>
+              </HoverCard>
             ) : null}
             <button
               type="button"
@@ -210,29 +248,32 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wide">
+          <Toolbar
+            aria-label="Player links"
+            className="flex shrink-0 flex-wrap items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wide"
+          >
             {name && tag ? (
-              <a
+              <ToolbarLink
                 href={trackerProfileUrl(name, tag)}
                 target="_blank"
                 rel="noreferrer noopener"
                 className="text-zinc-400 hover:text-zinc-100"
               >
                 tracker.gg ↗
-              </a>
+              </ToolbarLink>
             ) : null}
-            <a
+            <ToolbarLink
               href={vtlProfileUrl(puuid)}
               target="_blank"
               rel="noreferrer noopener"
               className="text-zinc-400 hover:text-zinc-100"
             >
               vtl.lol ↗
-            </a>
-            <button type="button" onClick={copy} className="text-zinc-400 hover:text-zinc-100">
+            </ToolbarLink>
+            <ToolbarButton onClick={copy} className="text-zinc-400 hover:text-zinc-100">
               {copied ? 'copied' : 'copy link'}
-            </button>
-          </div>
+            </ToolbarButton>
+          </Toolbar>
         </div>
 
         <dl className="mt-5 grid grid-cols-3 gap-3 font-mono text-[11px]">
@@ -277,16 +318,15 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             {detail.names.length === 0 ? (
               <p className="text-xs text-zinc-600">No authoritative name yet.</p>
             ) : (
-              <div className="divide-y divide-white/[0.04]">
-                {[...detail.names].reverse().map((interval, index) => (
-                  <TimelineRow
-                    key={`${interval.startedAt}-${index}`}
-                    title={`${interval.name}#${interval.tag}`}
-                    subtitle={`${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`}
-                    current={interval.endedAt === null}
-                  />
-                ))}
-              </div>
+              <HistoryTimeline
+                label="Name history"
+                items={[...detail.names].reverse().map((interval) => ({
+                  title: `${interval.name}#${interval.tag}`,
+                  subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
+                  current: interval.endedAt === null,
+                  at: interval.startedAt,
+                }))}
+              />
             )}
           </Section>
 
@@ -296,16 +336,15 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
               <span className="font-mono text-[10px] text-zinc-600">{detail.regions.length}</span>
             }
           >
-            <div className="divide-y divide-white/[0.04]">
-              {[...detail.regions].reverse().map((interval, index) => (
-                <TimelineRow
-                  key={`${interval.startedAt}-${index}`}
-                  title={regionLabel(interval.region)}
-                  subtitle={`${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'} · ${regionShort(interval.region)} affinity`}
-                  current={interval.endedAt === null}
-                />
-              ))}
-            </div>
+            <HistoryTimeline
+              label="Region history"
+              items={[...detail.regions].reverse().map((interval) => ({
+                title: regionLabel(interval.region),
+                subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'} · ${regionShort(interval.region)} affinity`,
+                current: interval.endedAt === null,
+                at: interval.startedAt,
+              }))}
+            />
           </Section>
 
           <Section
@@ -315,16 +354,15 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             {detail.bans.length === 0 ? (
               <p className="text-xs text-zinc-600">No ban interval observed.</p>
             ) : (
-              <div className="divide-y divide-white/[0.04]">
-                {[...detail.bans].reverse().map((interval, index) => (
-                  <TimelineRow
-                    key={`${interval.startedAt}-${index}`}
-                    title={interval.endedAt ? 'Banned, then unbanned' : 'Banned'}
-                    subtitle={`${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`}
-                    current={interval.endedAt === null}
-                  />
-                ))}
-              </div>
+              <HistoryTimeline
+                label="Ban history"
+                items={[...detail.bans].reverse().map((interval) => ({
+                  title: interval.endedAt ? 'Banned, then unbanned' : 'Banned',
+                  subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
+                  current: interval.endedAt === null,
+                  at: interval.startedAt,
+                }))}
+              />
             )}
           </Section>
 

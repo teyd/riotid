@@ -102,6 +102,21 @@ The crawler page streams the live match-candidate cache at `/crawler` via
 `GET /api/v1/crawler/stream` (SSE); `GET /api/v1/crawler` returns the same
 snapshot for first paint.
 
+The leaderboard scan is always the priority. A scheduled scan runs first; the
+identity pass waits 60 seconds after it finishes and only starts when the daily
+budget is due. If a manual or early scan starts during a crawler pass, the
+crawler checks the run lock every ten match details, records a paused progress
+snapshot, and yields. Requests are paced at 150 ms, capped at 300 new match
+details per pass and 1,000 Riot requests per day, and 429/5xx responses retry
+with exponential backoff. There is no fixed “stop before the next scan” window:
+the next scan is six hours away, and preemption covers manual/early scans.
+
+## Design studies
+
+- `/1` — Swiss light ledger (DeepSeek v4.1 Flash Max)
+- `/2` — terminal/instrument panel (Grok 4.7 Medium)
+- `/3` — Linear/Vercel refined dark (Gemini 4 Hydrogen Medium)
+
 ## Deploy (Dokploy)
 
 1. Create or reuse the Dokploy project/environment, then create an application from this repository using the `Dockerfile` build.

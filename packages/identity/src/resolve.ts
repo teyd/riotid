@@ -12,7 +12,7 @@ import {
 } from '@riotid/db'
 import { RiotSource, type AuthSession, type Mmr } from '@riotid/riot'
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
-import { Clock, Effect } from 'effect'
+import { Clock, Data, Effect } from 'effect'
 
 const regions = ['na', 'eu', 'ap', 'kr'] as const
 type Region = (typeof regions)[number]
@@ -20,6 +20,10 @@ type Region = (typeof regions)[number]
 const regionList: ReadonlyArray<Region> = regions
 const maxCandidatesPerRow = 100
 const maxMatchDetailsPerPass = 300
+
+export class CrawlerPausedError extends Data.TaggedError('CrawlerPausedError')<{
+  readonly message: string
+}> {}
 
 export type ResolveConfig = {
   readonly session: AuthSession
@@ -134,6 +138,25 @@ export const resolveAnonymous = (
     const now = config.now ?? (yield* Clock.currentTimeMillis)
     const nowDate = new Date(now)
     const today = nowDate.toISOString().slice(0, 10)
+    const scan = yield* db.get<{ n: number }>(
+      sql`select count(*) as n from runs where status = 'running'`,
+    )
+
+    if ((scan?.n ?? 0) > 0) {
+      yield* writeMeta(
+        'anon:progress',
+        JSON.stringify({
+          phase: 'paused',
+          message: 'Leaderboard scan is running; crawler yielded',
+          updatedAt: now,
+        }),
+        nowDate,
+      )
+      return yield* new CrawlerPausedError({
+        message: 'Leaderboard scan is running; crawler yielded.',
+      })
+    }
+
     const version = yield* source.getVersion
     yield* writeMeta('anon:runningSince', String(now), nowDate)
     const usedToday = Number((yield* readMeta(`anon:requests:${today}`)) ?? '0')
@@ -176,6 +199,7 @@ export const resolveAnonymous = (
         if (!canSpend()) return null
 
         spend()
+        yield* Effect.sleep('150 millis')
         const result = yield* source
           .getMmr(config.session, version.riotClientVersion, region, puuid)
           .pipe(
@@ -293,6 +317,7 @@ export const resolveAnonymous = (
 
           seeds += 1
           spend()
+          yield* Effect.sleep('150 millis')
           const history = yield* source
             .getMatchHistory(config.session, version.riotClientVersion, region, puuid)
             .pipe(Effect.catchTag('RiotRequestError', () => Effect.succeed(null)))
@@ -337,6 +362,26 @@ export const resolveAnonymous = (
 
         spend()
         matchesFetched += 1
+
+        if (matchesFetched % 10 === 0) {
+          const active = yield* db.get<{ n: number }>(
+            sql`select count(*) as n from runs where status = 'running'`,
+          )
+
+          if ((active?.n ?? 0) > 0) {
+            yield* report({
+              phase: 'paused',
+              message: 'Leaderboard scan started; crawler yielded',
+              currentMatchId: null,
+            })
+            yield* writeMeta('anon:runningSince', '0', nowDate)
+            return yield* new CrawlerPausedError({
+              message: 'Leaderboard scan started; crawler yielded.',
+            })
+          }
+        }
+
+        yield* Effect.sleep('150 millis')
         yield* report({
           phase: 'matches',
           message: 'Fetching new match details',
@@ -513,6 +558,7 @@ export const resolveAnonymous = (
         if (!canSpend() || puuids.length === 0) return
 
         spend()
+        yield* Effect.sleep('150 millis')
         const resolved = yield* source
           .getNameService(config.session, version.riotClientVersion, region, puuids)
           .pipe(Effect.catchTag('RiotRequestError', () => Effect.succeed([])))

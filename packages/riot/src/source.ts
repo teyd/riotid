@@ -1,4 +1,4 @@
-import { Context, Effect, Layer } from 'effect'
+import { Context, Effect, Layer, Schedule } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 
 import { RiotRequestError } from './valorant.ts'
@@ -104,6 +104,11 @@ export const RiotSourceLive: Layer.Layer<RiotSource, never, HttpClient.HttpClien
     const provide = <A>(effect: Effect.Effect<A, RiotRequestError, HttpClient.HttpClient>) =>
       effect.pipe(
         Effect.provideService(HttpClient.HttpClient, client),
+        Effect.retry({
+          while: (error) => error.status === 429 || (error.status ?? 0) >= 500,
+          times: 3,
+          schedule: Schedule.exponential('1 second'),
+        }),
         Effect.timeout('30 seconds'),
         Effect.mapError((error) =>
           error instanceof RiotRequestError

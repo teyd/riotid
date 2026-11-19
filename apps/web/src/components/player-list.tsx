@@ -2,7 +2,8 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useRef, type RefObject } from 'react'
 
 import { cardAccent, cardArt, formatRelative, P, regionShort, type IndexRow } from '../lib/api.ts'
-import { EmptyState, LoadingState } from './ui.tsx'
+import { EmptyState } from './ui.tsx'
+import { PlayerListSkeleton } from './skeleton.tsx'
 
 type Props = {
   readonly rows: ReadonlyArray<IndexRow>
@@ -95,7 +96,7 @@ export const PlayerList = ({
     return () => window.removeEventListener('keydown', handler)
   }, [rows, selectedIndex, onSelect, onEscape, searchRef])
 
-  if (loading) return <LoadingState label="Loading players" />
+  if (loading) return <PlayerListSkeleton />
   if (rows.length === 0) {
     return <EmptyState title="No players match." hint="Try a different name, tag, or region." />
   }

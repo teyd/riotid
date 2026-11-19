@@ -1,4 +1,4 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
+import { createRootRoute, Link, Outlet, useRouterState } from '@tanstack/react-router'
 
 export const Route = createRootRoute({
   component: Root,
@@ -12,6 +12,12 @@ const nav = [
 ] as const
 
 function Root() {
+  const variant = useRouterState({
+    select: (state) => /^\/(1|2|3)$/.test(state.location.pathname),
+  })
+
+  if (variant) return <Outlet />
+
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-ink text-zinc-100">
       <a
