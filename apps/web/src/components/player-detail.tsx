@@ -62,19 +62,9 @@ const HistoryTimeline = ({
           <TimelineConnector className="absolute top-3.5 -bottom-1.5 left-1.5 w-px bg-white/[0.09]" />
         ) : null}
         <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-2">
-            <TimelineTitle className="truncate text-sm text-zinc-400 data-[current]:font-semibold data-[current]:text-zinc-50">
-              {item.title}
-            </TimelineTitle>
-            {item.current ? (
-              <span
-                aria-hidden="true"
-                className="shrink-0 rounded-full border border-white/20 px-1.5 font-mono text-[10px] uppercase leading-4 tracking-[0.16em] text-zinc-300"
-              >
-                current
-              </span>
-            ) : null}
-          </div>
+          <TimelineTitle className="truncate text-sm text-zinc-400 data-[current]:font-semibold data-[current]:text-zinc-50">
+            {item.title}
+          </TimelineTitle>
           <TimelineTime
             dateTime={new Date(item.at).toISOString()}
             className="mt-1 block font-mono text-[12px] text-zinc-400 data-[current]:text-zinc-300"
