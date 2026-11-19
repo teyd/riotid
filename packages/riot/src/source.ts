@@ -1,7 +1,7 @@
 import { Context, Effect, Layer } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 
-import type { RiotRequestError } from './valorant.ts'
+import { RiotRequestError } from './valorant.ts'
 import {
   getActiveAct,
   getLeaderboard,
@@ -101,8 +101,16 @@ export const RiotSourceLive: Layer.Layer<RiotSource, never, HttpClient.HttpClien
   Effect.gen(function* () {
     const client = yield* HttpClient.HttpClient
 
-    const provide = <A, E>(effect: Effect.Effect<A, E, HttpClient.HttpClient>) =>
-      effect.pipe(Effect.provideService(HttpClient.HttpClient, client))
+    const provide = <A>(effect: Effect.Effect<A, RiotRequestError, HttpClient.HttpClient>) =>
+      effect.pipe(
+        Effect.provideService(HttpClient.HttpClient, client),
+        Effect.timeout('30 seconds'),
+        Effect.mapError((error) =>
+          error instanceof RiotRequestError
+            ? error
+            : new RiotRequestError({ message: `Riot request timed out: ${String(error)}` }),
+        ),
+      )
 
     return {
       getVersion: provide(getVersion),

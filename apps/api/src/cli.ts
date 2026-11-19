@@ -409,7 +409,9 @@ const startAdminJob = (name: string, run: () => Promise<unknown>) => {
   }
 
   adminJobs.add(name)
+  process.stderr.write(`admin ${name} started\n`)
   void run()
+    .then(() => process.stderr.write(`admin ${name} finished\n`))
     .catch((error: unknown) => process.stderr.write(`admin ${name} failed: ${String(error)}\n`))
     .finally(() => adminJobs.delete(name))
 
