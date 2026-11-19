@@ -112,8 +112,11 @@ crawler schedules its next batch for 00:00 UTC instead of spinning.
 
 The shell is pure black with hairline borders, the player list is a resizable
 master pane (saved by ui-sdk `Resizable`), and the detail pane takes the rest of
-the width. Stats, crawler, and status use Recharts for colored activity charts;
-the status page renders recent pipeline runs with ui-sdk `Waterfall`.
+the width. Stats shows independent colored signal charts plus a log-scale
+magnitude view, so rare region moves stay visible next to the ladder. The crawler
+renders a Pino-style `crawler.log` from persisted batch events, and the status
+page is a syntax-highlighted `status.json` with hover definitions, a coverage
+donut, and recent pipeline runs as a ui-sdk `Waterfall`.
 
 ## Deploy (Dokploy)
 

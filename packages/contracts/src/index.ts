@@ -294,6 +294,15 @@ export const CrawlerMatch = Schema.Struct({
 
 export type CrawlerMatch = typeof CrawlerMatch.Type
 
+export const CrawlerLogEntry = Schema.Struct({
+  at: Schema.Finite,
+  level: Schema.Literals(['debug', 'info', 'warn', 'error']),
+  msg: Schema.String,
+  fields: Schema.NullOr(Schema.Record(Schema.String, Schema.Unknown)),
+})
+
+export type CrawlerLogEntry = typeof CrawlerLogEntry.Type
+
 export const CrawlerSnapshot = Schema.Struct({
   running: Schema.Boolean,
   lastRunAt: Schema.NullOr(Schema.Finite),
@@ -307,6 +316,7 @@ export const CrawlerSnapshot = Schema.Struct({
     nextRunAt: Schema.NullOr(Schema.Finite),
     message: Schema.NullOr(Schema.String),
   }),
+  log: Schema.Array(CrawlerLogEntry),
   matches: Schema.Array(CrawlerMatch),
   activity: Schema.NullOr(
     Schema.Struct({
