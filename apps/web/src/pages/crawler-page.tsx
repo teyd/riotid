@@ -1,6 +1,5 @@
 import { Progress, ProgressIndicator, ProgressTrack } from '@ui-sdk/react/progress'
 import { useQuery } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
@@ -11,6 +10,7 @@ import {
   fetchCrawler,
   formatDateTime,
   formatRelative,
+  formatUntil,
   regionLabel,
   regionShort,
   type CrawlerSnapshot,
@@ -70,7 +70,8 @@ export function CrawlerPage() {
           <h1 className="mt-2 text-4xl font-semibold tracking-tight text-zinc-50">Match crawler</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
             A live view of the compact match-candidate cache used to resolve anonymized leaderboard
-            rows. Only participant fingerprints are stored — never full match data.
+            rows. The crawler runs continuously in small batches and paces every Riot request. Only
+            participant fingerprints are stored — never full match data.
           </p>
         </div>
         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide">
@@ -101,6 +102,14 @@ export function CrawlerPage() {
           {activity ? (
             <>
               <p className="mt-2 text-lg font-medium text-zinc-100">{activity.message}</p>
+              {snapshot.schedule.message ? (
+                <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+                  {snapshot.schedule.message}
+                  {snapshot.schedule.nextRunAt
+                    ? ` · ${formatUntil(snapshot.schedule.nextRunAt)}`
+                    : ''}
+                </p>
+              ) : null}
 
               <div className="mt-5">
                 <div className="flex items-baseline justify-between font-mono text-[10px] uppercase tracking-wide text-zinc-500">
@@ -149,21 +158,18 @@ export function CrawlerPage() {
             </>
           ) : (
             <>
-              <p className="mt-2 text-lg font-medium text-zinc-100">
-                Waiting for the next daily pass
-              </p>
+              <p className="mt-2 text-lg font-medium text-zinc-100">Waiting for the next batch</p>
               <p className="mt-2 text-xs leading-5 text-zinc-500">
-                The resolver last ran {formatRelative(snapshot.lastRunAt)}. A pass seeds the graph
-                from nearby players, fetches up to 300 new match details, checks exact MMR
-                fingerprints, and writes only confirmed links.
+                The resolver last ran {formatRelative(snapshot.lastRunAt)}. Batches seed the graph
+                from nearby players, check exact MMR fingerprints, and write only confirmed links.
               </p>
             </>
           )}
 
           <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs leading-5 text-zinc-500">
-            Leaderboard scans take priority: the crawler starts one minute after a successful scan,
-            yields if another scan begins, and paces every Riot request. It is not a continuous
-            match archive.
+            Leaderboard scans take priority: the crawler pauses while a scan runs, yields if one
+            begins mid-batch, and spreads small batches across the day until the Riot budget is
+            spent. It is not a continuous match archive.
           </p>
         </Panel>
 

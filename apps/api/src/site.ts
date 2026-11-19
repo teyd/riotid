@@ -679,6 +679,12 @@ export const crawlerSnapshot = (
     const progress = yield* db.get<{ value: string }>(
       sql`select value from meta where key = 'anon:progress'`,
     )
+    const nextRun = yield* db.get<{ value: string }>(
+      sql`select value from meta where key = 'anon:nextRunAt'`,
+    )
+    const nextMessage = yield* db.get<{ value: string }>(
+      sql`select value from meta where key = 'anon:nextMessage'`,
+    )
     const cache = yield* db.get<{ rows: number; matches: number }>(sql`
       select count(*) as rows, count(distinct match_id) as matches from match_candidates
     `)
@@ -738,6 +744,10 @@ export const crawlerSnapshot = (
       lastRunAt: lastRun ? Date.parse(lastRun.value) : null,
       requestsToday: Number(requests?.value ?? '0') || 0,
       cache: { matches: cache?.matches ?? 0, rows: cache?.rows ?? 0, byRegion },
+      schedule: {
+        nextRunAt: nextRun ? Number(nextRun.value) || null : null,
+        message: nextMessage?.value ?? null,
+      },
       activity,
       matches: matches.map((row) => ({
         matchId: row.match_id,

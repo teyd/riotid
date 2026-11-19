@@ -303,6 +303,10 @@ export const CrawlerSnapshot = Schema.Struct({
     rows: Schema.Finite,
     byRegion: Schema.Record(Schema.String, Schema.Finite),
   }),
+  schedule: Schema.Struct({
+    nextRunAt: Schema.NullOr(Schema.Finite),
+    message: Schema.NullOr(Schema.String),
+  }),
   matches: Schema.Array(CrawlerMatch),
   activity: Schema.NullOr(
     Schema.Struct({

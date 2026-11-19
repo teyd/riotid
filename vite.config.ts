@@ -24,7 +24,7 @@ export default defineConfig({
     semi: false,
     printWidth: 100,
     trailingComma: 'all',
-    ignorePatterns: ['apps/web/src/routeTree.gen.ts'],
+    ignorePatterns: ['apps/web/src/routeTree.gen.ts', '.agents/skills/**'],
   },
   test: {
     include: ['apps/**/*.test.ts', 'packages/**/*.test.ts'],

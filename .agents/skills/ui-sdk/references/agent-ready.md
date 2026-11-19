@@ -51,10 +51,11 @@ Create the bridge once, in the browser, from the same package as the components:
 | Web components | `import { createAgent } from "@ui-sdk/web/agent"`    |
 
 ```ts
-import { agentTools, createAgent, registerTools } from '@ui-sdk/react/agent'
+import { agentTools, createAgent, registerTools } from "@ui-sdk/react/agent"
 
 const agent = createAgent({
-  allow: (step, { signal }) => (step.confirm ? askThePerson(step.confirm, { signal }) : true),
+  allow: (step, { signal }) =>
+    step.confirm ? askThePerson(step.confirm, { signal }) : true,
 })
 
 export { agent }
@@ -71,34 +72,39 @@ export { agent }
 Write this test for every interface you build. It runs in jsdom with the framework's testing library, after the [jsdom stubs](testing.md#jsdom), since a Select opens to resolve an item by its label. This is React; the other frameworks render the same way their own tests do:
 
 ```tsx
-import { render, screen } from '@testing-library/react'
-import { createAgent } from '@ui-sdk/react/agent'
-import { expect, test } from 'vitest'
-import { ProjectSettings } from './project-settings'
+import { render, screen } from "@testing-library/react"
+import { createAgent } from "@ui-sdk/react/agent"
+import { expect, test } from "vitest"
+import { ProjectSettings } from "./project-settings"
 
-test('an agent can find and change every setting', async () => {
+test("an agent can find and change every setting", async () => {
   const agent = createAgent()
   render(<ProjectSettings />)
 
   const components = agent
     .snapshot()
-    .filter((entry) => !entry.offPage && entry.component !== 'more')
+    .filter((entry) => !entry.offPage && entry.component !== "more")
   for (const entry of components) {
-    expect(entry.label, `${entry.component} ${entry.ref} has no name`).toBeTruthy()
+    expect(
+      entry.label,
+      `${entry.component} ${entry.ref} has no name`
+    ).toBeTruthy()
   }
   const labels = components.map((entry) => entry.label)
-  for (const label of ['Project name', 'Visibility', 'Weekly digest']) {
+  for (const label of ["Project name", "Visibility", "Weekly digest"]) {
     expect(labels, `${label} is missing from the snapshot`).toContain(label)
   }
 
   const result = await agent.act({
     steps: [
-      { ref: 'Project name', action: 'setValue', args: ['Atlas'] },
-      { ref: 'Visibility', action: 'setValue', args: ['Internal'] },
+      { ref: "Project name", action: "setValue", args: ["Atlas"] },
+      { ref: "Visibility", action: "setValue", args: ["Internal"] },
     ],
   })
   expect(result.ok, result.error?.message).toBe(true)
-  expect(screen.getByLabelText<HTMLInputElement>('Project name').value).toBe('Atlas')
+  expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe(
+    "Atlas"
+  )
 })
 ```
 
@@ -112,7 +118,9 @@ test('an agent can find and change every setting', async () => {
   let approve = false
   const agent = createAgent({ allow: (step) => !step.confirm || approve })
   const remove = {
-    steps: [{ ref: 'Delete project', action: 'press', args: ['Delete forever'] }],
+    steps: [
+      { ref: "Delete project", action: "press", args: ["Delete forever"] },
+    ],
   }
 
   expect((await agent.act(remove)).ok).toBe(false)

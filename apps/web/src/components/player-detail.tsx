@@ -52,9 +52,11 @@ const HistoryTimeline = ({
         className="relative grid grid-cols-[10px_1fr] gap-x-4 pb-5 last:pb-0"
       >
         <div className="relative flex justify-center">
-          <TimelineMarker className="mt-1.5 size-2 rounded-full bg-zinc-600 data-[current]:bg-accent" />
-          <TimelineConnector className="absolute top-3.5 bottom-0 w-px bg-white/[0.09] data-[last]:hidden" />
+          <TimelineMarker className="relative z-10 mt-1.5 size-2 rounded-full bg-zinc-600 data-[current]:bg-accent" />
         </div>
+        {index < items.length - 1 ? (
+          <TimelineConnector className="absolute top-3.5 -bottom-[5px] left-1 w-px bg-white/[0.09]" />
+        ) : null}
         <div className="min-w-0">
           <TimelineTitle className="truncate text-sm text-zinc-100">{item.title}</TimelineTitle>
           <TimelineTime
@@ -95,7 +97,7 @@ const HistorySection = ({
 const HeaderStat = ({ label, value }: { label: string; value: string }) => (
   <div className="px-3 py-3 sm:px-4">
     <dt className="text-zinc-500">{label}</dt>
-    <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">{value}</dd>
+    <dd className="mt-1 whitespace-nowrap text-[12px] text-zinc-200 sm:text-sm">{value}</dd>
   </div>
 )
 
@@ -209,116 +211,111 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto">
-      <div className="relative h-24 w-full shrink-0 overflow-hidden border-b border-white/[0.08] bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px]">
-        {wideArt ? (
-          <img
-            src={wideArt}
-            alt=""
-            decoding="async"
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={(event) => {
-              event.currentTarget.style.display = 'none'
-            }}
-          />
-        ) : null}
-      </div>
-
-      <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-ink px-6 py-5">
-        <button
-          type="button"
-          onClick={onBack}
-          className="mb-4 flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 lg:hidden"
-        >
-          ← players
-        </button>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 items-start gap-4">
-            <HoverCard>
-              <HoverCardTrigger
-                href={cardWideArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
-                className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:flex"
-              >
-                <span aria-hidden>{(name || '?').slice(0, 1).toUpperCase()}</span>
-                {cardArt(resolvedCardId) ? (
-                  <img
-                    src={cardArt(resolvedCardId) ?? ''}
-                    alt={`${name || 'Player'} card`}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ) : null}
-              </HoverCardTrigger>
-              <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
-                <img
-                  src={cardWideArt(resolvedCardId) ?? ''}
-                  alt=""
-                  className="h-36 w-full object-cover"
-                />
-                <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
-                  {name || 'Anonymous'}
-                  {tag ? `#${tag}` : ''}
-                </p>
-              </HoverCardContent>
-            </HoverCard>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <h1 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
-                  {name || 'Anonymous'}
-                </h1>
-                {tag ? <span className="font-mono text-sm text-zinc-400">#{tag}</span> : null}
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <Badge>{regionLabel(region)}</Badge>
-                {flags & FLAG.anonymized ? <Badge tone="info">linked anonymously</Badge> : null}
-                {detail?.player.isBanned ? <Badge tone="warn">banned</Badge> : null}
-                {flags & FLAG.nameChange ? <Badge tone="neutral">renamed</Badge> : null}
-                {flags & FLAG.regionChange ? <Badge tone="accent">moved</Badge> : null}
-              </div>
-            </div>
-          </div>
-
-          <Toolbar
-            aria-label="Player links"
-            className="flex shrink-0 flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wide sm:justify-end"
-          >
-            {name && tag ? (
-              <ToolbarLink
-                href={trackerProfileUrl(name, tag)}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-zinc-400 hover:text-zinc-100"
-              >
-                tracker.gg ↗
-              </ToolbarLink>
-            ) : null}
-            <ToolbarLink
-              href={vtlProfileUrl(puuid)}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-zinc-400 hover:text-zinc-100"
+      <div className="border-b border-white/[0.08] bg-ink px-6 py-5">
+        <div className="flex items-stretch gap-4 sm:gap-5">
+          <HoverCard>
+            <HoverCardTrigger
+              href={wideArt ?? cardArt(resolvedCardId) ?? '#'}
+              className="relative block w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:w-24"
+              style={{ aspectRatio: '268 / 640' }}
             >
-              vtl.lol ↗
-            </ToolbarLink>
-            <ToolbarButton onClick={copy} className="text-zinc-400 hover:text-zinc-100">
-              {copied ? 'copied' : 'copy link'}
-            </ToolbarButton>
-          </Toolbar>
-        </div>
+              <span className="absolute inset-0 flex items-center justify-center" aria-hidden>
+                {(name || '?').slice(0, 1).toUpperCase()}
+              </span>
+              {(cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId)) ? (
+                <img
+                  src={cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? ''}
+                  alt={`${name || 'Player'} card`}
+                  width={268}
+                  height={640}
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                />
+              ) : null}
+            </HoverCardTrigger>
+            <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
+              <img
+                src={cardWideArt(resolvedCardId) ?? ''}
+                alt=""
+                className="h-36 w-full object-cover"
+              />
+              <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
+                {name || 'Anonymous'}
+                {tag ? `#${tag}` : ''}
+              </p>
+            </HoverCardContent>
+          </HoverCard>
 
-        <dl className="mt-5 grid grid-cols-3 divide-x divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[11px]">
-          <HeaderStat
-            label="first seen"
-            value={formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
-          />
-          <HeaderStat
-            label="last seen"
-            value={formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
-          />
-          <HeaderStat label="observations" value={String(detail?.player.timesSeen ?? '—')} />
-        </dl>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <button
+              type="button"
+              onClick={onBack}
+              className="mb-4 flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 lg:hidden"
+            >
+              ← players
+            </button>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <h1 className="text-2xl font-semibold tracking-tight break-words text-zinc-50 sm:text-3xl">
+                    {name || 'Anonymous'}
+                  </h1>
+                  {tag ? <span className="font-mono text-sm text-zinc-400">#{tag}</span> : null}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <Badge>{regionLabel(region)}</Badge>
+                  {flags & FLAG.anonymized ? <Badge tone="info">linked anonymously</Badge> : null}
+                  {detail?.player.isBanned ? <Badge tone="warn">banned</Badge> : null}
+                  {flags & FLAG.nameChange ? <Badge tone="neutral">renamed</Badge> : null}
+                  {flags & FLAG.regionChange ? <Badge tone="accent">moved</Badge> : null}
+                </div>
+              </div>
+
+              <Toolbar
+                aria-label="Player links"
+                className="flex shrink-0 flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wide sm:justify-end"
+              >
+                {name && tag ? (
+                  <ToolbarLink
+                    href={trackerProfileUrl(name, tag)}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-zinc-400 hover:text-zinc-100"
+                  >
+                    tracker.gg ↗
+                  </ToolbarLink>
+                ) : null}
+                <ToolbarLink
+                  href={vtlProfileUrl(puuid)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-zinc-400 hover:text-zinc-100"
+                >
+                  vtl.lol ↗
+                </ToolbarLink>
+                <ToolbarButton onClick={copy} className="text-zinc-400 hover:text-zinc-100">
+                  {copied ? 'copied' : 'copy link'}
+                </ToolbarButton>
+              </Toolbar>
+            </div>
+
+            <dl className="mt-auto grid grid-cols-3 divide-x pt-5 divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[11px]">
+              <HeaderStat
+                label="first seen"
+                value={formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
+              />
+              <HeaderStat
+                label="last seen"
+                value={formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
+              />
+              <HeaderStat label="observations" value={String(detail?.player.timesSeen ?? '—')} />
+            </dl>
+          </div>
+        </div>
       </div>
 
       {query.isPending ? <LoadingState label="Loading history" /> : null}
