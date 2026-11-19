@@ -41,6 +41,9 @@ const fullDate = (at: number): string =>
 const axisDate = (at: number): string =>
   new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
+const axisTime = (at: number): string =>
+  new Date(at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })
+
 const delta = (first: number, last: number): string => {
   const change = last - first
   if (change === 0) return 'flat'
@@ -84,6 +87,7 @@ const SignalCard = ({
   color,
   data,
   kind,
+  tickFormatter,
 }: {
   title: string
   note: string
@@ -93,6 +97,7 @@ const SignalCard = ({
   color: string
   data: ReadonlyArray<SignalPoint>
   kind: 'area' | 'bar'
+  tickFormatter: (at: number) => string
 }) => {
   const gradientId = `signal-${title.replaceAll(' ', '-')}`
   const chart = (
@@ -112,7 +117,7 @@ const SignalCard = ({
               type="number"
               domain={['dataMin', 'dataMax']}
               tick={chartAxisTick}
-              tickFormatter={axisDate}
+              tickFormatter={tickFormatter}
               axisLine={false}
               tickLine={false}
               minTickGap={28}
@@ -147,7 +152,7 @@ const SignalCard = ({
               type="number"
               domain={['dataMin', 'dataMax']}
               tick={chartAxisTick}
-              tickFormatter={axisDate}
+              tickFormatter={tickFormatter}
               axisLine={false}
               tickLine={false}
               minTickGap={28}
@@ -177,10 +182,11 @@ const SignalCard = ({
         <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400">{title}</h3>
         <span className="font-mono text-[10px] text-zinc-600 tabular-nums">{change}</span>
       </div>
-      <div className="mt-2 flex items-baseline gap-3">
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-3xl font-semibold tracking-tight text-zinc-50 tabular-nums">
           {value.toLocaleString()}
         </span>
+        <span className="font-mono text-[10px] text-zinc-600">last scan</span>
         <span className="font-mono text-[10px] text-zinc-600">peak {compact(peak)}</span>
       </div>
       {chart}
@@ -205,7 +211,7 @@ const RegionCard = ({ region, data }: { region: string; data: SiteStats['regions
         </span>
       </div>
 
-      <div className="mt-3 h-24">
+      <div className="mt-3 h-24" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={tiers}
@@ -261,6 +267,10 @@ export function StatsPage() {
     history.at(-1)?.[key] ?? 0
   const peak = (key: 'players' | 'anonymous' | 'nameChanges' | 'regionChanges') =>
     Math.max(...history.map((entry) => entry[key]), 0)
+
+  const closeRange =
+    history.length > 1 && (history.at(-1)?.at ?? 0) - (history[0]?.at ?? 0) < 86_400_000
+  const tickFormatter = closeRange ? axisTime : axisDate
 
   const signals = [
     {
@@ -353,6 +363,7 @@ export function StatsPage() {
               kind={signal.kind}
               value={current(signal.key)}
               peak={peak(signal.key)}
+              tickFormatter={tickFormatter}
               change={
                 history.length > 1
                   ? delta(history[0]?.[signal.key] ?? 0, current(signal.key))

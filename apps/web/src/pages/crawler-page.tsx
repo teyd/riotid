@@ -179,7 +179,7 @@ export function CrawlerPage() {
             title="cache by region"
             meta={`${snapshot.cache.matches.toLocaleString()} matches`}
           >
-            <div className="mt-4 h-48">
+            <div className="mt-4 h-48" aria-hidden="true">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={byRegion}
