@@ -12,6 +12,7 @@ import {
   readDatabase,
   readIndexVersion,
 } from '@riotid/db'
+import { repoRoot } from '@riotid/config'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { sql } from 'drizzle-orm'
@@ -93,7 +94,7 @@ export const makeApp = (options: AppOptions) => {
     index: options.rateLimits?.index ?? 30,
     players: options.rateLimits?.players ?? 120,
   }
-  const webRoot = options.webRoot ?? './apps/web/dist'
+  const webRoot = options.webRoot ?? join(repoRoot, 'apps/web/dist')
   const indexWindowDays = options.indexWindowDays ?? 30
   const buckets = new Map<string, Bucket>()
   let cachedIndex: CachedJson | null = null
