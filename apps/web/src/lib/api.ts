@@ -16,14 +16,6 @@ export const P = {
   lastNameChangeAt: 10,
 } as const
 
-export const FLAG = {
-  anonymized: 1,
-  nameChange: 2,
-  regionChange: 4,
-  banHistory: 8,
-  unbanHistory: 16,
-} as const
-
 export type IndexRow = SiteIndex['players'][number]
 export type Region = 'na' | 'eu' | 'ap' | 'kr'
 
@@ -51,6 +43,9 @@ export const cardLargeArt = (cardId: string | null): string | null =>
   cardId ? `https://media.valorant-api.com/playercards/${cardId}/largeart.png` : null
 
 export const vtlProfileUrl = (puuid: string): string => `https://vtl.lol/id/${puuid}`
+
+export const playerUrl = (origin: string, puuid: string): string =>
+  `${origin}/puuid/${encodeURIComponent(puuid)}`
 
 export const trackerProfileUrl = (name: string, tag: string): string =>
   `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(`${name}#${tag}`)}/overview`
