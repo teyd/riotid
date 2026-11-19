@@ -320,11 +320,40 @@ export const scan = (
     }
 
     const names = yield* resolveNames(options.session, version.riotClientVersion, observed)
-    const existingPlayers = yield* db.select().from(players)
+    const existingPlayers = yield* db
+      .select({
+        puuid: players.puuid,
+        name: players.name,
+        tag: players.tag,
+        region: players.region,
+        firstSeenAt: players.firstSeenAt,
+        lastSeenAt: players.lastSeenAt,
+        firstSeenRunId: players.firstSeenRunId,
+        lastSeenRunId: players.lastSeenRunId,
+        timesSeen: players.timesSeen,
+        nameChanges: players.nameChanges,
+        regionChanges: players.regionChanges,
+        banCount: players.banCount,
+        unbanCount: players.unbanCount,
+        lastNameChangeAt: players.lastNameChangeAt,
+        lastRegionChangeAt: players.lastRegionChangeAt,
+        lastBanAt: players.lastBanAt,
+        lastUnbanAt: players.lastUnbanAt,
+      })
+      .from(players)
     const existingByName = new Map(existingPlayers.map((player) => [player.puuid, player]))
-    const openNames = yield* db.select().from(playerNames).where(isNull(playerNames.endedAt))
-    const openRegions = yield* db.select().from(playerRegions).where(isNull(playerRegions.endedAt))
-    const openBans = yield* db.select().from(bannedPlayers).where(isNull(bannedPlayers.endedAt))
+    const openNames = yield* db
+      .select({ id: playerNames.id, puuid: playerNames.puuid })
+      .from(playerNames)
+      .where(isNull(playerNames.endedAt))
+    const openRegions = yield* db
+      .select({ id: playerRegions.id, puuid: playerRegions.puuid })
+      .from(playerRegions)
+      .where(isNull(playerRegions.endedAt))
+    const openBans = yield* db
+      .select({ id: bannedPlayers.id, puuid: bannedPlayers.puuid })
+      .from(bannedPlayers)
+      .where(isNull(bannedPlayers.endedAt))
     const openNameByPuuid = new Map(openNames.map((row) => [row.puuid, row]))
     const openRegionByPuuid = new Map(openRegions.map((row) => [row.puuid, row]))
     const openBanByPuuid = new Map(openBans.map((row) => [row.puuid, row]))
