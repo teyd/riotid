@@ -111,11 +111,12 @@ details per pass and 1,000 Riot requests per day, and 429/5xx responses retry
 with exponential backoff. There is no fixed “stop before the next scan” window:
 the next scan is six hours away, and preemption covers manual/early scans.
 
-## Design studies
+## Interface
 
-- `/1` — Swiss light ledger (DeepSeek v4.1 Flash Max)
-- `/2` — terminal/instrument panel (Grok 4.7 Medium)
-- `/3` — Linear/Vercel refined dark (Gemini 4 Hydrogen Medium)
+The shell is pure black with hairline borders, the player list is a resizable
+master pane (saved by ui-sdk `Resizable`), and the detail pane takes the rest of
+the width. Stats, crawler, and status use Recharts for colored activity charts;
+the status page renders recent pipeline runs with ui-sdk `Waterfall`.
 
 ## Deploy (Dokploy)
 

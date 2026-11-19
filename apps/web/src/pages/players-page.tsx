@@ -8,8 +8,7 @@ import {
   SegmentedControlItem,
 } from '@ui-sdk/react/segmented-control'
 import { Link, useNavigate } from '@tanstack/react-router'
-import SearchIcon from 'kubai-icons-react/icons/search'
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState, type SVGProps } from 'react'
 
 import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
@@ -43,6 +42,13 @@ const regions: ReadonlyArray<{ value: 'all' | Region; label: string }> = [
   { value: 'ap', label: 'AP' },
   { value: 'kr', label: 'KR' },
 ]
+
+const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...props}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+  </svg>
+)
 
 const score = (row: IndexRow) => row[P.nameChanges] * 2 + row[P.regionChanges] * 3
 
@@ -142,6 +148,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
     })
   }
 
+  const sortOption = sorts.find((item) => item.value === sort) ?? sorts[0]!
   const escape = () => {
     if (p) {
       select(null)
@@ -225,10 +232,10 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   >
                     <SelectLabel className="sr-only">Sort players</SelectLabel>
                     <SelectTrigger
-                      aria-label={`Sort players: ${sorts.find((item) => item.value === sort)?.label ?? sort}`}
+                      aria-label={`Sort players: ${sortOption?.label ?? sort}`}
                       className="flex h-7 items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
                     >
-                      <span>{sorts.find((item) => item.value === sort)?.trigger ?? sort}</span>
+                      <span>{sortOption?.trigger ?? sort}</span>
                       <span aria-hidden className="text-[9px] leading-none text-zinc-600">
                         ▼
                       </span>

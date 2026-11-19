@@ -24,3 +24,92 @@ body {
 ::selection {
   background: color-mix(in oklab, var(--color-accent) 30%, transparent);
 }
+
+.waterfall {
+  display: flex;
+  flex-direction: column;
+}
+
+.waterfall [data-slot='waterfall-header-row'],
+.waterfall [data-slot='waterfall-row'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 64px minmax(0, 1.6fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.waterfall [data-slot='waterfall-row'] {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.waterfall [data-slot='waterfall-header-row'] {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+  color: #52525b;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.waterfall [data-slot='waterfall-row']:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.35);
+  outline-offset: -1px;
+}
+
+.waterfall [data-slot='waterfall-row-header'] {
+  overflow: hidden;
+  color: #d4d4d8;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waterfall [data-slot='waterfall-axis'] {
+  position: relative;
+  height: 14px;
+}
+
+.waterfall [data-slot='waterfall-tick'] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--waterfall-tick);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  padding-inline-start: 4px;
+  color: #52525b;
+  font-size: 9px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.waterfall [data-slot='waterfall-bar'] {
+  position: relative;
+  height: 32px;
+}
+
+.waterfall [data-slot='waterfall-bar']::before {
+  content: '';
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: var(--waterfall-start);
+  width: var(--waterfall-size);
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--wf-color, #4ade80);
+}
+
+.waterfall [data-slot='waterfall-cell'] {
+  color: #a1a1aa;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .waterfall [data-slot='waterfall-header-row'],
+  .waterfall [data-slot='waterfall-row'] {
+    grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr);
+    gap: 8px;
+  }
+}

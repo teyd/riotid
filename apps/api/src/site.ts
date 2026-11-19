@@ -598,6 +598,17 @@ export const buildServiceStatus = (options: {
       select id, status, trigger, finished_at, duration_ms
       from runs order by id desc limit 1
     `)
+    const recentRuns = yield* db.all<{
+      id: number
+      status: string
+      trigger: string
+      started_at: number
+      finished_at: number | null
+      duration_ms: number | null
+    }>(sql`
+      select id, status, trigger, started_at, finished_at, duration_ms
+      from runs order by id desc limit 12
+    `)
     const anonymous = yield* db.get<{ total: number; unresolved: number; linked: number }>(sql`
       select
         count(*) as total,
@@ -631,6 +642,14 @@ export const buildServiceStatus = (options: {
             durationMs: latestRun.duration_ms,
           }
         : null,
+      recentRuns: recentRuns.map((run) => ({
+        id: run.id,
+        status: run.status,
+        trigger: run.trigger,
+        startedAt: run.started_at,
+        finishedAt: run.finished_at,
+        durationMs: run.duration_ms,
+      })),
       auth: { cookieFile: options.cookieFile, updatedAt: options.cookieUpdatedAt },
       anonymous: {
         total: anonymous?.total ?? 0,
@@ -663,6 +682,15 @@ export const crawlerSnapshot = (
     const cache = yield* db.get<{ rows: number; matches: number }>(sql`
       select count(*) as rows, count(distinct match_id) as matches from match_candidates
     `)
+    const regionRows = yield* db.all<{ region: Region; matches: number }>(sql`
+      select region, count(distinct match_id) as matches
+      from match_candidates group by region
+    `)
+    const byRegion: Record<string, number> = { na: 0, eu: 0, ap: 0, kr: 0 }
+
+    for (const row of regionRows) {
+      byRegion[row.region] = row.matches
+    }
     const matches = yield* db.all<{
       match_id: string
       region: Region
@@ -709,7 +737,7 @@ export const crawlerSnapshot = (
       running: since > 0 && now - since < 15 * 60_000,
       lastRunAt: lastRun ? Date.parse(lastRun.value) : null,
       requestsToday: Number(requests?.value ?? '0') || 0,
-      cache: { matches: cache?.matches ?? 0, rows: cache?.rows ?? 0 },
+      cache: { matches: cache?.matches ?? 0, rows: cache?.rows ?? 0, byRegion },
       activity,
       matches: matches.map((row) => ({
         matchId: row.match_id,
