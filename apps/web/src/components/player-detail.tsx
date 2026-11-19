@@ -60,7 +60,9 @@ const HistoryTimeline = ({
           <TimelineConnector className="absolute top-3.5 -bottom-[5px] left-1 w-px bg-white/[0.09]" />
         ) : null}
         <div className="min-w-0">
-          <TimelineTitle className="truncate text-sm text-zinc-100">{item.title}</TimelineTitle>
+          <TimelineTitle className="truncate text-sm font-medium text-zinc-100">
+            {item.title}
+          </TimelineTitle>
           <TimelineTime
             dateTime={new Date(item.at).toISOString()}
             className="mt-1 block font-mono text-[12px] text-zinc-400"
@@ -317,7 +319,9 @@ export const PlayerDetailPanel = ({
                 >
                   {name || 'Anonymous'}
                 </h2>
-                {tag ? <span className="font-mono text-sm text-zinc-300">#{tag}</span> : null}
+                {tag ? (
+                  <span className="font-mono text-sm font-medium text-zinc-200">#{tag}</span>
+                ) : null}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <Badge>{regionLabel(region)}</Badge>
