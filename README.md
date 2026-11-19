@@ -76,15 +76,15 @@ Responses are ETagged and support `If-None-Match`. The API never calls Riot.
 
 ## Commands
 
-| Group   | Task                                                                     |
-| ------- | ------------------------------------------------------------------------ |
-| Develop | `mise run dev` · `install` · `check` · `lint` · `fmt` · `test` · `build` |
-| Data    | `mise run scan` · `stats` · `db:seed` · `db:migrate` · `backup`          |
-| Operate | `mise run serve` · `scheduler` · `cli` · `auth:login` · `anon:resolve`   |
+| Group   | Task                                                                                                       |
+| ------- | ---------------------------------------------------------------------------------------------------------- |
+| Develop | `mise run dev` · `mise run install` · `mise run check` · `mise run test` · `mise run build`                |
+| Data    | `mise run scan` · `mise run stats` · `mise run db:seed` · `mise run db:migrate` · `mise run backup`        |
+| Operate | `mise run serve` · `mise run scheduler` · `mise run cli` · `mise run auth:login` · `mise run anon:resolve` |
 
 Run any CLI command through mise, for example
 `mise run cli -- player:show <puuid>`. See the [runbook](docs/runbook.md) for
-every task and the in-container forms.
+the full operator flow and the in-container forms.
 
 > [!IMPORTANT]
 > One process writes to SQLite at a time; the API uses a read-only connection.
@@ -112,5 +112,5 @@ the container entrypoint and starts the API as a child process. Deploy with
 - [Probe report](docs/probe-report.md) — live Riot endpoint findings
 
 `mise run ci` runs static checks, tests, the web build, and migration
-verification. Scans and identity passes use temporary databases and fake Riot
-sources in tests; they never call Riot.
+verification. The test suites use temporary databases and fake Riot sources;
+they never call Riot.

@@ -24,7 +24,7 @@ Every write command assumes the scheduler is not running. See
 - Production paths live on the mounted volume: `/app/data/...`.
 - Confirm one writer. A manual scan against a live production scheduler will
   collide with its jobs.
-- `mise run db:migrate` applies committed migrations; the runtime also migrates
+- `mise run db:migrate` applies committed migrations; the scheduler also migrates
   on startup.
 
 ## Riot auth
@@ -168,7 +168,7 @@ repository `Dockerfile`; the container entrypoint is the scheduler:
 - On boot it catches up a missed scan, refreshes auth, then scans every
   `SCAN_INTERVAL_HOURS`.
 - It runs identity passes in bounded batches, pausing while a scan runs and
-  resuming at 00:00 UTC when `ANON_RESOLVE_BUDGET` is spent.
+  resuming after midnight UTC when `ANON_RESOLVE_BUDGET` is spent.
 - It backs up shortly after boot and at most once per 24 hours, then prunes runs.
 
 The database, cookie jar, and backups live on the `/app/data` volume. Run
