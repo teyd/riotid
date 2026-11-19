@@ -91,7 +91,8 @@ const searchMs = await page.evaluate(
         previous = current
       })
       observer.observe(document.body, { subtree: true, childList: true })
-      input.value = 'zzzz-not-found'
+      const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')
+      descriptor?.set?.call(input, 'zzzz-not-found')
       input.dispatchEvent(new Event('input', { bubbles: true }))
       setTimeout(() => {
         observer.disconnect()
