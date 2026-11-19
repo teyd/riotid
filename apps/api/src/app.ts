@@ -1,4 +1,5 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off
+import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
@@ -237,8 +238,17 @@ export const makeApp = (options: AppOptions) => {
       })
     }
 
+    const body = JSON.stringify(detail)
+    const etag = `"player-${createHash('sha1').update(body).digest('base64url').slice(0, 16)}"`
+
+    c.header('ETag', etag)
     c.header('Cache-Control', 'public, max-age=300, s-maxage=600')
-    return c.json(detail)
+
+    if (parseIfNoneMatch(c.req.header('if-none-match'), etag)) {
+      return c.body(null, 304)
+    }
+
+    return c.body(body, 200, { 'Content-Type': 'application/json; charset=utf-8' })
   })
 
   app.all('/api/*', (c) =>
