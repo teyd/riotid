@@ -199,10 +199,6 @@ export function StatusPage() {
           </Panel>
         </div>
       </div>
-
-      <p className="mt-6 font-mono text-[10px] leading-5 text-zinc-600">
-        Unofficial fan project · not affiliated with Riot Games. Status refreshes every 30 seconds.
-      </p>
     </div>
   )
 }
