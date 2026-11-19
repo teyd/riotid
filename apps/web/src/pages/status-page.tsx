@@ -60,7 +60,7 @@ export function StatusPage() {
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-4xl font-semibold tracking-tight text-zinc-50">System status</h1>
           <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
-            <span className={`size-2 rounded-full ${data.ok ? 'bg-accent' : 'bg-amber-400'}`} />
+            <span className={`size-2 rounded-full ${data.ok ? 'bg-accent' : 'bg-zinc-500'}`} />
             {data.ok ? 'operational' : 'degraded'}
           </span>
         </div>

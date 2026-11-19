@@ -9,12 +9,11 @@ import {
   TimelineTitle,
 } from '@ui-sdk/react/timeline'
 import { useQuery } from '@tanstack/react-query'
-import ArrowLeftIcon from 'kubai-icons-react/icons/arrow-left'
 import { useState } from 'react'
 
 import {
-  cardAccent,
   cardArt,
+  cardLargeArt,
   cardWideArt,
   fetchPlayer,
   FLAG,
@@ -112,16 +111,16 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
           <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">card</dt>
           <dd className="mt-1 flex items-center gap-2">
             <a
-              href={`https://media.valorant-api.com/playercards/${a.cardId}/smallart.png`}
+              href={cardLargeArt(a.cardId) ?? cardArt(a.cardId) ?? '#'}
               target="_blank"
               rel="noreferrer noopener"
-              className="block h-9 w-7 overflow-hidden rounded-sm bg-white/[0.06]"
+              className="block h-10 w-7 overflow-hidden rounded-sm bg-white/[0.06]"
             >
               <img
-                src={`https://media.valorant-api.com/playercards/${a.cardId}/smallart.png`}
+                src={cardLargeArt(a.cardId) ?? ''}
                 alt=""
                 width={28}
-                height={36}
+                height={40}
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover"
@@ -179,58 +178,61 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div
-        className="sticky top-0 z-10 border-b border-white/[0.06] bg-ink/95 px-6 py-5 backdrop-blur"
-        style={
-          wideArt
-            ? {
-                backgroundImage: `linear-gradient(90deg, rgba(9,9,11,0.985) 0%, rgba(9,9,11,0.95) 60%, rgba(9,9,11,0.9) 100%), url(${wideArt})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }
-            : undefined
-        }
-      >
+    <div className="flex h-full w-full flex-col overflow-y-auto">
+      <div className="relative h-24 w-full shrink-0 overflow-hidden border-b border-white/[0.08] bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px]">
+        {wideArt ? (
+          <img
+            src={wideArt}
+            alt=""
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
+        ) : null}
+      </div>
+
+      <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-ink px-6 py-5">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 lg:hidden"
+        >
+          ← players
+        </button>
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            {cardArt(resolvedCardId) ? (
-              <HoverCard>
-                <HoverCardTrigger
-                  href={cardWideArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
-                  className="hidden h-14 w-11 shrink-0 overflow-hidden rounded-sm ring-1 ring-white/15 sm:block"
-                  style={{ backgroundColor: cardAccent(resolvedCardId) }}
-                >
+            <HoverCard>
+              <HoverCardTrigger
+                href={cardWideArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
+                className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:flex"
+              >
+                <span aria-hidden>{(name || '?').slice(0, 1).toUpperCase()}</span>
+                {cardArt(resolvedCardId) ? (
                   <img
                     src={cardArt(resolvedCardId) ?? ''}
                     alt={`${name || 'Player'} card`}
-                    className="h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-cover"
                     onError={(event) => {
                       event.currentTarget.style.display = 'none'
                     }}
                   />
-                </HoverCardTrigger>
-                <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
-                  <img
-                    src={cardWideArt(resolvedCardId) ?? ''}
-                    alt=""
-                    className="h-36 w-full object-cover"
-                  />
-                  <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
-                    {name || 'Anonymous'}
-                    {tag ? `#${tag}` : ''}
-                  </p>
-                </HoverCardContent>
-              </HoverCard>
-            ) : null}
-            <button
-              type="button"
-              onClick={onBack}
-              className="-ml-1 mt-0.5 rounded p-1 text-zinc-500 hover:bg-white/5 hover:text-zinc-200 lg:hidden"
-              aria-label="Back to players"
-            >
-              <ArrowLeftIcon className="size-4" />
-            </button>
+                ) : null}
+              </HoverCardTrigger>
+              <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
+                <img
+                  src={cardWideArt(resolvedCardId) ?? ''}
+                  alt=""
+                  className="h-36 w-full object-cover"
+                />
+                <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
+                  {name || 'Anonymous'}
+                  {tag ? `#${tag}` : ''}
+                </p>
+              </HoverCardContent>
+            </HoverCard>
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <h1 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
@@ -276,22 +278,24 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
           </Toolbar>
         </div>
 
-        <dl className="mt-5 grid grid-cols-3 gap-3 font-mono text-[11px]">
-          <div>
+        <dl className="mt-5 grid grid-cols-3 divide-x divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[11px]">
+          <div className="px-3 py-3 sm:px-4">
             <dt className="text-zinc-600">first seen</dt>
-            <dd className="mt-1 text-sm text-zinc-200">
+            <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">
               {formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
             </dd>
           </div>
-          <div>
+          <div className="px-3 py-3 sm:px-4">
             <dt className="text-zinc-600">last seen</dt>
-            <dd className="mt-1 text-sm text-zinc-200">
+            <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">
               {formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
             </dd>
           </div>
-          <div>
+          <div className="px-3 py-3 sm:px-4">
             <dt className="text-zinc-600">observations</dt>
-            <dd className="mt-1 text-sm text-zinc-200">{detail?.player.timesSeen ?? '—'}</dd>
+            <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">
+              {detail?.player.timesSeen ?? '—'}
+            </dd>
           </div>
         </dl>
       </div>
@@ -304,7 +308,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
       {detail ? (
         <>
           {detail.player.isBanned ? (
-            <div className="border-t border-amber-400/20 bg-amber-400/[0.06] px-5 py-3 text-xs text-amber-200">
+            <div className="border-t border-white/[0.08] bg-white/[0.03] px-5 py-3 text-xs text-zinc-400">
               Ban state comes from the competitive leaderboard flag. History is retained.
             </div>
           ) : null}

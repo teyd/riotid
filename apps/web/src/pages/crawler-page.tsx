@@ -125,9 +125,7 @@ export function CrawlerPage() {
               <span>links</span>
               <span className="ml-2 text-zinc-200 tabular-nums">{snapshot.activity.linked}</span>
               {snapshot.activity.ambiguous > 0 ? (
-                <span className="ml-3 text-amber-300/80">
-                  {snapshot.activity.ambiguous} ambiguous
-                </span>
+                <span className="ml-3 text-zinc-400">{snapshot.activity.ambiguous} ambiguous</span>
               ) : null}
             </div>
           </div>

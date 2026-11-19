@@ -10,8 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as R1RouteImport } from './routes/1'
-import { Route as R2RouteImport } from './routes/2'
 import { Route as R3RouteImport } from './routes/3'
 import { Route as CrawlerRouteImport } from './routes/crawler'
 import { Route as StatsRouteImport } from './routes/stats'
@@ -22,16 +20,6 @@ import { Route as PuuidPuuidRouteImport } from './routes/puuid.$puuid'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const R1Route = R1RouteImport.update({
-  id: '/1',
-  path: '/1',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const R2Route = R2RouteImport.update({
-  id: '/2',
-  path: '/2',
   getParentRoute: () => rootRouteImport,
 } as any)
 const R3Route = R3RouteImport.update({
@@ -67,8 +55,6 @@ const PuuidPuuidRoute = PuuidPuuidRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/1': typeof R1Route
-  '/2': typeof R2Route
   '/3': typeof R3Route
   '/crawler': typeof CrawlerRoute
   '/stats': typeof StatsRoute
@@ -78,8 +64,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/1': typeof R1Route
-  '/2': typeof R2Route
   '/3': typeof R3Route
   '/crawler': typeof CrawlerRoute
   '/stats': typeof StatsRoute
@@ -90,8 +74,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/1': typeof R1Route
-  '/2': typeof R2Route
   '/3': typeof R3Route
   '/crawler': typeof CrawlerRoute
   '/stats': typeof StatsRoute
@@ -103,8 +85,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/1'
-    | '/2'
     | '/3'
     | '/crawler'
     | '/stats'
@@ -114,8 +94,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/1'
-    | '/2'
     | '/3'
     | '/crawler'
     | '/stats'
@@ -125,8 +103,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/1'
-    | '/2'
     | '/3'
     | '/crawler'
     | '/stats'
@@ -137,8 +113,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  R1Route: typeof R1Route
-  R2Route: typeof R2Route
   R3Route: typeof R3Route
   CrawlerRoute: typeof CrawlerRoute
   StatsRoute: typeof StatsRoute
@@ -154,20 +128,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/1': {
-      id: '/1'
-      path: '/1'
-      fullPath: '/1'
-      preLoaderRoute: typeof R1RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/2': {
-      id: '/2'
-      path: '/2'
-      fullPath: '/2'
-      preLoaderRoute: typeof R2RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/3': {
@@ -217,8 +177,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  R1Route: R1Route,
-  R2Route: R2Route,
   R3Route: R3Route,
   CrawlerRoute: CrawlerRoute,
   StatsRoute: StatsRoute,

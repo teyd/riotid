@@ -698,7 +698,7 @@ export const scan = (
         }
 
         const linkedRows = yield* tx
-          .select({ puuid: anonymousRows.resolvedPuuid })
+          .select({ puuid: anonymousRows.resolvedPuuid, cardId: anonymousRows.cardId })
           .from(anonymousRows)
           .where(and(eq(anonymousRows.status, 'linked'), eq(anonymousRows.lastSeenAt, observedAt)))
         const linkedPuuids = [
@@ -714,6 +714,14 @@ export const scan = (
               updatedAt: observedAt,
             })
             .where(inArray(players.puuid, batch))
+        }
+
+        for (const row of linkedRows) {
+          if (!row.puuid || !row.cardId) continue
+          yield* tx
+            .update(players)
+            .set({ cardId: row.cardId, updatedAt: observedAt })
+            .where(eq(players.puuid, row.puuid))
         }
 
         yield* tx.delete(anonymousRows).where(
