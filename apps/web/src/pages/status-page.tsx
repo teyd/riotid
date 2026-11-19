@@ -25,10 +25,10 @@ const Row = ({
   hint?: string | undefined
 }) => (
   <div className="grid grid-cols-[130px_1fr] gap-3 border-b border-white/[0.05] py-2.5 last:border-0">
-    <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-600">{label}</span>
+    <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">{label}</span>
     <span className="font-mono text-[11px] text-zinc-200">
       {value}
-      {hint ? <span className="mt-0.5 block break-all text-zinc-600">{hint}</span> : null}
+      {hint ? <span className="mt-0.5 block break-all text-zinc-500">{hint}</span> : null}
     </span>
   </div>
 )
@@ -102,7 +102,7 @@ export function StatusPage() {
         >
           <div className="mt-4">
             {items.length === 0 ? (
-              <p className="py-3 text-sm text-zinc-600">No scans recorded yet.</p>
+              <p className="py-3 text-sm text-zinc-500">No scans recorded yet.</p>
             ) : (
               <Waterfall
                 aria-label="Recent pipeline runs"
@@ -241,7 +241,7 @@ export function StatusPage() {
         </Panel>
       </div>
 
-      <p className="mt-6 font-mono text-[10px] leading-5 text-zinc-600">
+      <p className="mt-6 font-mono text-[10px] leading-5 text-zinc-500">
         Unofficial fan project · not affiliated with Riot Games. Status refreshes every 30 seconds.
       </p>
     </div>

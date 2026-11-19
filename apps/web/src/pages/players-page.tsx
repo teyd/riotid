@@ -212,7 +212,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     <SegmentedControlItem
                       key={item.value}
                       value={item.value}
-                      className="rounded-[5px] px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600 transition-colors hover:text-zinc-300 data-[checked]:text-zinc-100"
+                      className="rounded-[5px] px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-zinc-300 data-[checked]:text-zinc-100"
                     >
                       {item.label}
                     </SegmentedControlItem>
@@ -220,7 +220,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 </SegmentedControl>
 
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-[10px] text-zinc-600 tabular-nums">
+                  <span className="font-mono text-[10px] text-zinc-500 tabular-nums">
                     {rows.length.toLocaleString()}
                   </span>
                   <Select
@@ -236,7 +236,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                       className="flex h-7 items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
                     >
                       <span>{sortOption?.trigger ?? sort}</span>
-                      <span aria-hidden className="text-[9px] leading-none text-zinc-600">
+                      <span aria-hidden className="text-[9px] leading-none text-zinc-500">
                         ▼
                       </span>
                     </SelectTrigger>

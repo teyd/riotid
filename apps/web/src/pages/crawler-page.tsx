@@ -118,17 +118,17 @@ export function CrawlerPage() {
 
               <dl className="mt-5 grid grid-cols-3 gap-4 border-t border-white/[0.06] pt-4 font-mono text-[10px]">
                 <div>
-                  <dt className="uppercase tracking-wide text-zinc-600">matches fetched</dt>
+                  <dt className="uppercase tracking-wide text-zinc-500">matches fetched</dt>
                   <dd className="mt-1 text-lg text-zinc-100 tabular-nums">
                     {activity.matchesFetched.toLocaleString()}
                   </dd>
                 </div>
                 <div>
-                  <dt className="uppercase tracking-wide text-zinc-600">links</dt>
+                  <dt className="uppercase tracking-wide text-zinc-500">links</dt>
                   <dd className="mt-1 text-lg text-zinc-100 tabular-nums">{activity.linked}</dd>
                 </div>
                 <div>
-                  <dt className="uppercase tracking-wide text-zinc-600">ambiguous</dt>
+                  <dt className="uppercase tracking-wide text-zinc-500">ambiguous</dt>
                   <dd className="mt-1 text-lg text-zinc-100 tabular-nums">{activity.ambiguous}</dd>
                 </div>
               </dl>
@@ -160,7 +160,7 @@ export function CrawlerPage() {
             </>
           )}
 
-          <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs leading-5 text-zinc-600">
+          <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs leading-5 text-zinc-500">
             Leaderboard scans take priority: the crawler starts one minute after a successful scan,
             yields if another scan begins, and paces every Riot request. It is not a continuous
             match archive.
@@ -202,7 +202,7 @@ export function CrawlerPage() {
           <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[10px]">
             {byRegion.map((entry) => (
               <div key={entry.region} className="flex justify-between">
-                <dt className="text-zinc-600">{entry.label}</dt>
+                <dt className="text-zinc-500">{entry.label}</dt>
                 <dd className="text-zinc-300 tabular-nums">{entry.matches.toLocaleString()}</dd>
               </div>
             ))}
@@ -215,7 +215,7 @@ export function CrawlerPage() {
           <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
             recently discovered matches
           </h2>
-          <p className="font-mono text-[10px] text-zinc-600">
+          <p className="font-mono text-[10px] text-zinc-500">
             latest {snapshot.matches.length} of {snapshot.cache.matches.toLocaleString()} ·{' '}
             {snapshot.running ? 'pass in progress' : 'resolver idle'}
           </p>
@@ -228,7 +228,7 @@ export function CrawlerPage() {
           />
         ) : (
           <div className="px-5 pb-2">
-            <div className="hidden grid-cols-[1fr_100px_90px_120px_120px] gap-3 border-b border-white/[0.08] py-2 font-mono text-[9px] uppercase tracking-wide text-zinc-600 sm:grid">
+            <div className="hidden grid-cols-[1fr_100px_90px_120px_120px] gap-3 border-b border-white/[0.08] py-2 font-mono text-[9px] uppercase tracking-wide text-zinc-500 sm:grid">
               <span>match</span>
               <span>region</span>
               <span className="text-right">players</span>
@@ -245,13 +245,13 @@ export function CrawlerPage() {
               >
                 <span className="flex min-w-0 items-center gap-2 font-mono text-xs text-zinc-300">
                   <span className="truncate">{match.matchId}</span>
-                  <span aria-hidden="true" className="shrink-0 text-zinc-600">
+                  <span aria-hidden="true" className="shrink-0 text-zinc-500">
                     ↗
                   </span>
                 </span>
                 <span className="text-right font-mono text-[11px] text-zinc-400 sm:text-left">
                   {regionLabel(match.region)}
-                  <span className="ml-1 text-zinc-600 sm:hidden">{regionShort(match.region)}</span>
+                  <span className="ml-1 text-zinc-500 sm:hidden">{regionShort(match.region)}</span>
                 </span>
                 <span className="text-right font-mono text-[11px] text-zinc-400 tabular-nums">
                   {match.participants}

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
   Bar,
@@ -21,7 +22,33 @@ import {
 } from '../components/charts.tsx'
 import { MetricGrid, Panel, StatRow } from '../components/panel.tsx'
 import { ErrorState, LoadingState } from '../components/ui.tsx'
-import { fetchStats, formatDate, formatRelative, regionLabel, type SiteStats } from '../lib/api.ts'
+import { fetchStats, formatRelative, regionLabel, type SiteStats } from '../lib/api.ts'
+
+const RecentList = ({
+  rows,
+  empty,
+}: {
+  rows: ReadonlyArray<{ key: string; puuid: string; label: ReactNode; meta: string }>
+  empty: string
+}) => (
+  <div className="mt-2 divide-y divide-white/[0.05]">
+    {rows.length === 0 ? (
+      <p className="py-3 text-sm text-zinc-500">{empty}</p>
+    ) : (
+      rows.map((row) => (
+        <Link
+          key={row.key}
+          to="/puuid/$puuid"
+          params={{ puuid: row.puuid }}
+          className="flex items-baseline justify-between gap-3 py-2.5 hover:text-zinc-100"
+        >
+          <span className="truncate text-sm text-zinc-300">{row.label}</span>
+          <span className="shrink-0 font-mono text-[10px] text-zinc-500">{row.meta}</span>
+        </Link>
+      ))
+    )}
+  </div>
+)
 
 const RegionCard = ({ region, data }: { region: string; data: SiteStats['regions'][string] }) => {
   const tiers = Object.entries(data.tiers)
@@ -34,7 +61,7 @@ const RegionCard = ({ region, data }: { region: string; data: SiteStats['regions
     <div className="rounded-lg border border-white/[0.08] p-4">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-base font-medium text-zinc-100">{regionLabel(region)}</h3>
-        <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-600">
+        <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-500">
           {data.players.toLocaleString()} players
         </span>
       </div>
@@ -86,7 +113,12 @@ export function StatsPage() {
   const data = stats.data
   const history = data.history.map((entry) => ({
     ...entry,
-    label: formatDate(entry.at),
+    label: new Date(entry.at).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
   }))
 
   return (
@@ -125,7 +157,7 @@ export function StatsPage() {
         >
           <div className="mt-4 h-64">
             {history.length === 0 ? (
-              <p className="text-sm text-zinc-600">No completed scans yet.</p>
+              <p className="text-sm text-zinc-500">No completed scans yet.</p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={history} margin={{ top: 8, right: 4, bottom: 0, left: -12 }}>
@@ -237,7 +269,7 @@ export function StatsPage() {
               include banned players; the public index excludes them.
             </p>
           </div>
-          <p className="font-mono text-[10px] text-zinc-600">
+          <p className="font-mono text-[10px] text-zinc-500">
             {data.totals.runs.toLocaleString()} {data.totals.runs === 1 ? 'scan' : 'scans'} observed
           </p>
         </div>
@@ -250,77 +282,57 @@ export function StatsPage() {
 
       <section className="mt-10 grid gap-4 lg:grid-cols-3">
         <Panel title="Recent renames" description="The most recent name intervals that ended.">
-          <div className="mt-2 divide-y divide-white/[0.05]">
-            {data.recent.names.length === 0 ? (
-              <p className="py-3 text-sm text-zinc-600">No renames recorded.</p>
-            ) : (
-              data.recent.names.map((row, index) => (
-                <Link
-                  key={`${row.puuid}-${index}`}
-                  to="/puuid/$puuid"
-                  params={{ puuid: row.puuid }}
-                  className="flex items-baseline justify-between gap-3 py-2.5 hover:text-zinc-100"
-                >
-                  <span className="truncate text-sm text-zinc-300">
-                    {row.name}
-                    <span className="text-zinc-600">#{row.tag}</span>
-                  </span>
-                  <span className="shrink-0 font-mono text-[10px] text-zinc-500">
-                    {formatRelative(row.endedAt)}
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
+          <RecentList
+            empty="No renames recorded."
+            rows={data.recent.names.map((row, index) => ({
+              key: `${row.puuid}-${index}`,
+              puuid: row.puuid,
+              label: (
+                <>
+                  {row.name}
+                  <span className="text-zinc-500">#{row.tag}</span>
+                </>
+              ),
+              meta: formatRelative(row.endedAt),
+            }))}
+          />
         </Panel>
 
         <Panel
           title="Recent region moves"
           description="Transfers are only recorded when one region claims a player in a scan."
         >
-          <div className="mt-2 divide-y divide-white/[0.05]">
-            {data.recent.regions.length === 0 ? (
-              <p className="py-3 text-sm text-zinc-600">No region moves recorded.</p>
-            ) : (
-              data.recent.regions.map((row, index) => (
-                <Link
-                  key={`${row.puuid}-${index}`}
-                  to="/puuid/$puuid"
-                  params={{ puuid: row.puuid }}
-                  className="flex items-baseline justify-between gap-3 py-2.5"
-                >
-                  <span className="truncate text-sm text-zinc-300">
-                    {row.name ?? row.puuid.slice(0, 12)}
-                    {row.tag ? <span className="text-zinc-600">#{row.tag}</span> : null}
-                  </span>
-                  <span className="font-mono text-[10px] text-zinc-500">
-                    {regionLabel(row.region)} · {formatRelative(row.endedAt)}
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
+          <RecentList
+            empty="No region moves recorded."
+            rows={data.recent.regions.map((row, index) => ({
+              key: `${row.puuid}-${index}`,
+              puuid: row.puuid,
+              label: (
+                <>
+                  {row.name ?? row.puuid.slice(0, 12)}
+                  {row.tag ? <span className="text-zinc-500">#{row.tag}</span> : null}
+                </>
+              ),
+              meta: `${regionLabel(row.region)} · ${formatRelative(row.endedAt)}`,
+            }))}
+          />
         </Panel>
 
         <Panel title="Most changed" description="Lifetime counters, not a recent window.">
-          <div className="mt-2 divide-y divide-white/[0.05]">
-            {data.mostChanged.map((row) => (
-              <Link
-                key={row.puuid}
-                to="/puuid/$puuid"
-                params={{ puuid: row.puuid }}
-                className="flex items-baseline justify-between gap-3 py-2.5"
-              >
-                <span className="truncate text-sm text-zinc-300">
+          <RecentList
+            empty="No changes recorded."
+            rows={data.mostChanged.map((row) => ({
+              key: row.puuid,
+              puuid: row.puuid,
+              label: (
+                <>
                   {row.name ?? 'Anonymous'}
-                  {row.tag ? <span className="text-zinc-600">#{row.tag}</span> : null}
-                </span>
-                <span className="shrink-0 font-mono text-[10px] text-zinc-500">
-                  {row.nameChanges}n · {row.regionChanges}r
-                </span>
-              </Link>
-            ))}
-          </div>
+                  {row.tag ? <span className="text-zinc-500">#{row.tag}</span> : null}
+                </>
+              ),
+              meta: `${row.nameChanges}n · ${row.regionChanges}r`,
+            }))}
+          />
         </Panel>
       </section>
     </div>

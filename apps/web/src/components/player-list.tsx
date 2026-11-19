@@ -166,7 +166,7 @@ export const PlayerList = ({
                 </div>
               </div>
 
-              <div className="shrink-0 font-mono text-[11px] text-zinc-600 tabular-nums">
+              <div className="shrink-0 font-mono text-[11px] text-zinc-500 tabular-nums">
                 {formatRelative(row[P.lastSeenAt])}
               </div>
             </button>

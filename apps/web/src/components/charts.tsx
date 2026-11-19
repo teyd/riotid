@@ -62,7 +62,7 @@ export const Donut = ({
       <span className="text-3xl font-semibold tracking-tight text-zinc-50 tabular-nums">
         {centerValue}
       </span>
-      <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-600">
+      <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">
         {centerLabel}
       </span>
     </div>
