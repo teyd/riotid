@@ -20,7 +20,7 @@ template that drifts from the contract is worse than none.
 | `NODE_ENV`                           | `development`           | Runtime mode; production disables dev seeding and enables prod behavior     |
 | `PORT`                               | `8787`                  | API listen port                                                             |
 | `WEB_PORT`                           | `5173`                  | Vite dev server port                                                        |
-| `PUBLIC_ORIGIN`                      | `http://localhost:5173` | Public web origin used by the security policy and links                     |
+| `PUBLIC_ORIGIN`                      | `http://localhost:5173` | Public web origin printed by status and startup logs                        |
 | `DATABASE_PATH`                      | `./data/riotid.db`      | SQLite file for all app and CLI processes                                   |
 | `COOKIE_FILE`                        | `./data/cookies.json`   | Riot cookie jar written by auth commands                                    |
 | `RIOT_COUNTRY_CODE`                  | `US`                    | Country sent during Riot QR login                                           |
@@ -71,7 +71,7 @@ backups. The hook prints both URLs; `wt remove` cleans up.
 | Backups    | `./data/backups`      | `/app/data/backups`      |
 
 The container mounts one volume at `/app/data`. Everything mutable belongs
-there; the image filesystem stays read-only in practice.
+there; keep the image filesystem disposable.
 
 ## Secret flow
 
