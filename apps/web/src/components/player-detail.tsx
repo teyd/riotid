@@ -222,6 +222,9 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
           <img
             src={wideArt}
             alt=""
+            width={452}
+            height={128}
+            fetchPriority="high"
             decoding="async"
             className="absolute inset-0 h-full w-full object-cover"
             onError={(event) => {
@@ -252,6 +255,8 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
                   <img
                     src={cardArt(resolvedCardId) ?? ''}
                     alt={`${name || 'Player'} card`}
+                    width={56}
+                    height={56}
                     className="absolute inset-0 h-full w-full object-cover"
                     onError={(event) => {
                       event.currentTarget.style.display = 'none'
@@ -263,6 +268,10 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
                 <img
                   src={cardWideArt(resolvedCardId) ?? ''}
                   alt=""
+                  width={452}
+                  height={128}
+                  loading="lazy"
+                  decoding="async"
                   className="h-36 w-full object-cover"
                 />
                 <p className="px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-400">
