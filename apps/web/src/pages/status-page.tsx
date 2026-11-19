@@ -1,10 +1,10 @@
-import { Toolbar, ToolbarButton } from '@ui-sdk/react/toolbar'
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 
-import { Donut, chartColors } from '../components/charts.tsx'
+import { CodePanel } from '../components/code-panel.tsx'
 import { JsonCode, type JsonValue } from '../components/json-code.tsx'
-import { Panel, StatRow } from '../components/panel.tsx'
+import { CoveragePanel } from '../components/coverage-panel.tsx'
+import { Panel } from '../components/panel.tsx'
 import { ErrorState, LoadingState } from '../components/ui.tsx'
 import { fetchStatus, formatDateTime, formatRelative } from '../lib/api.ts'
 
@@ -16,7 +16,7 @@ const statusColor: Record<string, string> = {
 
 const explanations: Record<string, string> = {
   uptime: 'Time since the API process started. The process is stateless; SQLite holds the data.',
-  'database.path': 'The SQLite file on the data volume. The public API opens it read-only.',
+  'database.file': 'The SQLite file on the data volume. The public API opens it read-only.',
   'index.version': 'Bumped whenever the public index is rebuilt from the database.',
   'index.players':
     'Players in the public index. Banned players and unresolved anonymous rows are excluded.',
@@ -58,7 +58,7 @@ export function StatusPage() {
   const json: Record<string, JsonValue> = {
     ok: data.ok,
     uptime: formatDuration(data.uptimeSeconds),
-    database: { ok: data.database.ok, path: data.database.path },
+    database: { ok: data.database.ok, file: data.database.file },
     index: { version: data.index.version, players: data.index.players },
     season: data.season
       ? { name: data.season.name, endsAt: formatDateTime(data.season.endsAt) }
@@ -124,59 +124,32 @@ export function StatusPage() {
       </header>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-        <section className="flex flex-col overflow-hidden rounded-lg border border-white/[0.08] bg-[#050505]">
-          <header className="flex flex-wrap items-center gap-2 border-b border-white/[0.08] px-4 py-2.5">
-            <span className={`size-2 rounded-full ${data.ok ? 'bg-[#4ade80]' : 'bg-zinc-500'}`} />
-            <span className="font-mono text-[11px] text-zinc-300">status.json</span>
-            <span className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-zinc-500">
-              json
-            </span>
-            <Toolbar aria-label="JSON actions" className="ml-auto">
-              <ToolbarButton
-                onClick={copy}
-                className="font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
-              >
-                {copied ? 'copied' : 'copy'}
-              </ToolbarButton>
-            </Toolbar>
-          </header>
-
+        <CodePanel
+          title="status.json"
+          dot={data.ok ? 'bg-[#4ade80]' : 'bg-zinc-500'}
+          copied={copied}
+          onCopy={copy}
+          footer={
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[10px] text-zinc-600">
+              <span>hover dotted keys for definitions</span>
+              <a href="/api/v1/status" className="text-zinc-500 hover:text-zinc-200">
+                GET /api/v1/status ↗
+              </a>
+            </div>
+          }
+        >
           <div className="overflow-x-auto p-4 sm:p-5">
             <JsonCode value={json} explanations={explanations} />
           </div>
-
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[10px] text-zinc-600">
-            <span>hover dotted keys for definitions</span>
-            <a href="/api/v1/status" className="text-zinc-500 hover:text-zinc-200">
-              GET /api/v1/status ↗
-            </a>
-          </div>
-        </section>
+        </CodePanel>
 
         <div className="grid content-start gap-4">
-          <Panel
-            title="Identity coverage"
-            description="Anonymized rows linked by an exact match-graph fingerprint."
-          >
-            <div className="mt-4">
-              <Donut
-                data={[
-                  { name: 'linked', value: data.anonymous.linked, color: chartColors.players },
-                  {
-                    name: 'unresolved',
-                    value: data.anonymous.unresolved,
-                    color: chartColors.muted,
-                  },
-                ]}
-                centerValue={`${(ratio * 100).toFixed(1)}%`}
-                centerLabel="linked"
-              />
-            </div>
-            <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
-              <StatRow label="observed rows" value={data.anonymous.total} />
-              <StatRow label="unresolved" value={data.anonymous.unresolved} muted />
-            </dl>
-          </Panel>
+          <CoveragePanel
+            linked={data.anonymous.linked}
+            unresolved={data.anonymous.unresolved}
+            ratio={ratio}
+            total={data.anonymous.total}
+          />
 
           <Panel
             title="Pipeline runs"

@@ -1,5 +1,6 @@
 import { Meter, MeterIndicator, MeterTrack } from '@ui-sdk/react/meter'
 import { useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
   Area,
@@ -20,6 +21,7 @@ import {
   chartTooltipStyle,
   regionColors,
 } from '../components/charts.tsx'
+import { CoveragePanel } from '../components/coverage-panel.tsx'
 import { MetricGrid, Panel, StatRow } from '../components/panel.tsx'
 import { ErrorState, LoadingState } from '../components/ui.tsx'
 import { fetchStats, formatRelative, regionLabel, type SiteStats } from '../lib/api.ts'
@@ -78,6 +80,49 @@ const ChartTip = ({
   )
 }
 
+const SignalAxes = ({
+  data,
+  color,
+  kind,
+  tickFormatter,
+}: {
+  data: ReadonlyArray<SignalPoint>
+  color: string
+  kind: 'area' | 'bar'
+  tickFormatter: (at: number) => string
+}) => (
+  <>
+    <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+    <XAxis
+      dataKey="at"
+      type="number"
+      domain={['dataMin', 'dataMax']}
+      tick={chartAxisTick}
+      tickFormatter={tickFormatter}
+      {...(data.length <= 6 ? { ticks: data.map((point) => point.at) } : {})}
+      axisLine={false}
+      tickLine={false}
+      minTickGap={28}
+      padding={{ left: 10, right: 10 }}
+    />
+    <YAxis
+      tick={chartAxisTick}
+      axisLine={false}
+      tickLine={false}
+      width={38}
+      {...(kind === 'area' ? { tickFormatter: compact } : { allowDecimals: false })}
+    />
+    <Tooltip
+      content={<ChartTip color={color} />}
+      cursor={
+        kind === 'area'
+          ? { stroke: 'rgba(255,255,255,0.16)', strokeDasharray: '3 3' }
+          : { fill: 'rgba(255,255,255,0.04)' }
+      }
+    />
+  </>
+)
+
 const SignalCard = ({
   title,
   note,
@@ -107,34 +152,11 @@ const SignalCard = ({
           <AreaChart data={[...data]} margin={{ top: 4, right: 24, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+                <stop offset="0%" stopColor={color} stopOpacity={0.16} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-            <XAxis
-              dataKey="at"
-              type="number"
-              domain={['dataMin', 'dataMax']}
-              tick={chartAxisTick}
-              tickFormatter={tickFormatter}
-              {...(data.length <= 6 ? { ticks: data.map((point) => point.at) } : {})}
-              axisLine={false}
-              tickLine={false}
-              minTickGap={28}
-              padding={{ left: 10, right: 10 }}
-            />
-            <YAxis
-              tick={chartAxisTick}
-              axisLine={false}
-              tickLine={false}
-              width={38}
-              tickFormatter={compact}
-            />
-            <Tooltip
-              content={<ChartTip color={color} />}
-              cursor={{ stroke: 'rgba(255,255,255,0.16)', strokeDasharray: '3 3' }}
-            />
+            <SignalAxes data={data} color={color} kind="area" tickFormatter={tickFormatter} />
             <Area
               type="monotone"
               dataKey="value"
@@ -147,30 +169,7 @@ const SignalCard = ({
           </AreaChart>
         ) : (
           <BarChart data={[...data]} margin={{ top: 4, right: 24, bottom: 0, left: 0 }}>
-            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-            <XAxis
-              dataKey="at"
-              type="number"
-              domain={['dataMin', 'dataMax']}
-              tick={chartAxisTick}
-              tickFormatter={tickFormatter}
-              {...(data.length <= 6 ? { ticks: data.map((point) => point.at) } : {})}
-              axisLine={false}
-              tickLine={false}
-              minTickGap={28}
-              padding={{ left: 10, right: 10 }}
-            />
-            <YAxis
-              tick={chartAxisTick}
-              axisLine={false}
-              tickLine={false}
-              width={38}
-              allowDecimals={false}
-            />
-            <Tooltip
-              content={<ChartTip color={color} />}
-              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-            />
+            <SignalAxes data={data} color={color} kind="bar" tickFormatter={tickFormatter} />
             <Bar dataKey="value" fill={color} radius={[2, 2, 0, 0]} maxBarSize={14} />
           </BarChart>
         )}
@@ -179,7 +178,7 @@ const SignalCard = ({
   )
 
   return (
-    <div className="rounded-lg border border-white/[0.08] p-4">
+    <div className="bg-black p-4">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-400">{title}</h3>
         <span className="font-mono text-[10px] text-zinc-600 tabular-nums">{change}</span>
@@ -196,6 +195,33 @@ const SignalCard = ({
     </div>
   )
 }
+
+type RecentRow = {
+  key: string
+  puuid: string
+  label: ReactNode
+  meta: string
+}
+
+const RecentList = ({ rows, empty }: { rows: ReadonlyArray<RecentRow>; empty: string }) => (
+  <div className="mt-2 divide-y divide-white/[0.05]">
+    {rows.length === 0 ? (
+      <p className="py-3 text-sm text-zinc-500">{empty}</p>
+    ) : (
+      rows.map((row) => (
+        <Link
+          key={row.key}
+          to="/puuid/$puuid"
+          params={{ puuid: row.puuid }}
+          className="flex items-baseline justify-between gap-3 py-2.5 hover:text-zinc-100"
+        >
+          <span className="truncate text-sm text-zinc-300">{row.label}</span>
+          <span className="shrink-0 font-mono text-[10px] text-zinc-500">{row.meta}</span>
+        </Link>
+      ))
+    )}
+  </div>
+)
 
 const RegionCard = ({ region, data }: { region: string; data: SiteStats['regions'][string] }) => {
   const tiers = Object.entries(data.tiers)
@@ -355,7 +381,7 @@ export function StatsPage() {
           </p>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 grid gap-px overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.08] sm:grid-cols-2">
           {signals.map((signal) => (
             <SignalCard
               key={signal.key}
@@ -411,25 +437,11 @@ export function StatsPage() {
           </p>
         </Panel>
 
-        <Panel
-          title="Identity coverage"
-          description="Only exact match-graph fingerprints become links."
-        >
-          <div className="mt-4">
-            <Donut
-              data={[
-                { name: 'linked', value: data.coverage.linked, color: chartColors.players },
-                { name: 'unresolved', value: data.coverage.unresolved, color: chartColors.muted },
-              ]}
-              centerValue={`${(data.coverage.ratio * 100).toFixed(1)}%`}
-              centerLabel="linked"
-            />
-          </div>
-          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
-            <StatRow label="linked rows" value={data.coverage.linked} />
-            <StatRow label="unresolved rows" value={data.coverage.unresolved} muted />
-          </dl>
-        </Panel>
+        <CoveragePanel
+          linked={data.coverage.linked}
+          unresolved={data.coverage.unresolved}
+          ratio={data.coverage.ratio}
+        />
       </div>
 
       <section className="mt-10">
@@ -456,77 +468,57 @@ export function StatsPage() {
 
       <section className="mt-10 grid gap-4 lg:grid-cols-3">
         <Panel title="Recent renames" description="The most recent name intervals that ended.">
-          <div className="mt-2 divide-y divide-white/[0.05]">
-            {data.recent.names.length === 0 ? (
-              <p className="py-3 text-sm text-zinc-500">No renames recorded.</p>
-            ) : (
-              data.recent.names.map((row, index) => (
-                <Link
-                  key={`${row.puuid}-${index}`}
-                  to="/puuid/$puuid"
-                  params={{ puuid: row.puuid }}
-                  className="flex items-baseline justify-between gap-3 py-2.5 hover:text-zinc-100"
-                >
-                  <span className="truncate text-sm text-zinc-300">
-                    {row.name}
-                    <span className="text-zinc-500">#{row.tag}</span>
-                  </span>
-                  <span className="shrink-0 font-mono text-[10px] text-zinc-500">
-                    {formatRelative(row.endedAt)}
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
+          <RecentList
+            empty="No renames recorded."
+            rows={data.recent.names.map((row, index) => ({
+              key: `${row.puuid}-${index}`,
+              puuid: row.puuid,
+              label: (
+                <>
+                  {row.name}
+                  <span className="text-zinc-500">#{row.tag}</span>
+                </>
+              ),
+              meta: formatRelative(row.endedAt),
+            }))}
+          />
         </Panel>
 
         <Panel
           title="Recent region moves"
           description="Transfers are only recorded when one region claims a player in a scan."
         >
-          <div className="mt-2 divide-y divide-white/[0.05]">
-            {data.recent.regions.length === 0 ? (
-              <p className="py-3 text-sm text-zinc-500">No region moves recorded.</p>
-            ) : (
-              data.recent.regions.map((row, index) => (
-                <Link
-                  key={`${row.puuid}-${index}`}
-                  to="/puuid/$puuid"
-                  params={{ puuid: row.puuid }}
-                  className="flex items-baseline justify-between gap-3 py-2.5"
-                >
-                  <span className="truncate text-sm text-zinc-300">
-                    {row.name ?? row.puuid.slice(0, 12)}
-                    {row.tag ? <span className="text-zinc-500">#{row.tag}</span> : null}
-                  </span>
-                  <span className="font-mono text-[10px] text-zinc-500">
-                    {regionLabel(row.region)} · {formatRelative(row.endedAt)}
-                  </span>
-                </Link>
-              ))
-            )}
-          </div>
+          <RecentList
+            empty="No region moves recorded."
+            rows={data.recent.regions.map((row, index) => ({
+              key: `${row.puuid}-${index}`,
+              puuid: row.puuid,
+              label: (
+                <>
+                  {row.name ?? row.puuid.slice(0, 12)}
+                  {row.tag ? <span className="text-zinc-500">#{row.tag}</span> : null}
+                </>
+              ),
+              meta: `${regionLabel(row.region)} · ${formatRelative(row.endedAt)}`,
+            }))}
+          />
         </Panel>
 
         <Panel title="Most changed" description="Lifetime counters, not a recent window.">
-          <div className="mt-2 divide-y divide-white/[0.05]">
-            {data.mostChanged.map((row) => (
-              <Link
-                key={row.puuid}
-                to="/puuid/$puuid"
-                params={{ puuid: row.puuid }}
-                className="flex items-baseline justify-between gap-3 py-2.5"
-              >
-                <span className="truncate text-sm text-zinc-300">
+          <RecentList
+            empty="No changes recorded."
+            rows={data.mostChanged.map((row) => ({
+              key: row.puuid,
+              puuid: row.puuid,
+              label: (
+                <>
                   {row.name ?? 'Anonymous'}
                   {row.tag ? <span className="text-zinc-500">#{row.tag}</span> : null}
-                </span>
-                <span className="shrink-0 font-mono text-[10px] text-zinc-500">
-                  {row.nameChanges}n · {row.regionChanges}r
-                </span>
-              </Link>
-            ))}
-          </div>
+                </>
+              ),
+              meta: `${row.nameChanges}n · ${row.regionChanges}r`,
+            }))}
+          />
         </Panel>
       </section>
     </div>

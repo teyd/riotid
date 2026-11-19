@@ -36,6 +36,8 @@ const BanIntervalType = Schema.Struct({
 type NameIntervalType = typeof NameIntervalType.Type
 type RegionIntervalType = typeof RegionIntervalType.Type
 type BanIntervalType = typeof BanIntervalType.Type
+import { basename } from 'node:path'
+
 import { sql } from 'drizzle-orm'
 import { Effect } from 'effect'
 
@@ -628,7 +630,7 @@ export const buildServiceStatus = (options: {
     return {
       ok: databaseOk,
       uptimeSeconds: options.uptimeSeconds,
-      database: { ok: databaseOk, path: options.databasePath },
+      database: { ok: databaseOk, file: basename(options.databasePath) },
       index: { version, players: players?.total ?? 0 },
       season: season
         ? { id: season.uuid, name: season.display_name, endsAt: season.ends_at }
@@ -650,7 +652,7 @@ export const buildServiceStatus = (options: {
         finishedAt: run.finished_at,
         durationMs: run.duration_ms,
       })),
-      auth: { cookieFile: options.cookieFile, updatedAt: options.cookieUpdatedAt },
+      auth: { updatedAt: options.cookieUpdatedAt },
       anonymous: {
         total: anonymous?.total ?? 0,
         unresolved: anonymous?.unresolved ?? 0,
