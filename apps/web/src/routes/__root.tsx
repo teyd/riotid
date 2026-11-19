@@ -4,12 +4,7 @@ export const Route = createRootRoute({
   component: Root,
 })
 
-const nav = [
-  { to: '/', label: 'players' },
-  { to: '/stats', label: 'stats' },
-  { to: '/crawler', label: 'crawler' },
-  { to: '/status', label: 'status' },
-] as const
+const nav = [{ to: '/', label: 'players' }] as const
 
 function Root() {
   return (

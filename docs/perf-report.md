@@ -28,10 +28,10 @@ viewport and rendered the entire list.
 ## After the layout and data fixes
 
 The shell is now `h-dvh` + `overflow-hidden`, the list is constrained, and only
-~20 rows are rendered (~312 DOM nodes). Other changes: route-level splits for
-stats/status, an idle-prefetched detail chunk, keyboard-accessible splitter,
-preconnect for card art, image dimensions/async decoding, Brotli index
-responses, tuple trimming, and a card-id dictionary.
+~20 rows are rendered (~312 DOM nodes). Other changes: an idle-prefetched
+detail chunk, keyboard-accessible splitter, preconnect for card art, image
+dimensions/async decoding, Brotli index responses, tuple trimming, and a
+card-id dictionary.
 
 | Metric         | Run 1 (cold-ish) |       Run 2 |       Run 3 |   Median |
 | -------------- | ---------------: | ----------: | ----------: | -------: |

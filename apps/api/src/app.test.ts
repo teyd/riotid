@@ -1,3 +1,7 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { anonymousRows, Database, identityLinks, seedDatabase } from '@riotid/db'
 import { migrate, runDb, withDatabase } from '@riotid/test-utils'
 import { Effect } from 'effect'
@@ -105,32 +109,40 @@ describe('api', () => {
     })
   })
 
-  it('serves aggregate stats and status', async () => {
+  it('does not expose removed operational endpoints', async () => {
     await withApp(async (app) => {
-      const stats = await request(app, '/api/v1/stats')
-      expect(stats.status).toBe(200)
-      const statsBody = (await stats.json()) as {
-        totals: { players: number; banned: number }
-        coverage: { linked: number; unresolved: number }
-        regions: Record<string, { players: number }>
+      for (const path of [
+        '/api/v1/stats',
+        '/api/v1/status',
+        '/api/v1/crawler',
+        '/api/v1/crawler/stream',
+      ]) {
+        const response = await request(app, path)
+        expect(response.status).toBe(404)
       }
-      expect(statsBody.totals.players).toBe(3)
-      expect(statsBody.totals.banned).toBe(1)
-      expect(statsBody.coverage.unresolved).toBe(1)
-      expect(statsBody.regions.eu?.players).toBe(3)
-
-      const status = await request(app, '/api/v1/status')
-      expect(status.status).toBe(200)
-      expect(status.headers.get('cache-control')).toBe('no-store')
-      const statusBody = (await status.json()) as {
-        ok: boolean
-        latestRun: { id: number } | null
-        anonymous: { unresolved: number }
-      }
-      expect(statusBody.ok).toBe(true)
-      expect(statusBody.latestRun?.id).toBe(1)
-      expect(statusBody.anonymous.unresolved).toBe(1)
     })
+  })
+
+  it('keeps removed API routes at 404 while serving the SPA', async () => {
+    const webRoot = await mkdtemp(join(tmpdir(), 'riotid-web-'))
+    await writeFile(join(webRoot, 'index.html'), '<!doctype html><html></html>')
+
+    try {
+      await withApp(
+        async (app) => {
+          const removed = await request(app, '/api/v1/stats')
+          expect(removed.status).toBe(404)
+          expect(removed.headers.get('content-type')).toContain('application/json')
+
+          const spa = await request(app, '/stats')
+          expect(spa.status).toBe(200)
+          expect(await spa.text()).toContain('<!doctype html>')
+        },
+        { webRoot },
+      )
+    } finally {
+      await rm(webRoot, { recursive: true, force: true })
+    }
   })
 
   it('sets security headers and blocks unknown routes', async () => {

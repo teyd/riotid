@@ -7,7 +7,7 @@ import {
   SegmentedControlIndicator,
   SegmentedControlItem,
 } from '@ui-sdk/react/segmented-control'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type SVGProps } from 'react'
 
 import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
@@ -335,16 +335,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     </div>
                   ))}
                 </div>
-                <div className="mt-5 flex justify-center gap-4 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
-                  <Link to="/stats" className="hover:text-zinc-200">
-                    stats
-                  </Link>
-                  <Link to="/crawler" className="hover:text-zinc-200">
-                    crawler
-                  </Link>
-                  <Link to="/status" className="hover:text-zinc-200">
-                    status
-                  </Link>
+                <div className="mt-5 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
+                  pick a row to open the history
                 </div>
               </div>
             </div>
