@@ -114,6 +114,16 @@ export const buildSiteIndex = (
       order by last_seen_at desc, puuid
     `)
 
+    const cards: string[] = []
+    const cardIndexes = new Map<string, number>()
+
+    for (const row of rows) {
+      if (row.card_id && !cardIndexes.has(row.card_id)) {
+        cardIndexes.set(row.card_id, cards.length)
+        cards.push(row.card_id)
+      }
+    }
+
     const players: IndexPlayer[] = rows.map((row) => {
       let flags = 0
       if (row.is_anonymized) flags |= 1
@@ -132,7 +142,7 @@ export const buildSiteIndex = (
         row.region_changes,
         row.first_seen_at,
         row.last_seen_at,
-        row.card_id,
+        row.card_id ? (cardIndexes.get(row.card_id) ?? null) : null,
       ]
     })
 
@@ -153,6 +163,7 @@ export const buildSiteIndex = (
         unresolved: anonymous?.unresolved ?? 0,
         lastRunAt: latestRun?.finished_at ?? null,
       },
+      cards,
       players,
     }
   })

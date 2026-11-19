@@ -28,7 +28,7 @@ export const IndexPlayer = Schema.Tuple([
   Schema.Finite,
   Schema.Finite,
   Schema.Finite,
-  Schema.NullOr(Schema.String),
+  Schema.NullOr(Schema.Finite),
 ])
 
 export type IndexPlayer = typeof IndexPlayer.Type
@@ -56,6 +56,7 @@ export const SiteIndex = Schema.Struct({
   generatedAt: Schema.Finite,
   season: Schema.NullOr(IndexSeason),
   stats: IndexStats,
+  cards: Schema.Array(Schema.String),
   players: Schema.Array(IndexPlayer),
 })
 

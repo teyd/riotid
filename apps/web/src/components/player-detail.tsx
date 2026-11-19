@@ -30,6 +30,7 @@ import { Badge, EmptyState, LoadingState, Section } from './ui.tsx'
 type Props = {
   readonly puuid: string
   readonly row: IndexRow | null
+  readonly cardId: string | null
   readonly onBack: () => void
 }
 
@@ -108,7 +109,7 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => (
   </div>
 )
 
-export const PlayerDetailPanel = ({ puuid, row, onBack }: Props) => {
+export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
   const query = useQuery({
     queryKey: ['player', puuid],
     queryFn: () => fetchPlayer(puuid),
@@ -121,8 +122,8 @@ export const PlayerDetailPanel = ({ puuid, row, onBack }: Props) => {
   const name = detail?.player.name ?? row?.[P.name] ?? ''
   const tag = detail?.player.tag ?? row?.[P.tag] ?? ''
   const region = detail?.player.region ?? row?.[P.region] ?? null
-  const cardId = detail?.player.cardId ?? row?.[P.cardId] ?? null
-  const wideArt = cardWideArt(cardId)
+  const resolvedCardId = detail?.player.cardId ?? cardId
+  const wideArt = cardWideArt(resolvedCardId)
 
   const copy = async () => {
     await navigator.clipboard.writeText(`${window.location.origin}/puuid/${puuid}`)
@@ -146,13 +147,13 @@ export const PlayerDetailPanel = ({ puuid, row, onBack }: Props) => {
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">
-            {cardArt(cardId) ? (
+            {cardArt(resolvedCardId) ? (
               <span
                 className="hidden h-14 w-11 shrink-0 overflow-hidden rounded-sm ring-1 ring-white/15 sm:block"
-                style={{ backgroundColor: cardAccent(cardId) }}
+                style={{ backgroundColor: cardAccent(resolvedCardId) }}
               >
                 <img
-                  src={cardArt(cardId) ?? ''}
+                  src={cardArt(resolvedCardId) ?? ''}
                   alt=""
                   className="h-full w-full object-cover"
                   onError={(event) => {

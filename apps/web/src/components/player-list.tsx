@@ -6,6 +6,7 @@ import { EmptyState, LoadingState } from './ui.tsx'
 
 type Props = {
   readonly rows: ReadonlyArray<IndexRow>
+  readonly cards: ReadonlyArray<string>
   readonly selected: string | null
   readonly loading: boolean
   readonly searchRef: RefObject<HTMLInputElement | null>
@@ -16,6 +17,7 @@ type Props = {
 
 export const PlayerList = ({
   rows,
+  cards,
   selected,
   loading,
   searchRef,
@@ -110,7 +112,8 @@ export const PlayerList = ({
           const name = row[P.name]
           const tag = row[P.tag]
 
-          const cardId = row[P.cardId]
+          const cardIndex = row[P.cardId]
+          const cardId = cardIndex === null ? null : (cards[cardIndex] ?? null)
           const art = cardArt(cardId)
 
           return (

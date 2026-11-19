@@ -134,6 +134,9 @@ function Home() {
   }, [index.data, deferredQuery, region, sort])
 
   const selectedRow = p ? (index.data?.players.find((row) => row[P.puuid] === p) ?? null) : null
+  const selectedCardIndex = selectedRow?.[P.cardId]
+  const selectedCard =
+    selectedCardIndex == null ? null : (index.data?.cards[selectedCardIndex] ?? null)
 
   const select = (puuid: string | null) =>
     void navigate({
@@ -262,6 +265,7 @@ function Home() {
           <div className="min-h-0 flex-1">
             <PlayerList
               rows={rows}
+              cards={index.data?.cards ?? []}
               selected={p ?? null}
               loading={index.isPending}
               searchRef={searchRef}
@@ -286,7 +290,12 @@ function Home() {
 
         <section className={`min-h-0 flex-col ${p ? 'flex' : 'hidden lg:flex'}`}>
           {p ? (
-            <PlayerDetailLoader puuid={p} row={selectedRow} onBack={() => select(null)} />
+            <PlayerDetailLoader
+              puuid={p}
+              row={selectedRow}
+              cardId={selectedCard}
+              onBack={() => select(null)}
+            />
           ) : index.isPending ? (
             <LoadingState label="Loading index" />
           ) : (

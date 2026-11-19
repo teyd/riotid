@@ -25,12 +25,15 @@ function PlayerPage() {
   }, [index.isError, navigate])
 
   const row = index.data?.players.find((item) => item[P.puuid] === puuid) ?? null
+  const cardIndex = row?.[P.cardId]
+  const cardId = cardIndex == null ? null : (index.data?.cards[cardIndex] ?? null)
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col border-x border-white/[0.06]">
       <PlayerDetailLoader
         puuid={puuid}
         row={row}
+        cardId={cardId}
         onBack={() => void navigate({ to: '/', search: { p: undefined } })}
       />
     </div>
