@@ -291,6 +291,25 @@ export const CrawlerSnapshot = Schema.Struct({
     rows: Schema.Finite,
   }),
   matches: Schema.Array(CrawlerMatch),
+  activity: Schema.NullOr(
+    Schema.Struct({
+      phase: Schema.String,
+      message: Schema.String,
+      region: Schema.NullOr(Region),
+      startedAt: Schema.Finite,
+      seedsDone: Schema.Finite,
+      seedsTotal: Schema.Finite,
+      matchesFetched: Schema.Finite,
+      requests: Schema.Finite,
+      budget: Schema.Finite,
+      linked: Schema.Finite,
+      ambiguous: Schema.Finite,
+      tried: Schema.Finite,
+      limit: Schema.Finite,
+      currentMatchId: Schema.NullOr(Schema.String),
+      updatedAt: Schema.Finite,
+    }),
+  ),
 })
 
 export type CrawlerSnapshot = typeof CrawlerSnapshot.Type

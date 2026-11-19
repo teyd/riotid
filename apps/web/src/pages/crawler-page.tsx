@@ -85,11 +85,78 @@ export function CrawlerPage() {
         ))}
       </div>
 
+      {snapshot.activity ? (
+        <section className="mt-7 border-y border-white/[0.08] py-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+                {snapshot.running ? 'currently' : 'last activity'}
+              </p>
+              <p className="mt-1 text-lg font-medium text-zinc-100">{snapshot.activity.message}</p>
+            </div>
+            <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+              {snapshot.activity.phase} · {formatRelative(snapshot.activity.updatedAt)}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-3">
+            <div>
+              <div className="flex justify-between font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+                <span>requests</span>
+                <span className="tabular-nums">
+                  {snapshot.activity.requests} / {snapshot.activity.budget}
+                </span>
+              </div>
+              <div className="mt-1.5 h-1 overflow-hidden rounded bg-white/[0.07]">
+                <div
+                  className="h-full rounded bg-accent"
+                  style={{
+                    width: `${Math.min(100, (snapshot.activity.requests / Math.max(1, snapshot.activity.budget)) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+              <span>matches fetched</span>
+              <span className="ml-2 text-zinc-200 tabular-nums">
+                {snapshot.activity.matchesFetched.toLocaleString()}
+              </span>
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+              <span>links</span>
+              <span className="ml-2 text-zinc-200 tabular-nums">{snapshot.activity.linked}</span>
+              {snapshot.activity.ambiguous > 0 ? (
+                <span className="ml-3 text-amber-300/80">
+                  {snapshot.activity.ambiguous} ambiguous
+                </span>
+              ) : null}
+            </div>
+          </div>
+          {snapshot.activity.currentMatchId ? (
+            <p className="mt-3 font-mono text-[10px] text-zinc-500">
+              current match{' '}
+              <a
+                href={`https://vtl.lol/match/${snapshot.activity.currentMatchId}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-accent hover:underline"
+              >
+                {snapshot.activity.currentMatchId}
+              </a>
+            </p>
+          ) : null}
+          <p className="mt-3 text-xs leading-5 text-zinc-600">
+            The crawler is budgeted and runs daily; it enriches the match graph around anonymous
+            leaderboard rows, then stops. It is not a continuous match archive.
+          </p>
+        </section>
+      ) : null}
+
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">
           Recently discovered matches
         </h2>
         <p className="font-mono text-[10px] text-zinc-600">
+          latest {snapshot.matches.length} of {snapshot.cache.matches.toLocaleString()} ·{' '}
           {snapshot.running ? 'resolver pass in progress' : 'resolver idle'}
         </p>
       </div>

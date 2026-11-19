@@ -139,6 +139,30 @@ export const resolveAnonymous = (
     const usedToday = Number((yield* readMeta(`anon:requests:${today}`)) ?? '0')
     const meter: Meter = { used: Number.isFinite(usedToday) ? usedToday : 0, budget: config.budget }
     const mmrCache = new Map<string, Fingerprint | null>()
+    const progress = {
+      phase: 'starting',
+      message: 'Refreshing the Riot session',
+      region: null as Region | null,
+      startedAt: now,
+      seedsDone: 0,
+      seedsTotal: config.seeds,
+      matchesFetched: 0,
+      requests: meter.used,
+      budget: meter.budget,
+      linked: 0,
+      ambiguous: 0,
+      tried: 0,
+      limit: config.limit,
+      currentMatchId: null as string | null,
+      updatedAt: now,
+    }
+    const report = (patch: Partial<typeof progress>) =>
+      Effect.gen(function* () {
+        Object.assign(progress, patch, { updatedAt: now })
+        yield* writeMeta('anon:progress', JSON.stringify(progress), nowDate)
+      })
+
+    yield* report({})
 
     const canSpend = () => meter.used < meter.budget
     const spend = () => {
@@ -207,6 +231,12 @@ export const resolveAnonymous = (
       for (const region of regionList) {
         if (!graphRows.some((row) => row.region === region)) continue
 
+        yield* report({
+          phase: 'seeds',
+          message: 'Collecting nearby players for the match graph',
+          region,
+          seedsDone: seeds,
+        })
         const linkedSeeds = yield* db
           .select({ puuid: anonymousRows.resolvedPuuid })
           .from(anonymousRows)
@@ -275,6 +305,16 @@ export const resolveAnonymous = (
               })
             }
           }
+
+          if (seeds % 5 === 0) {
+            yield* report({
+              phase: 'seeds',
+              message: 'Collecting nearby players for the match graph',
+              region,
+              seedsDone: seeds,
+              requests: meter.used,
+            })
+          }
         }
       }
 
@@ -297,6 +337,14 @@ export const resolveAnonymous = (
 
         spend()
         matchesFetched += 1
+        yield* report({
+          phase: 'matches',
+          message: 'Fetching new match details',
+          region: start.region,
+          matchesFetched,
+          currentMatchId: matchId,
+          requests: meter.used,
+        })
         const details = yield* source
           .getMatchDetails(config.session, version.riotClientVersion, start.region, matchId)
           .pipe(Effect.catchTag('RiotRequestError', () => Effect.succeed(null)))
@@ -344,8 +392,27 @@ export const resolveAnonymous = (
     const passKey = (candidate: Candidate) =>
       `${candidate.region}:${candidate.competitiveTier}:${candidate.cardId}:${candidate.titleId}`
 
-    for (const row of graphRows) {
+    yield* report({
+      phase: 'matching',
+      message: 'Comparing MMR fingerprints',
+      matchesFetched,
+      requests: meter.used,
+    })
+
+    for (const [index, row] of graphRows.entries()) {
       if (!canSpend()) break
+
+      if (index % 25 === 0) {
+        yield* report({
+          phase: 'matching',
+          message: 'Comparing MMR fingerprints',
+          tried: index,
+          linked: plans.length,
+          ambiguous,
+          requests: meter.used,
+          region: row.region,
+        })
+      }
 
       const key = `${row.region}:${row.competitiveTier}:${row.cardId}:${row.titleId}`
       const cached = config.cacheEnabled
@@ -416,6 +483,14 @@ export const resolveAnonymous = (
       }
     }
 
+    yield* report({
+      phase: 'names',
+      message: 'Resolving names for linked players',
+      linked: plans.length,
+      ambiguous,
+      requests: meter.used,
+    })
+
     const unnamed = yield* db
       .select({ puuid: players.puuid, region: players.region })
       .from(players)
@@ -472,6 +547,15 @@ export const resolveAnonymous = (
     }))
 
     let didChange = plans.length > 0
+
+    yield* report({
+      phase: 'apply',
+      message: 'Writing links and intervals',
+      linked: plans.length,
+      ambiguous,
+      tried: unresolvedRows.length,
+      requests: meter.used,
+    })
 
     yield* db.transaction((tx) =>
       Effect.gen(function* () {
@@ -636,6 +720,17 @@ export const resolveAnonymous = (
       history.length = 0
     }
 
+    yield* report({
+      phase: 'done',
+      message: plans.length > 0 ? `Linked ${plans.length} rows` : 'Pass complete; no new links',
+      linked: plans.length,
+      ambiguous,
+      tried: unresolvedRows.length,
+      seedsDone: seeds,
+      seedsTotal: config.seeds,
+      requests: meter.used,
+      currentMatchId: null,
+    })
     yield* writeMeta('anon:runningSince', '0', nowDate)
     yield* writeMeta(`anon:requests:${today}`, String(meter.used), nowDate)
     yield* writeMeta('anon:lastRunAt', nowDate.toISOString(), nowDate)

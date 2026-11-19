@@ -651,6 +651,9 @@ export const crawlerSnapshot = (
     const requests = yield* db.get<{ value: string }>(
       sql`select value from meta where key = ${`anon:requests:${today}`}`,
     )
+    const progress = yield* db.get<{ value: string }>(
+      sql`select value from meta where key = 'anon:progress'`,
+    )
     const cache = yield* db.get<{ rows: number; matches: number }>(sql`
       select count(*) as rows, count(distinct match_id) as matches from match_candidates
     `)
@@ -673,12 +676,35 @@ export const crawlerSnapshot = (
       limit 80
     `)
     const since = Number(runningSince?.value ?? '0')
+    const raw = progress ? parseEvidence(progress.value) : {}
+    const number = (key: string) => (typeof raw[key] === 'number' ? raw[key] : 0)
+    const activity =
+      typeof raw.phase === 'string' && typeof raw.message === 'string'
+        ? {
+            phase: raw.phase,
+            message: raw.message,
+            region: typeof raw.region === 'string' ? (raw.region as Region) : null,
+            startedAt: number('startedAt'),
+            seedsDone: number('seedsDone'),
+            seedsTotal: number('seedsTotal'),
+            matchesFetched: number('matchesFetched'),
+            requests: number('requests'),
+            budget: number('budget'),
+            linked: number('linked'),
+            ambiguous: number('ambiguous'),
+            tried: number('tried'),
+            limit: number('limit'),
+            currentMatchId: typeof raw.currentMatchId === 'string' ? raw.currentMatchId : null,
+            updatedAt: number('updatedAt'),
+          }
+        : null
 
     return {
       running: since > 0 && now - since < 15 * 60_000,
       lastRunAt: lastRun ? Date.parse(lastRun.value) : null,
       requestsToday: Number(requests?.value ?? '0') || 0,
       cache: { matches: cache?.matches ?? 0, rows: cache?.rows ?? 0 },
+      activity,
       matches: matches.map((row) => ({
         matchId: row.match_id,
         region: row.region,
