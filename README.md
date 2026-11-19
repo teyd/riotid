@@ -68,6 +68,7 @@ flowchart LR
 | ---------------------------- | ---------------------------------------------------------- |
 | `GET /api/v1/index`          | Versioned tuple index; banned and unresolved rows excluded |
 | `GET /api/v1/players/:puuid` | Timelines, counters, and identity evidence                 |
+| `GET /api/v1/status`         | Cookie jar freshness for the scan status bar               |
 | `GET /healthz`               | Database readiness                                         |
 
 Responses are ETagged and support `If-None-Match`. The API never calls Riot.

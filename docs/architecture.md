@@ -50,8 +50,10 @@ serves the built SPA from the same origin with a fallback for client routes.
 
 ## Read-only API
 
-- Endpoints are `GET /api/v1/index`, `GET /api/v1/players/:puuid`, and
-  `GET /healthz`. Everything else is a `404` JSON error or the SPA fallback.
+- Endpoints are `GET /api/v1/index`, `GET /api/v1/players/:puuid`,
+  `GET /api/v1/status`, and `GET /healthz`. Everything else is a `404` JSON
+  error or the SPA fallback. Status exposes only the cookie jar mtime and the
+  staleness threshold; it never reads cookie values.
 - The index is versioned by `meta.indexVersion`, built in memory, and
   pre-compressed. `index:rebuild` bumps the version; the next request rebuilds.
 - Index and detail responses carry `ETag` and honor `If-None-Match` with `304`.

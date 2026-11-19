@@ -9,6 +9,8 @@ const program = Effect.gen(function* () {
   const config = yield* AppConfig
   const app = makeApp({
     databasePath: config.databasePath,
+    cookieFile: config.cookieFile,
+    authRefreshMinutes: config.authRefreshMinutes,
     indexWindowDays: config.indexRetentionDays,
     scanIntervalHours: config.scanIntervalHours,
   })

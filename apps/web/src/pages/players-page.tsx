@@ -24,6 +24,8 @@ import {
   displayName,
   fetchIndex,
   fetchPlayer,
+  fetchStatus,
+  formatRelative,
   formatScanCountdown,
   formatScanTime,
   P,
@@ -70,6 +72,8 @@ type ScanStatusProps = {
   nameChanges: number | null
   lastRunAt: number | null
   nextRunAt: number | null
+  cookieUpdatedAt: number | null | undefined
+  cookieStaleAfterMs: number | undefined
   isError: boolean
   onRetry: () => void
 }
@@ -79,6 +83,8 @@ const ScanStatus = ({
   nameChanges,
   lastRunAt,
   nextRunAt,
+  cookieUpdatedAt,
+  cookieStaleAfterMs,
   isError,
   onRetry,
 }: ScanStatusProps) => {
@@ -90,6 +96,11 @@ const ScanStatus = ({
   }, [])
 
   const exact = (value: number) => new Date(value).toLocaleString()
+  const cookieStale =
+    typeof cookieUpdatedAt === 'number' &&
+    cookieStaleAfterMs !== undefined &&
+    now - cookieUpdatedAt > cookieStaleAfterMs
+  const cookieWarning = cookieUpdatedAt === null || cookieStale
 
   return (
     <footer
@@ -111,6 +122,24 @@ const ScanStatus = ({
         <>
           <span>{players?.toLocaleString() ?? '—'} public players</span>
           <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
+          <span className={cookieWarning ? 'text-amber-300' : undefined}>
+            cookie{' '}
+            {typeof cookieUpdatedAt === 'number' ? (
+              <>
+                {cookieStale ? 'stale · ' : ''}
+                <time
+                  dateTime={new Date(cookieUpdatedAt).toISOString()}
+                  title={exact(cookieUpdatedAt)}
+                >
+                  {formatRelative(cookieUpdatedAt)}
+                </time>
+              </>
+            ) : cookieUpdatedAt === null ? (
+              'missing'
+            ) : (
+              '—'
+            )}
+          </span>
           <span className="sm:ms-auto">
             last scan{' '}
             {lastRunAt ? (
@@ -167,6 +196,13 @@ export function PlayersPage({ selected }: { selected?: string }) {
     queryFn: fetchIndex,
     staleTime: 60_000,
     refetchInterval: 120_000,
+  })
+
+  const status = useQuery({
+    queryKey: ['status'],
+    queryFn: fetchStatus,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
   })
 
   const rows = useMemo(() => {
@@ -505,6 +541,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
         nameChanges={index.data?.stats.nameChanges ?? null}
         lastRunAt={index.data?.stats.lastRunAt ?? null}
         nextRunAt={index.data?.stats.nextRunAt ?? null}
+        cookieUpdatedAt={status.data?.auth.updatedAt}
+        cookieStaleAfterMs={status.data?.auth.staleAfterMs}
         isError={index.isError}
         onRetry={() => void index.refetch()}
       />

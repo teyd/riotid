@@ -1,10 +1,10 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off
 import { createHash } from 'node:crypto'
-import { existsSync } from 'node:fs'
+import { existsSync, promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 
-import type { ApiError, Health } from '@riotid/contracts'
+import type { ApiError, Health, ServiceStatus } from '@riotid/contracts'
 import {
   buildSiteIndex,
   Database,
@@ -22,12 +22,15 @@ import { compress } from 'hono/compress'
 
 export type AppOptions = {
   readonly databasePath: string
+  readonly cookieFile?: string
+  readonly authRefreshMinutes?: number
   readonly webRoot?: string
   readonly indexWindowDays?: number
   readonly scanIntervalHours?: number
   readonly rateLimits?: {
     readonly index?: number
     readonly players?: number
+    readonly status?: number
   }
 }
 
@@ -94,7 +97,11 @@ export const makeApp = (options: AppOptions) => {
   const limits = {
     index: options.rateLimits?.index ?? 30,
     players: options.rateLimits?.players ?? 120,
+    status: options.rateLimits?.status ?? 60,
   }
+  const cookieFile = options.cookieFile ?? './data/cookies.json'
+  // Two missed refreshes mean the scheduler or the credential is unhealthy.
+  const authStaleAfterMs = (options.authRefreshMinutes ?? 45) * 2 * 60_000
   const webRoot = options.webRoot ?? join(repoRoot, 'apps/web/dist')
   const indexWindowDays = options.indexWindowDays ?? 30
   const scanIntervalHours = options.scanIntervalHours ?? 6
@@ -222,6 +229,21 @@ export const makeApp = (options: AppOptions) => {
     }
 
     return c.body(index.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
+  })
+
+  app.get('/api/v1/status', async (c) => {
+    if (await rateLimit(c, 'status', limits.status)) return rateLimited(c)
+
+    const updatedAt = await fs
+      .stat(cookieFile)
+      .then((stat) => stat.mtimeMs)
+      .catch(() => null)
+
+    return c.json(
+      { auth: { updatedAt, staleAfterMs: authStaleAfterMs } } satisfies ServiceStatus,
+      200,
+      { 'Cache-Control': 'no-store' },
+    )
   })
 
   app.get('/api/v1/players/:puuid', async (c) => {
