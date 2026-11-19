@@ -10,6 +10,7 @@ COPY --chown=vp:vp packages/riot/package.json packages/riot/package.json
 COPY --chown=vp:vp packages/db/package.json packages/db/package.json
 COPY --chown=vp:vp packages/ingest/package.json packages/ingest/package.json
 COPY --chown=vp:vp packages/identity/package.json packages/identity/package.json
+COPY --chown=vp:vp packages/test-utils/package.json packages/test-utils/package.json
 RUN vp install --frozen-lockfile
 COPY --chown=vp:vp . .
 RUN vp build apps/web
@@ -24,6 +25,7 @@ COPY --chown=vp:vp packages/riot/package.json packages/riot/package.json
 COPY --chown=vp:vp packages/db/package.json packages/db/package.json
 COPY --chown=vp:vp packages/ingest/package.json packages/ingest/package.json
 COPY --chown=vp:vp packages/identity/package.json packages/identity/package.json
+COPY --chown=vp:vp packages/test-utils/package.json packages/test-utils/package.json
 RUN vp install --frozen-lockfile --prod
 
 FROM node:26-bookworm-slim AS runtime
