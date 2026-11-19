@@ -2,8 +2,10 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
+import { migrateDatabase, writeDatabase } from '@riotid/db'
 import { serve } from '@hono/node-server'
 import {
   loadCookieFile,
@@ -30,6 +32,7 @@ const AppConfig = Config.all({
   port: Config.Int('PORT').pipe(Config.withDefault(8787)),
   publicOrigin: Config.String('PUBLIC_ORIGIN').pipe(Config.withDefault('http://localhost:5173')),
   cookieFile: Config.String('COOKIE_FILE').pipe(Config.withDefault('./data/cookies.json')),
+  databasePath: Config.String('DATABASE_PATH').pipe(Config.withDefault('./data/riotid.db')),
   countryCode: Config.String('RIOT_COUNTRY_CODE').pipe(Config.withDefault('US')),
   qrTimeoutSeconds: Config.Int('RIOT_QR_TIMEOUT_SECONDS').pipe(Config.withDefault(300)),
   authRefreshMinutes: Config.Int('AUTH_REFRESH_MINUTES').pipe(Config.withDefault(45)),
@@ -45,6 +48,7 @@ Usage:
   riotid auth:check            Verify the stored cookie jar
   riotid auth:refresh          Refresh tokens and persist the cookie jar
   riotid probe                 Probe live leaderboard/name/match endpoints
+  riotid db:migrate            Apply committed database migrations
   riotid help                  Show this help
 `
 
@@ -99,6 +103,15 @@ const authCheck = Effect.gen(function* () {
   yield* printSession(session, config.cookieFile)
 })
 
+const migrationsFolder = fileURLToPath(new URL('../../../packages/db/drizzle', import.meta.url))
+
+const dbMigrate = Effect.gen(function* () {
+  const config = yield* AppConfig
+
+  yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
+  yield* Effect.logInfo(`database migrated at ${config.databasePath}`)
+})
+
 const status = Effect.gen(function* () {
   const config = yield* AppConfig
   const file = yield* loadCookieFile(config.cookieFile)
@@ -145,6 +158,11 @@ const main = Effect.gen(function* () {
     return
   }
 
+  if (command === 'db:migrate') {
+    yield* dbMigrate
+    return
+  }
+
   if (command !== 'serve') {
     process.stderr.write(`Unknown command: ${command}\n\n${help}`)
     process.exitCode = 2
@@ -152,6 +170,9 @@ const main = Effect.gen(function* () {
   }
 
   const config = yield* AppConfig
+
+  yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
   const app = makeApp()
 
   yield* Effect.logInfo(`riotid api listening on http://localhost:${config.port}`)

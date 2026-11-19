@@ -1,0 +1,16 @@
+{
+  "name": "@riotid/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vp test"
+  },
+  "dependencies": {
+    "@effect/sql-sqlite-node": "4.1.4",
+    "drizzle-orm": "1.0.0-rc.5",
+    "effect": "4.1.4"
+  }
+}

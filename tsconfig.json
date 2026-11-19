@@ -18,7 +18,11 @@
           "effect/http/HttpClientRequest",
           "effect/http/HttpClientResponse",
           "effect/http/FetchHttpClient",
-          "@effect/platform-node/NodeHttpClient"
+          "@effect/platform-node/NodeHttpClient",
+          "@effect/sql-sqlite-node",
+          "@effect/sql-sqlite-node/SqliteClient",
+          "effect/sql",
+          "drizzle-orm/effect-sqlite-node"
         ],
         "diagnosticSeverity": {
           "floatingEffect": "error",
@@ -42,7 +46,11 @@
                 "effect/http/HttpClientRequest",
                 "effect/http/HttpClientResponse",
                 "effect/http/FetchHttpClient",
-                "@effect/platform-node/NodeHttpClient"
+                "@effect/platform-node/NodeHttpClient",
+                "@effect/sql-sqlite-node",
+                "@effect/sql-sqlite-node/SqliteClient",
+                "effect/sql",
+                "drizzle-orm/effect-sqlite-node"
               ],
               "diagnosticSeverity": {
                 "floatingEffect": "error"
