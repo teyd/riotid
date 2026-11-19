@@ -81,7 +81,7 @@ Index and detail responses carry `ETag` and support `If-None-Match` (`304`). Err
 ## Live deployment
 
 Production runs at **https://riotid.teyd.dev** on Dokploy. The application uses
-the `Dockerfile` build (custom Git source, branch `feat/riotid`), a named volume
+the `Dockerfile` build (GitHub source, branch `main`), a named volume
 `riotid-data` mounted at `/app/data`, and a Let's Encrypt domain through
 Cloudflare. The production scheduler runs a scan every 6 hours, catches up on
 boot, resolves anonymous rows daily, and writes a rotated backup after ten
