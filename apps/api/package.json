@@ -10,7 +10,12 @@
   "dependencies": {
     "@hono/node-server": "2.1.9",
     "@riotid/contracts": "workspace:*",
+    "@riotid/riot": "workspace:*",
     "effect": "4.1.4",
-    "hono": "4.13.19"
+    "hono": "4.13.19",
+    "qrcode-terminal": "0.12.0"
+  },
+  "devDependencies": {
+    "@types/qrcode-terminal": "0.12.2"
   }
 }

@@ -26,5 +26,14 @@ run = "pnpm exec vp build apps/web"
 [tasks.serve]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts serve"
 
+[tasks."auth:login"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:login"
+
+[tasks."auth:save"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:save"
+
+[tasks."auth:check"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:check"
+
 [tasks.ci]
 run = "mise run check && mise run test && mise run build"

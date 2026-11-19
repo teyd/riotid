@@ -1,0 +1,14 @@
+{
+  "name": "@riotid/riot",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vp test"
+  },
+  "dependencies": {
+    "effect": "4.1.4"
+  }
+}

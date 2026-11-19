@@ -226,12 +226,22 @@ importers:
       '@riotid/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@riotid/riot':
+        specifier: workspace:*
+        version: link:../../packages/riot
       effect:
         specifier: 4.1.4
         version: 4.1.4
       hono:
         specifier: 4.13.19
         version: 4.13.19
+      qrcode-terminal:
+        specifier: 0.12.0
+        version: 0.12.0
+    devDependencies:
+      '@types/qrcode-terminal':
+        specifier: 0.12.2
+        version: 0.12.2
 
   apps/web:
     dependencies:
@@ -286,6 +296,12 @@ importers:
         version: 4.3.5
 
   packages/contracts:
+    dependencies:
+      effect:
+        specifier: 4.1.4
+        version: 4.1.4
+
+  packages/riot:
     dependencies:
       effect:
         specifier: 4.1.4
@@ -1253,6 +1269,9 @@ packages:
   '@types/node@26.6.6':
     resolution: {integrity: sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==}
 
+  '@types/qrcode-terminal@0.12.2':
+    resolution: {integrity: sha512-v+RcIEJ+Uhd6ygSQ0u5YYY7ZM+la7GgPbs0V/7l/kFs2uO4S8BcIUEMoP7za4DNIqNnUD5npf0A/7kBhrCKG5Q==}
+
   '@types/react-dom@19.3.0':
     resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
     peerDependencies:
@@ -2020,6 +2039,10 @@ packages:
   pretty-format@27.5.1:
     resolution: {integrity: sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==}
     engines: {node: ^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0}
+
+  qrcode-terminal@0.12.0:
+    resolution: {integrity: sha512-EXtzRZmC+YGmGlDFbXKxQiMZNwCLEO6BANKXG4iCtSIM0yqc/pappSx3RIKr4r0uh5JsBckOXeKrB3Iz7mdQpQ==}
+    hasBin: true
 
   react-dom@19.3.1:
     resolution: {integrity: sha512-Y0bARz53lhEC1NMCASs0/j+faB/zqt3R8hpvg1e8+61ZVJ4UL0UdC4cBbXfZMcIuhrfgeILTLe+ZeBCavQPtKQ==}
@@ -3006,6 +3029,8 @@ snapshots:
     dependencies:
       undici-types: 8.9.0
 
+  '@types/qrcode-terminal@0.12.2': {}
+
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
       '@types/react': 19.3.0
@@ -3554,6 +3579,8 @@ snapshots:
       ansi-regex: 5.0.1
       ansi-styles: 5.2.0
       react-is: 17.0.2
+
+  qrcode-terminal@0.12.0: {}
 
   react-dom@19.3.1(react@19.3.1):
     dependencies:
