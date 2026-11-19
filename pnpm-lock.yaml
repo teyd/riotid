@@ -220,15 +220,40 @@ importers:
 
   apps/api:
     dependencies:
-      '@effect/platform-node':
-        specifier: 4.1.4
-        version: 4.1.4(effect@4.1.4)(redis@6.3.1)
       '@hono/node-server':
         specifier: 2.1.9
         version: 2.1.9(hono@4.13.19)
+      '@riotid/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@riotid/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@riotid/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      drizzle-orm:
+        specifier: 1.0.0-rc.5
+        version: 1.0.0-rc.5(@effect/sql-sqlite-node@4.1.4(effect@4.1.4))(effect@4.1.4)(zod@4.6.7)
+      effect:
+        specifier: 4.1.4
+        version: 4.1.4
+      hono:
+        specifier: 4.13.19
+        version: 4.13.19
+    devDependencies:
+      '@riotid/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
+
+  apps/cli:
+    dependencies:
+      '@effect/platform-node':
+        specifier: 4.1.4
+        version: 4.1.4(effect@4.1.4)(redis@6.3.1)
+      '@riotid/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@riotid/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -247,9 +272,6 @@ importers:
       effect:
         specifier: 4.1.4
         version: 4.1.4
-      hono:
-        specifier: 4.13.19
-        version: 4.13.19
       qrcode-terminal:
         specifier: 0.12.0
         version: 0.12.0

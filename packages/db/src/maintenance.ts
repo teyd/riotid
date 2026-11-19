@@ -127,8 +127,8 @@ export type RecoverResult = {
   readonly reset: number
 }
 
-export const recoverInterruptedRuns: Effect.Effect<RecoverResult, unknown, Database> =
-  Effect.gen(function* () {
+export const recoverInterruptedRuns: Effect.Effect<RecoverResult, unknown, Database> = Effect.gen(
+  function* () {
     const db = yield* Database
     const now = new Date()
     const failing = yield* db
@@ -143,7 +143,8 @@ export const recoverInterruptedRuns: Effect.Effect<RecoverResult, unknown, Datab
       .returning({ id: runs.id })
 
     return { reset: failing.length }
-  })
+  },
+)
 
 export const backfillPlayerCards: Effect.Effect<number, unknown, Database> = Effect.gen(
   function* () {
