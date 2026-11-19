@@ -229,8 +229,8 @@ export const bannedPlayers = sqliteTable(
   ],
 )
 
-export const anonymousPlayers = sqliteTable(
-  'anonymous_players',
+export const anonymousRows = sqliteTable(
+  'anonymous_rows',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     region: text('region', { enum: regions }).notNull(),
@@ -252,17 +252,13 @@ export const anonymousPlayers = sqliteTable(
     ...timestamps,
   },
   (table) => [
-    check('anonymous_players_region_check', sql`${table.region} IN ('na', 'eu', 'ap', 'kr')`),
+    check('anonymous_rows_region_check', sql`${table.region} IN ('na', 'eu', 'ap', 'kr')`),
     check(
-      'anonymous_players_status_check',
+      'anonymous_rows_status_check',
       sql`${table.status} IN ('unresolved', 'linked', 'ignored')`,
     ),
-    uniqueIndex('anonymous_players_row_idx').on(
-      table.region,
-      table.seasonId,
-      table.leaderboardRank,
-    ),
-    index('anonymous_players_status_idx').on(table.status, table.region),
+    uniqueIndex('anonymous_rows_row_idx').on(table.region, table.seasonId, table.leaderboardRank),
+    index('anonymous_rows_status_idx').on(table.status, table.region),
   ],
 )
 
@@ -270,9 +266,9 @@ export const identityLinks = sqliteTable(
   'identity_links',
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
-    anonymousPlayerId: integer('anonymous_player_id')
+    anonymousRowId: integer('anonymous_row_id')
       .notNull()
-      .references(() => anonymousPlayers.id, { onDelete: 'cascade' }),
+      .references(() => anonymousRows.id, { onDelete: 'cascade' }),
     puuid: text('puuid')
       .notNull()
       .references(() => players.puuid, { onDelete: 'cascade' }),
@@ -294,7 +290,7 @@ export const identityLinks = sqliteTable(
       sql`${table.method} IN ('direct_puuid', 'mmr_fingerprint', 'match_graph')`,
     ),
     check('identity_links_confidence_check', sql`${table.confidence} BETWEEN 0 AND 10000`),
-    uniqueIndex('identity_links_anonymous_idx').on(table.anonymousPlayerId),
+    uniqueIndex('identity_links_anonymous_idx').on(table.anonymousRowId),
     uniqueIndex('identity_links_player_season_idx').on(table.puuid, table.seasonId),
     index('identity_links_puuid_idx').on(table.puuid),
   ],
@@ -340,7 +336,7 @@ export type NewPlayer = typeof players.$inferInsert
 export type PlayerName = typeof playerNames.$inferSelect
 export type PlayerRegion = typeof playerRegions.$inferSelect
 export type BannedPlayer = typeof bannedPlayers.$inferSelect
-export type AnonymousPlayer = typeof anonymousPlayers.$inferSelect
+export type AnonymousRow = typeof anonymousRows.$inferSelect
 export type IdentityLink = typeof identityLinks.$inferSelect
 export type MatchCandidate = typeof matchCandidates.$inferSelect
 export type Run = typeof runs.$inferSelect

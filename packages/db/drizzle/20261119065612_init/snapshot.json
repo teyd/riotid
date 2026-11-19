@@ -1,11 +1,11 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "4b641c48-208f-482b-be8a-a09c54d7146e",
+  "id": "9593d8bb-0147-4104-8a24-377c664a1a69",
   "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
-      "name": "anonymous_players",
+      "name": "anonymous_rows",
       "entityType": "tables"
     },
     {
@@ -49,7 +49,7 @@
       "entityType": "tables"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "id",
       "type": "integer",
       "notNull": false,
@@ -59,7 +59,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "region",
       "type": "text",
       "notNull": true,
@@ -69,7 +69,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "season_id",
       "type": "text",
       "notNull": true,
@@ -79,7 +79,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "leaderboard_rank",
       "type": "integer",
       "notNull": true,
@@ -89,7 +89,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "ranked_rating",
       "type": "integer",
       "notNull": true,
@@ -99,7 +99,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "number_of_wins",
       "type": "integer",
       "notNull": true,
@@ -109,7 +109,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "competitive_tier",
       "type": "integer",
       "notNull": true,
@@ -119,7 +119,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "card_id",
       "type": "text",
       "notNull": true,
@@ -129,7 +129,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "title_id",
       "type": "text",
       "notNull": true,
@@ -139,7 +139,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "puuid",
       "type": "text",
       "notNull": false,
@@ -149,7 +149,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "resolved_puuid",
       "type": "text",
       "notNull": false,
@@ -159,7 +159,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "status",
       "type": "text",
       "notNull": true,
@@ -169,7 +169,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "first_seen_at",
       "type": "integer",
       "notNull": true,
@@ -179,7 +179,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "last_seen_at",
       "type": "integer",
       "notNull": true,
@@ -189,7 +189,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "last_tried_at",
       "type": "integer",
       "notNull": false,
@@ -199,7 +199,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "created_at",
       "type": "integer",
       "notNull": true,
@@ -209,7 +209,7 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
+      "table": "anonymous_rows",
       "name": "updated_at",
       "type": "integer",
       "notNull": true,
@@ -330,7 +330,7 @@
     },
     {
       "table": "identity_links",
-      "name": "anonymous_player_id",
+      "name": "anonymous_row_id",
       "type": "integer",
       "notNull": true,
       "autoincrement": false,
@@ -1339,8 +1339,8 @@
       "entityType": "columns"
     },
     {
-      "table": "anonymous_players",
-      "name": "anonymous_players_row_idx",
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_row_idx",
       "columns": [
         {
           "value": "region",
@@ -1361,8 +1361,8 @@
       "entityType": "indexes"
     },
     {
-      "table": "anonymous_players",
-      "name": "anonymous_players_status_idx",
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_status_idx",
       "columns": [
         {
           "value": "status",
@@ -1415,7 +1415,7 @@
       "name": "identity_links_anonymous_idx",
       "columns": [
         {
-          "value": "anonymous_player_id",
+          "value": "anonymous_row_id",
           "isExpression": false
         }
       ],
@@ -1671,8 +1671,8 @@
       "entityType": "indexes"
     },
     {
-      "table": "anonymous_players",
-      "name": "fk_anonymous_players_resolved_puuid_players_puuid_fk",
+      "table": "anonymous_rows",
+      "name": "fk_anonymous_rows_resolved_puuid_players_puuid_fk",
       "columns": ["resolved_puuid"],
       "tableTo": "players",
       "columnsTo": ["puuid"],
@@ -1716,9 +1716,9 @@
     },
     {
       "table": "identity_links",
-      "name": "fk_identity_links_anonymous_player_id_anonymous_players_id_fk",
-      "columns": ["anonymous_player_id"],
-      "tableTo": "anonymous_players",
+      "name": "fk_identity_links_anonymous_row_id_anonymous_rows_id_fk",
+      "columns": ["anonymous_row_id"],
+      "tableTo": "anonymous_rows",
       "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
@@ -1861,8 +1861,8 @@
       "entityType": "pks"
     },
     {
-      "table": "anonymous_players",
-      "name": "anonymous_players_pk",
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_pk",
       "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
@@ -1924,14 +1924,14 @@
       "entityType": "pks"
     },
     {
-      "table": "anonymous_players",
-      "name": "anonymous_players_region_check",
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_region_check",
       "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
       "entityType": "checks"
     },
     {
-      "table": "anonymous_players",
-      "name": "anonymous_players_status_check",
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_status_check",
       "value": "\"status\" IN ('unresolved', 'linked', 'ignored')",
       "entityType": "checks"
     },

@@ -47,7 +47,13 @@ run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:migrate"
 [tasks."db:generate"]
 run = "pnpm --dir packages/db exec drizzle-kit generate"
 
+[tasks."db:seed"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:seed"
+
 [tasks."db:check"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:check"
+
+[tasks."db:verify"]
 run = "pnpm --dir packages/db exec drizzle-kit check"
 
 [tasks.ci]

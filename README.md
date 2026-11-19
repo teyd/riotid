@@ -13,6 +13,10 @@ The approved implementation plan lives in
 - `mise run test` — Vitest
 - `mise run build` — production web build
 - `mise run serve` — run the API from TypeScript
+- `mise run db:migrate` — apply committed migrations
+- `mise run db:seed` — seed synthetic development data
+- `mise run db:check` — check database invariants
+- `mise run db:verify` — check migration history with Drizzle Kit
 
 ## Riot auth
 

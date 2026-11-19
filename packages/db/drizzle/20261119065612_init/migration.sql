@@ -1,4 +1,4 @@
-CREATE TABLE `anonymous_players` (
+CREATE TABLE `anonymous_rows` (
 	`id` integer PRIMARY KEY AUTOINCREMENT,
 	`region` text NOT NULL,
 	`season_id` text NOT NULL,
@@ -16,9 +16,9 @@ CREATE TABLE `anonymous_players` (
 	`last_tried_at` integer,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	CONSTRAINT `fk_anonymous_players_resolved_puuid_players_puuid_fk` FOREIGN KEY (`resolved_puuid`) REFERENCES `players`(`puuid`) ON DELETE SET NULL,
-	CONSTRAINT "anonymous_players_region_check" CHECK("region" IN ('na', 'eu', 'ap', 'kr')),
-	CONSTRAINT "anonymous_players_status_check" CHECK("status" IN ('unresolved', 'linked', 'ignored'))
+	CONSTRAINT `fk_anonymous_rows_resolved_puuid_players_puuid_fk` FOREIGN KEY (`resolved_puuid`) REFERENCES `players`(`puuid`) ON DELETE SET NULL,
+	CONSTRAINT "anonymous_rows_region_check" CHECK("region" IN ('na', 'eu', 'ap', 'kr')),
+	CONSTRAINT "anonymous_rows_status_check" CHECK("status" IN ('unresolved', 'linked', 'ignored'))
 );
 --> statement-breakpoint
 CREATE TABLE `banned_players` (
@@ -41,7 +41,7 @@ CREATE TABLE `banned_players` (
 --> statement-breakpoint
 CREATE TABLE `identity_links` (
 	`id` integer PRIMARY KEY AUTOINCREMENT,
-	`anonymous_player_id` integer NOT NULL,
+	`anonymous_row_id` integer NOT NULL,
 	`puuid` text NOT NULL,
 	`region` text NOT NULL,
 	`season_id` text NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE `identity_links` (
 	`evidence` text DEFAULT '{}' NOT NULL,
 	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
-	CONSTRAINT `fk_identity_links_anonymous_player_id_anonymous_players_id_fk` FOREIGN KEY (`anonymous_player_id`) REFERENCES `anonymous_players`(`id`) ON DELETE CASCADE,
+	CONSTRAINT `fk_identity_links_anonymous_row_id_anonymous_rows_id_fk` FOREIGN KEY (`anonymous_row_id`) REFERENCES `anonymous_rows`(`id`) ON DELETE CASCADE,
 	CONSTRAINT `fk_identity_links_puuid_players_puuid_fk` FOREIGN KEY (`puuid`) REFERENCES `players`(`puuid`) ON DELETE CASCADE,
 	CONSTRAINT "identity_links_region_check" CHECK("region" IN ('na', 'eu', 'ap', 'kr')),
 	CONSTRAINT "identity_links_method_check" CHECK("method" IN ('direct_puuid', 'mmr_fingerprint', 'match_graph')),
@@ -198,11 +198,11 @@ CREATE TABLE `seasons` (
 	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `anonymous_players_row_idx` ON `anonymous_players` (`region`,`season_id`,`leaderboard_rank`);--> statement-breakpoint
-CREATE INDEX `anonymous_players_status_idx` ON `anonymous_players` (`status`,`region`);--> statement-breakpoint
+CREATE UNIQUE INDEX `anonymous_rows_row_idx` ON `anonymous_rows` (`region`,`season_id`,`leaderboard_rank`);--> statement-breakpoint
+CREATE INDEX `anonymous_rows_status_idx` ON `anonymous_rows` (`status`,`region`);--> statement-breakpoint
 CREATE UNIQUE INDEX `banned_players_open_idx` ON `banned_players` (`puuid`) WHERE "banned_players"."ended_at" IS NULL;--> statement-breakpoint
 CREATE INDEX `banned_players_puuid_idx` ON `banned_players` (`puuid`,`started_at`);--> statement-breakpoint
-CREATE UNIQUE INDEX `identity_links_anonymous_idx` ON `identity_links` (`anonymous_player_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `identity_links_anonymous_idx` ON `identity_links` (`anonymous_row_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `identity_links_player_season_idx` ON `identity_links` (`puuid`,`season_id`);--> statement-breakpoint
 CREATE INDEX `identity_links_puuid_idx` ON `identity_links` (`puuid`);--> statement-breakpoint
 CREATE INDEX `match_candidates_lookup_idx` ON `match_candidates` (`region`,`competitive_tier`,`card_id`,`title_id`);--> statement-breakpoint

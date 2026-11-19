@@ -23,3 +23,4 @@ jobs:
       - run: pnpm exec effect-tsgo vp check && pnpm exec effect-tsgo tsc -p tsconfig.json
       - run: pnpm exec vp run -r test
       - run: pnpm exec vp build apps/web
+      - run: pnpm --dir packages/db exec drizzle-kit check

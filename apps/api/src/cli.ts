@@ -5,7 +5,13 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
-import { migrateDatabase, writeDatabase } from '@riotid/db'
+import {
+  checkDatabase,
+  migrateDatabase,
+  readDatabase,
+  seedDatabase,
+  writeDatabase,
+} from '@riotid/db'
 import { serve } from '@hono/node-server'
 import {
   loadCookieFile,
@@ -33,6 +39,7 @@ const AppConfig = Config.all({
   publicOrigin: Config.String('PUBLIC_ORIGIN').pipe(Config.withDefault('http://localhost:5173')),
   cookieFile: Config.String('COOKIE_FILE').pipe(Config.withDefault('./data/cookies.json')),
   databasePath: Config.String('DATABASE_PATH').pipe(Config.withDefault('./data/riotid.db')),
+  nodeEnv: Config.String('NODE_ENV').pipe(Config.withDefault('development')),
   countryCode: Config.String('RIOT_COUNTRY_CODE').pipe(Config.withDefault('US')),
   qrTimeoutSeconds: Config.Int('RIOT_QR_TIMEOUT_SECONDS').pipe(Config.withDefault(300)),
   authRefreshMinutes: Config.Int('AUTH_REFRESH_MINUTES').pipe(Config.withDefault(45)),
@@ -49,6 +56,8 @@ Usage:
   riotid auth:refresh          Refresh tokens and persist the cookie jar
   riotid probe                 Probe live leaderboard/name/match endpoints
   riotid db:migrate            Apply committed database migrations
+  riotid db:seed               Seed synthetic development data
+  riotid db:check              Check database invariants
   riotid help                  Show this help
 `
 
@@ -112,6 +121,39 @@ const dbMigrate = Effect.gen(function* () {
   yield* Effect.logInfo(`database migrated at ${config.databasePath}`)
 })
 
+const dbSeed = Effect.gen(function* () {
+  const config = yield* AppConfig
+
+  if (config.nodeEnv === 'production') {
+    yield* Effect.logWarning('refusing to seed a production database')
+    process.exitCode = 1
+    return
+  }
+
+  yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
+  const result = yield* seedDatabase.pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+  yield* Effect.logInfo(
+    result.seeded ? `seeded ${config.databasePath} (run ${result.runId})` : 'seed already applied',
+  )
+})
+
+const dbCheck = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const report = yield* checkDatabase.pipe(Effect.provide(readDatabase(config.databasePath)))
+
+  yield* Effect.logInfo(`database check: ${report.ok ? 'ok' : 'failed'}`)
+  yield* Effect.logInfo(`integrity: ${report.integrity}`)
+
+  for (const issue of report.issues) {
+    yield* Effect.logWarning(issue)
+  }
+
+  if (!report.ok) {
+    process.exitCode = 1
+  }
+})
+
 const status = Effect.gen(function* () {
   const config = yield* AppConfig
   const file = yield* loadCookieFile(config.cookieFile)
@@ -160,6 +202,16 @@ const main = Effect.gen(function* () {
 
   if (command === 'db:migrate') {
     yield* dbMigrate
+    return
+  }
+
+  if (command === 'db:seed') {
+    yield* dbSeed
+    return
+  }
+
+  if (command === 'db:check') {
+    yield* dbCheck
     return
   }
 
