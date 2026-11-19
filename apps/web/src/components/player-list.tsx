@@ -1,7 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useRef, type RefObject } from 'react'
 
-import { cardAccent, cardArt, formatRelative, P, regionShort, type IndexRow } from '../lib/api.ts'
+import { cardArt, formatRelative, P, regionShort, type IndexRow } from '../lib/api.ts'
 import { EmptyState } from './ui.tsx'
 import { PlayerListSkeleton } from './skeleton.tsx'
 
@@ -128,23 +128,21 @@ export const PlayerList = ({
               className="absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left transition-colors hover:bg-white/[0.035] focus-visible:bg-white/[0.05] focus-visible:outline-none data-[selected=true]:bg-white/[0.065]"
               style={{
                 transform: `translateY(${item.start}px)`,
-                boxShadow: `inset 3px 0 0 ${active ? cardAccent(cardId) : 'transparent'}`,
+                boxShadow: active ? 'inset 2px 0 0 #fafafa' : undefined,
               }}
             >
-              <span
-                className="relative block h-10 w-8 shrink-0 overflow-hidden rounded-sm bg-white/[0.06]"
-                style={{ backgroundColor: cardAccent(cardId) }}
-              >
+              <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/[0.06] bg-white/[0.03] font-mono text-[11px] text-zinc-500">
+                <span aria-hidden>{(name || '?').slice(0, 1).toUpperCase()}</span>
                 {art ? (
                   <img
                     src={art}
                     alt=""
-                    width={32}
-                    height={40}
+                    width={36}
+                    height={36}
                     loading="lazy"
                     decoding="async"
                     fetchPriority="low"
-                    className="h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-cover"
                     onError={(event) => {
                       event.currentTarget.style.display = 'none'
                     }}

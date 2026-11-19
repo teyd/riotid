@@ -594,6 +594,23 @@ export const resolveAnonymous = (
 
     let didChange = plans.length > 0
 
+    yield* db.run(sql`
+      update players
+      set card_id = coalesce(
+        (
+          select card_id from anonymous_rows
+          where resolved_puuid = players.puuid and status = 'linked' and card_id <> ''
+          order by last_seen_at desc limit 1
+        ),
+        (
+          select card_id from match_candidates
+          where puuid = players.puuid
+          order by game_start_at desc limit 1
+        )
+      )
+      where card_id is null
+    `)
+
     yield* report({
       phase: 'apply',
       message: 'Writing links and intervals',

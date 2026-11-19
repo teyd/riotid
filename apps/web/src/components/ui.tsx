@@ -9,9 +9,9 @@ export const Badge = ({
 }) => {
   const tones = {
     neutral: 'text-zinc-400',
-    accent: 'text-emerald-300',
-    warn: 'text-amber-300',
-    info: 'text-sky-300',
+    accent: 'text-zinc-100',
+    warn: 'text-zinc-200',
+    info: 'text-zinc-300',
   }
 
   return (
@@ -55,7 +55,7 @@ export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
 
 export const ErrorState = ({ error }: { error: Error }) => (
   <div className="flex flex-col items-start gap-2 p-6">
-    <p className="text-base text-amber-300">Could not load data.</p>
+    <p className="text-base text-zinc-300">Could not load data.</p>
     <p className="font-mono text-xs text-zinc-500">{error.message}</p>
   </div>
 )

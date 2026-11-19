@@ -241,6 +241,30 @@ const resetInterruptedRuns = Effect.gen(function* () {
   }).pipe(Effect.provide(writeDatabase(config.databasePath)))
 })
 
+const backfillPlayerCards = Effect.gen(function* () {
+  const config = yield* AppConfig
+
+  yield* Effect.gen(function* () {
+    const db = yield* Database
+    yield* db.run(sql`
+      update players
+      set card_id = coalesce(
+        (
+          select card_id from anonymous_rows
+          where resolved_puuid = players.puuid and status = 'linked' and card_id <> ''
+          order by last_seen_at desc limit 1
+        ),
+        (
+          select card_id from match_candidates
+          where puuid = players.puuid
+          order by game_start_at desc limit 1
+        )
+      )
+      where card_id is null
+    `)
+  }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+})
+
 const scanOnce = (
   config: { cookieFile: string; databasePath: string },
   trigger: 'schedule' | 'manual' | 'boot',
@@ -720,6 +744,7 @@ const main = Effect.gen(function* () {
   const config = yield* AppConfig
 
   yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
+  yield* backfillPlayerCards
 
   if (config.nodeEnv !== 'production') {
     const count = yield* Effect.gen(function* () {

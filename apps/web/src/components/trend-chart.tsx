@@ -54,14 +54,14 @@ const Sparkline = ({ values }: { values: ReadonlyArray<number> }) => {
           <polyline
             points={path}
             fill="none"
-            stroke="#4ade80"
+            stroke="#fafafa"
             strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
         ) : null}
         {points.map((point, index) => (
-          <circle key={index} cx={point.x} cy={point.y} r="2.5" fill="#4ade80" />
+          <circle key={index} cx={point.x} cy={point.y} r="2.5" fill="#fafafa" />
         ))}
       </svg>
     </div>

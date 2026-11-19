@@ -1,14 +1,12 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from '@ui-sdk/react/select'
+import { Select, SelectContent, SelectItem, SelectLabel, SelectTrigger } from '@ui-sdk/react/select'
+import { Input } from '@ui-sdk/react/input'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
-import { Toggle, ToggleGroup } from '@ui-sdk/react/toggle'
+import {
+  SegmentedControl,
+  SegmentedControlIndicator,
+  SegmentedControlItem,
+} from '@ui-sdk/react/segmented-control'
 import { Link, useNavigate } from '@tanstack/react-router'
 import SearchIcon from 'kubai-icons-react/icons/search'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
@@ -28,12 +26,14 @@ import {
 
 type Sort = 'recentChanges' | 'changes' | 'recent' | 'new' | 'name'
 
-const sorts: Array<{ value: Sort; label: string }> = [
-  { value: 'recentChanges', label: 'Recent name changes' },
-  { value: 'changes', label: 'Most changes' },
-  { value: 'recent', label: 'Recent activity' },
-  { value: 'new', label: 'Newest tracked' },
-  { value: 'name', label: 'Name A–Z' },
+let initialSelectionDone = false
+
+const sorts: Array<{ value: Sort; label: string; trigger: string }> = [
+  { value: 'recentChanges', label: 'Recent name changes', trigger: 'renames' },
+  { value: 'changes', label: 'Most changes', trigger: 'changes' },
+  { value: 'recent', label: 'Recent activity', trigger: 'recent' },
+  { value: 'new', label: 'Newest tracked', trigger: 'new' },
+  { value: 'name', label: 'Name A–Z', trigger: 'a–z' },
 ]
 
 const regions: ReadonlyArray<{ value: 'all' | Region; label: string }> = [
@@ -54,12 +54,6 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState<'all' | Region>('all')
   const [sort, setSort] = useState<Sort>('recentChanges')
-  const [initialLayout] = useState<number[] | undefined>(() => {
-    const stored = Number(window.localStorage.getItem('riotid:split'))
-    return Number.isFinite(stored) && stored > 15 && stored < 85
-      ? [stored, 100 - stored]
-      : undefined
-  })
   const deferredQuery = useDeferredValue(query)
 
   useEffect(() => {
@@ -116,6 +110,21 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const selectedCard =
     selectedCardIndex == null ? null : (index.data?.cards[selectedCardIndex] ?? null)
 
+  useEffect(() => {
+    if (p) {
+      initialSelectionDone = true
+      return
+    }
+    if (initialSelectionDone || index.isPending || rows.length === 0) return
+    if (!window.matchMedia('(min-width: 1024px)').matches) return
+
+    const first = rows[0]?.[P.puuid]
+    if (first) {
+      initialSelectionDone = true
+      void navigate({ to: '/puuid/$puuid', params: { puuid: first }, replace: true })
+    }
+  }, [p, index.isPending, rows, navigate])
+
   const select = (puuid: string | null) => {
     if (puuid) {
       void navigate({ to: '/puuid/$puuid', params: { puuid }, replace: true })
@@ -147,29 +156,23 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <Resizable
-        {...(initialLayout ? { defaultLayout: initialLayout } : {})}
-        onLayoutCommit={(layout) => {
-          window.localStorage.setItem('riotid:split', String(layout[0]))
-        }}
-        className="flex min-h-0 flex-1"
-      >
+      <Resizable autoSaveId="riotid:split" className="flex min-h-0 flex-1">
         <ResizablePanel
           id="player-list"
-          defaultSize={32}
-          minSize={25}
-          maxSize={55}
-          className={`min-h-0 max-lg:!w-full ${p ? 'hidden lg:flex' : 'flex'}`}
+          defaultSize="460px"
+          minSize="360px"
+          maxSize="760px"
+          className={`min-h-0 max-lg:!w-full max-lg:!basis-full ${p ? 'hidden lg:flex' : 'flex'}`}
         >
-          <section className="relative flex h-full min-h-0 flex-col border-r border-white/[0.07]">
-            <div className="border-b border-white/[0.07] px-4 py-4">
-              <label className="flex h-11 min-w-0 items-center gap-2.5 rounded-lg border border-white/10 bg-black/25 px-3 focus-within:border-accent/50">
+          <section className="relative flex h-full w-full min-h-0 flex-col border-r border-white/[0.07]">
+            <div className="border-b border-white/[0.08] px-4 pt-4 pb-3">
+              <div className="flex h-10 min-w-0 items-center gap-2.5 rounded-md border border-white/[0.08] bg-white/[0.03] px-3 focus-within:border-white/30">
                 <SearchIcon className="size-4 shrink-0 text-zinc-500" />
-                <input
+                <Input
                   ref={searchRef}
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search name, tag, puuid…"
+                  onValueChange={setQuery}
+                  placeholder="Search players…"
                   aria-label="Search players"
                   spellCheck={false}
                   autoComplete="off"
@@ -178,13 +181,12 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 <kbd className="hidden rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 sm:block">
                   /
                 </kbd>
-              </label>
+              </div>
 
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <ToggleGroup
-                  value={[region]}
-                  onValueChange={(values) => {
-                    const next = values[0]
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <SegmentedControl
+                  value={region}
+                  onValueChange={(next) => {
                     if (
                       next === 'all' ||
                       next === 'na' ||
@@ -195,23 +197,23 @@ export function PlayersPage({ selected }: { selected?: string }) {
                       setRegion(next)
                     }
                   }}
-                  deselectable={false}
                   aria-label="Region"
-                  className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] p-1"
+                  className="relative flex items-center gap-0.5 rounded-md border border-white/[0.07] bg-white/[0.02] p-0.5"
                 >
+                  <SegmentedControlIndicator className="rounded-[5px] bg-white/[0.08]" />
                   {regions.map((item) => (
-                    <Toggle
+                    <SegmentedControlItem
                       key={item.value}
                       value={item.value}
-                      className="rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 data-[pressed]:bg-white/10 data-[pressed]:text-zinc-100"
+                      className="rounded-[5px] px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600 transition-colors hover:text-zinc-300 data-[checked]:text-zinc-100"
                     >
                       {item.label}
-                    </Toggle>
+                    </SegmentedControlItem>
                   ))}
-                </ToggleGroup>
+                </SegmentedControl>
 
-                <div className="flex items-center gap-2.5">
-                  <span className="font-mono text-[11px] text-zinc-500">
+                <div className="flex items-center gap-3">
+                  <span className="font-mono text-[10px] text-zinc-600 tabular-nums">
                     {rows.length.toLocaleString()}
                   </span>
                   <Select
@@ -222,8 +224,14 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     items={sorts}
                   >
                     <SelectLabel className="sr-only">Sort players</SelectLabel>
-                    <SelectTrigger className="flex h-8 items-center gap-1.5 rounded-md border border-white/10 px-2.5 font-mono text-[10px] uppercase tracking-wide text-zinc-400 hover:border-white/25">
-                      <SelectValue />
+                    <SelectTrigger
+                      aria-label={`Sort players: ${sorts.find((item) => item.value === sort)?.label ?? sort}`}
+                      className="flex h-7 items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
+                    >
+                      <span>{sorts.find((item) => item.value === sort)?.trigger ?? sort}</span>
+                      <span aria-hidden className="text-[9px] leading-none text-zinc-600">
+                        ▼
+                      </span>
                     </SelectTrigger>
                     <SelectContent className="z-50 rounded-lg border border-white/10 bg-panel p-1.5 text-sm shadow-2xl">
                       {sorts.map((item) => (
@@ -256,7 +264,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
             <div className="border-t border-white/[0.06] px-4 py-3 font-mono text-[10px] text-zinc-500">
               {index.isError ? (
-                <span className="text-amber-400">API offline — retrying</span>
+                <span className="text-zinc-300">API offline — retrying</span>
               ) : (
                 <span>
                   {index.data?.players.length.toLocaleString() ?? '—'} public players ·{' '}
@@ -277,8 +285,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
         <ResizablePanel
           id="player-detail"
-          minSize="360px"
-          className={`min-h-0 max-lg:!w-full ${p ? 'flex' : 'hidden lg:flex'}`}
+          minSize="420px"
+          className={`min-h-0 max-lg:!w-full max-lg:!basis-full ${p ? 'flex' : 'hidden lg:flex'}`}
         >
           {p ? (
             <PlayerDetailLoader
@@ -291,7 +299,6 @@ export function PlayersPage({ selected }: { selected?: string }) {
             <LoadingState label="Loading index" />
           ) : (
             <div className="relative flex h-full items-center justify-center overflow-hidden p-8">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_65%_35%,rgba(74,222,128,0.06),transparent_42%)]" />
               <div className="relative max-w-md text-center">
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
                   master–detail
