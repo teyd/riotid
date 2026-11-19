@@ -303,7 +303,9 @@ export const resolveAnonymous = (
         for (const participant of details.players) {
           const puuid = participant.subject?.toLowerCase()
           if (!puuid) continue
-          names.set(puuid, { name: participant.gameName, tag: participant.tagLine })
+          if (participant.gameName.length > 0) {
+            names.set(puuid, { name: participant.gameName, tag: participant.tagLine })
+          }
           const candidate: Candidate = {
             puuid,
             region: start.region,
@@ -410,6 +412,36 @@ export const resolveAnonymous = (
       }
     }
 
+    const unnamed = yield* db
+      .select({ puuid: players.puuid, region: players.region })
+      .from(players)
+      .where(
+        and(eq(players.isAnonymized, true), sql`(${players.name} is null or ${players.name} = '')`),
+      )
+      .limit(500)
+    const unnamedByRegion = new Map<Region, string[]>()
+
+    for (const player of unnamed) {
+      if (!player.region) continue
+      const list = unnamedByRegion.get(player.region) ?? []
+      list.push(player.puuid)
+      unnamedByRegion.set(player.region, list)
+    }
+
+    for (const [region, puuids] of unnamedByRegion) {
+      if (!canSpend()) break
+      spend()
+      const resolved = yield* source
+        .getNameService(config.session, version.riotClientVersion, region, puuids)
+        .pipe(Effect.catchTag('RiotRequestError', () => Effect.succeed([])))
+
+      for (const entry of resolved) {
+        if (entry.GameName.length > 0) {
+          names.set(entry.Subject.toLowerCase(), { name: entry.GameName, tag: entry.TagLine })
+        }
+      }
+    }
+
     const linkedByRegion = new Map<Region, string[]>()
 
     for (const plan of plans) {
@@ -439,8 +471,57 @@ export const resolveAnonymous = (
       name: names.get(plan.puuid) ?? null,
     }))
 
+    let didChange = plans.length > 0
+
     yield* db.transaction((tx) =>
       Effect.gen(function* () {
+        yield* tx.run(sql`
+          update player_names
+          set
+            name = (select name from players where players.puuid = player_names.puuid),
+            tag = (select tag from players where players.puuid = player_names.puuid),
+            updated_at = ${nowDate.getTime()}
+          where ended_at is null
+            and name = ''
+            and exists (
+              select 1 from players
+              where players.puuid = player_names.puuid and players.name <> ''
+            )
+        `)
+
+        for (const [puuid, name] of names) {
+          const patch = yield* tx
+            .update(players)
+            .set({ name: name.name, tag: name.tag, updatedAt: nowDate })
+            .where(
+              and(
+                eq(players.puuid, puuid),
+                sql`(${players.name} is null or ${players.name} = '' OR ${players.isAnonymized} = 1)`,
+              ),
+            )
+            .returning({ puuid: players.puuid })
+
+          if (patch.length > 0) {
+            didChange = true
+            const open = yield* tx
+              .select({ id: playerNames.id })
+              .from(playerNames)
+              .where(and(eq(playerNames.puuid, puuid), isNull(playerNames.endedAt)))
+              .limit(1)
+
+            if (open.length === 0) {
+              yield* tx.insert(playerNames).values({
+                puuid,
+                name: name.name,
+                tag: name.tag,
+                startedAt: nowDate,
+                startedRunId: null,
+                updatedAt: nowDate,
+              })
+            }
+          }
+        }
+
         for (const plan of planned) {
           const exists = known.has(plan.puuid)
 
@@ -457,7 +538,7 @@ export const resolveAnonymous = (
               updatedAt: nowDate,
             })
 
-            if (plan.name) {
+            if (plan.name && plan.name.name.length > 0) {
               yield* tx.insert(playerNames).values({
                 puuid: plan.puuid,
                 name: plan.name.name,
@@ -502,7 +583,7 @@ export const resolveAnonymous = (
             .onConflictDoNothing()
         }
 
-        if (plans.length > 0) {
+        if (didChange) {
           yield* tx
             .insert(meta)
             .values({ key: 'indexVersion', value: '1', updatedAt: nowDate })
