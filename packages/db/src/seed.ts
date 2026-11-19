@@ -188,7 +188,7 @@ export const seedDatabase = Effect.gen(function* () {
     rankedRating: 1090,
     numberOfWins: 88,
     competitiveTier: 27,
-    cardId: '00000000-0000-4000-8000-000000000010',
+    cardId: '1711d20d-4b1c-c64a-14be-d4ae58a457c6',
     titleId: '00000000-0000-4000-8000-000000000011',
     status: 'unresolved',
     firstSeenAt: firstRun,
@@ -452,7 +452,7 @@ export const seedDemoDatabase = Effect.gen(function* () {
   yield* db.insert(bannedPlayers).values(banRows)
   yield* db.insert(leaderboardSeeds).values(seedRows)
 
-  const cardId = '00000000-0000-4000-8000-000000000010'
+  const cardId = '1711d20d-4b1c-c64a-14be-d4ae58a457c6'
   const titleId = '00000000-0000-4000-8000-000000000011'
 
   for (const [regionIndex, region] of demoRegions.entries()) {

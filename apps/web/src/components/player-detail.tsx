@@ -51,7 +51,7 @@ const HistoryTimeline = ({
         className="relative grid grid-cols-[10px_1fr] gap-x-4 pb-5 last:pb-0"
       >
         <div className="relative flex justify-center">
-          <TimelineMarker className="relative z-10 mt-1.5 size-2 rounded-full bg-zinc-600 data-[current]:bg-accent" />
+          <TimelineMarker className="relative z-[1] mt-1.5 size-2 rounded-full bg-zinc-600 data-[current]:bg-accent" />
         </div>
         {index < items.length - 1 ? (
           <TimelineConnector className="absolute top-3.5 -bottom-[5px] left-1 w-px bg-white/[0.09]" />
@@ -94,9 +94,9 @@ const HistorySection = ({
 )
 
 const HeaderStat = ({ label, value }: { label: string; value: string }) => (
-  <div className="px-3 py-3 sm:px-4">
-    <dt className="text-zinc-500">{label}</dt>
-    <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">{value}</dd>
+  <div className="flex flex-col justify-center px-3 py-2.5 sm:px-4">
+    <dt className="text-[11px] leading-4 text-zinc-500">{label}</dt>
+    <dd className="mt-0.5 whitespace-nowrap text-[14px] leading-5 text-zinc-200">{value}</dd>
   </div>
 )
 
@@ -140,25 +140,33 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
         <EvidenceDetail label="season" value={a.seasonName ?? 'unknown act'} />
         <div>
           <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">card</dt>
-          <dd className="mt-1 flex items-center gap-2">
+          <dd className="mt-1">
             <a
               href={cardLargeArt(a.cardId) ?? cardArt(a.cardId) ?? '#'}
               target="_blank"
               rel="noreferrer noopener"
-              className="block h-10 w-7 overflow-hidden rounded-sm bg-white/[0.06]"
+              className="group flex items-center gap-2"
             >
-              <img
-                src={cardLargeArt(a.cardId) ?? ''}
-                alt=""
-                width={28}
-                height={40}
-                loading="lazy"
-                decoding="async"
-                className="h-full w-full object-cover"
-                onError={(event) => {
-                  event.currentTarget.style.display = 'none'
-                }}
-              />
+              <span className="relative flex h-10 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/[0.08] bg-white/[0.03] font-mono text-[9px] text-zinc-500">
+                <span aria-hidden>n/a</span>
+                {cardLargeArt(a.cardId) ? (
+                  <img
+                    src={cardLargeArt(a.cardId) ?? ''}
+                    alt=""
+                    width={28}
+                    height={40}
+                    loading="lazy"
+                    decoding="async"
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                  />
+                ) : null}
+              </span>
+              <span className="font-mono text-[11px] text-zinc-500 group-hover:text-zinc-300">
+                {a.cardId.slice(0, 8)}
+              </span>
             </a>
           </dd>
         </div>
