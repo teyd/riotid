@@ -1,13 +1,14 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off
 import { existsSync, promises as fs } from 'node:fs'
 import { join } from 'node:path'
+import { gzipSync } from 'node:zlib'
 
 import { Database, readDatabase } from '@riotid/db'
 import type { ApiError, Health } from '@riotid/contracts'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { sql } from 'drizzle-orm'
-import { Effect } from 'effect'
+import { Effect, ManagedRuntime } from 'effect'
 import { Hono, type Context } from 'hono'
 import { compress } from 'hono/compress'
 
@@ -33,15 +34,15 @@ export type AppOptions = {
   }
 }
 
-type CachedIndex = {
+type CachedJson = {
   readonly key: string
-  readonly value: import('@riotid/contracts').SiteIndex
+  readonly json: string
+  readonly gzip: ArrayBuffer
+  readonly etag: string
 }
 
-let cachedIndex: CachedIndex | null = null
-
-const runDb = <A, E>(databasePath: string, effect: Effect.Effect<A, E, Database>) =>
-  Effect.runPromise(effect.pipe(Effect.provide(readDatabase(databasePath))))
+let cachedIndex: CachedJson | null = null
+let cachedStats: CachedJson | null = null
 
 const getIndex = (databasePath: string, indexWindowDays: number) =>
   Effect.gen(function* () {
@@ -49,12 +50,50 @@ const getIndex = (databasePath: string, indexWindowDays: number) =>
     const key = `${databasePath}:${version}`
 
     if (cachedIndex?.key === key) {
-      return cachedIndex.value
+      return cachedIndex
     }
 
     const value = yield* buildSiteIndex(Date.now(), indexWindowDays)
-    cachedIndex = { key, value }
-    return value
+    const json = JSON.stringify(value)
+    const cached = {
+      key,
+      json,
+      gzip: (() => {
+        const buffer = gzipSync(json)
+        return buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength,
+        ) as ArrayBuffer
+      })(),
+      etag: `"${value.version}-${value.players.length}"`,
+    }
+    cachedIndex = cached
+    return cached
+  })
+
+const getStats = (databasePath: string) =>
+  Effect.gen(function* () {
+    const version = yield* readIndexVersion
+    const key = `${databasePath}:${version}`
+
+    if (cachedStats?.key === key) {
+      return cachedStats
+    }
+
+    const value = yield* buildSiteStats
+    const json = JSON.stringify(value)
+    const buffer = gzipSync(json)
+    const cached = {
+      key,
+      json,
+      gzip: buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength,
+      ) as ArrayBuffer,
+      etag: `"${version}"`,
+    }
+    cachedStats = cached
+    return cached
   })
 
 type Bucket = { count: number; resetAt: number }
@@ -113,6 +152,8 @@ const parseIfNoneMatch = (header: string | undefined, etag: string): boolean =>
 
 export const makeApp = (options: AppOptions) => {
   const app = new Hono<{ Variables: { requestId: string } }>()
+  const runtime = ManagedRuntime.make(readDatabase(options.databasePath))
+  const runDb = <A, E>(effect: Effect.Effect<A, E, Database>) => runtime.runPromise(effect)
   const startedAt = options.startedAt ?? Date.now()
   const limits = {
     index: options.rateLimits?.index ?? 30,
@@ -154,7 +195,6 @@ export const makeApp = (options: AppOptions) => {
   app.get('/healthz', async (c) => {
     try {
       await runDb(
-        options.databasePath,
         Effect.gen(function* () {
           const db = yield* Database
           return yield* db.get<{ ok: number }>(sql`select 1 as ok`)
@@ -178,20 +218,24 @@ export const makeApp = (options: AppOptions) => {
   app.get('/api/v1/index', async (c) => {
     if (await rateLimit(c, 'index', limits.index)) return rateLimited(c)
 
-    const index = await runDb(
-      options.databasePath,
-      getIndex(options.databasePath, options.indexWindowDays ?? 30),
-    )
-    const etag = `"${index.version}-${index.players.length}"`
+    const index = await runDb(getIndex(options.databasePath, options.indexWindowDays ?? 30))
 
-    c.header('ETag', etag)
+    c.header('ETag', index.etag)
     c.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
 
-    if (parseIfNoneMatch(c.req.header('if-none-match'), etag)) {
+    if (parseIfNoneMatch(c.req.header('if-none-match'), index.etag)) {
       return c.body(null, 304)
     }
 
-    return c.json(index)
+    if (c.req.header('accept-encoding')?.includes('gzip')) {
+      return c.body(index.gzip, 200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Encoding': 'gzip',
+        Vary: 'Accept-Encoding',
+      })
+    }
+
+    return c.body(index.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
   })
 
   app.get('/api/v1/players/:puuid', async (c) => {
@@ -203,7 +247,7 @@ export const makeApp = (options: AppOptions) => {
       return c.json(errorBody(c, 'invalid_puuid', 'Invalid puuid.'), 400)
     }
 
-    const detail = await runDb(options.databasePath, loadPlayerDetail(puuid))
+    const detail = await runDb(loadPlayerDetail(puuid))
 
     if (!detail) {
       return c.json(errorBody(c, 'not_found', 'Player not found.'), 404, {
@@ -218,9 +262,10 @@ export const makeApp = (options: AppOptions) => {
   app.get('/api/v1/stats', async (c) => {
     if (await rateLimit(c, 'stats', limits.stats)) return rateLimited(c)
 
-    const stats = await runDb(options.databasePath, buildSiteStats)
+    const stats = await runDb(getStats(options.databasePath))
     c.header('Cache-Control', 'public, max-age=300, s-maxage=600')
-    return c.json(stats)
+    c.header('ETag', stats.etag)
+    return c.body(stats.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
   })
 
   app.get('/api/v1/status', async (c) => {
@@ -231,7 +276,6 @@ export const makeApp = (options: AppOptions) => {
       .then((stat) => stat.mtimeMs)
       .catch(() => null)
     const status = await runDb(
-      options.databasePath,
       buildServiceStatus({
         databasePath: options.databasePath,
         cookieFile: options.cookieFile ?? './data/cookies.json',

@@ -58,7 +58,6 @@ file. `mise run auth:refresh` refreshes the access/entitlements tokens and write
 committed. Local secrets come from Infisical; production env comes from
 Dokploy's Infisical integration.
 
-
 ## Architecture
 
 - **Ingest** (`packages/ingest`): one run crawls `na/eu/ap/kr` page by page, resolves authoritative names in batches, de-duplicates page/cross-region overlaps, then applies player, name, region, ban, and anonymous-row diffs in one transaction. `runs` and `run_regions` keep the evidence.
@@ -69,13 +68,13 @@ Dokploy's Infisical integration.
 
 ## API
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /api/v1/index` | Versioned tuple index for public players (banned and unresolved anonymous rows excluded) |
-| `GET /api/v1/players/:puuid` | Current player, name/region/ban timelines, counters, identity evidence |
-| `GET /api/v1/stats` | Totals, region cards, tier/RR aggregates, recent changes, anonymous coverage |
-| `GET /api/v1/status` | Readiness, database/index versions, latest run, cookie-jar age |
-| `GET /healthz` | Minimal database readiness |
+| Endpoint                     | Purpose                                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `GET /api/v1/index`          | Versioned tuple index for public players (banned and unresolved anonymous rows excluded) |
+| `GET /api/v1/players/:puuid` | Current player, name/region/ban timelines, counters, identity evidence                   |
+| `GET /api/v1/stats`          | Totals, region cards, tier/RR aggregates, recent changes, anonymous coverage             |
+| `GET /api/v1/status`         | Readiness, database/index versions, latest run, cookie-jar age                           |
+| `GET /healthz`               | Minimal database readiness                                                               |
 
 Index and detail responses carry `ETag` and support `If-None-Match` (`304`). Errors use `{ error: { code, message, requestId } }`.
 
@@ -99,17 +98,17 @@ Single instance only: the run lock and SQLite writer assume one process. Deploy 
 
 ## Runbook
 
-| Task | Action |
-|---|---|
-| Cookie rotation | `node apps/api/src/cli.ts auth:login` (QR) or `auth:save`; the server refreshes automatically every 45 minutes while running. |
-| Scan failed | Inspect `node apps/api/src/cli.ts status` and the `runs.error`/`run_regions` rows. Fix auth/network, then `scan`. A failed region never applies partial data. |
-| Backup | `node apps/api/src/cli.ts backup`; snapshots live in `/app/data/backups` and rotate after 7 days. |
-| Restore | Stop the app, run `backup:restore <file> --yes`, then start it. The command verifies `pragma integrity_check` and bumps the index version. |
-| Reindex | `node apps/api/src/cli.ts index:rebuild`; the API rebuilds on its next index request. |
-| Takedown | `node apps/api/src/cli.ts player:remove <puuid> --yes`; deletes the player and cascaded history, and marks their anonymous rows `ignored` so they are not re-linked. |
-| Pause scheduler | Temporarily set `NODE_ENV` away from `production` or stop the app. Manual commands still work. |
-| Identity policy | Only exact rank + RR + wins + tier matches are linked; ambiguous rows stay unresolved. Every link stores match id, method, confidence, and fingerprint evidence. |
-| Incident | The API is read-only; if it is unhealthy, the last index is still served until restart. Restore the database from the newest verified backup if SQLite integrity fails. |
+| Task            | Action                                                                                                                                                                  |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cookie rotation | `node apps/api/src/cli.ts auth:login` (QR) or `auth:save`; the server refreshes automatically every 45 minutes while running.                                           |
+| Scan failed     | Inspect `node apps/api/src/cli.ts status` and the `runs.error`/`run_regions` rows. Fix auth/network, then `scan`. A failed region never applies partial data.           |
+| Backup          | `node apps/api/src/cli.ts backup`; snapshots live in `/app/data/backups` and rotate after 7 days.                                                                       |
+| Restore         | Stop the app, run `backup:restore <file> --yes`, then start it. The command verifies `pragma integrity_check` and bumps the index version.                              |
+| Reindex         | `node apps/api/src/cli.ts index:rebuild`; the API rebuilds on its next index request.                                                                                   |
+| Takedown        | `node apps/api/src/cli.ts player:remove <puuid> --yes`; deletes the player and cascaded history, and marks their anonymous rows `ignored` so they are not re-linked.    |
+| Pause scheduler | Temporarily set `NODE_ENV` away from `production` or stop the app. Manual commands still work.                                                                          |
+| Identity policy | Only exact rank + RR + wins + tier matches are linked; ambiguous rows stay unresolved. Every link stores match id, method, confidence, and fingerprint evidence.        |
+| Incident        | The API is read-only; if it is unhealthy, the last index is still served until restart. Restore the database from the newest verified backup if SQLite integrity fails. |
 
 ## Data retention
 
