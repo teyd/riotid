@@ -217,7 +217,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
               Player list
             </h2>
             <div className="border-b border-white/[0.08] px-4 pt-4 pb-3">
-              <div className="flex h-10 min-w-0 items-center gap-2.5 rounded-md border border-white/40 bg-white/[0.03] px-3 focus-within:ring-1 focus-within:ring-white/40">
+              <div className="flex h-10 min-w-0 items-center gap-2.5 rounded-md border border-white/20 bg-white/[0.03] px-3 focus-within:bg-white/[0.06]">
                 <SearchIcon aria-hidden className="size-4 shrink-0 text-zinc-400" />
                 <Input
                   ref={searchRef}
@@ -263,14 +263,14 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     if (isRegion(next)) setRegion(next)
                   }}
                   aria-label="Region"
-                  className="relative flex items-center gap-0.5 rounded-md border border-white/40 bg-white/[0.02] p-0.5"
+                  className="relative flex items-center gap-0.5 rounded-md border border-white/20 bg-white/[0.02] p-0.5"
                 >
-                  <SegmentedControlIndicator className="rounded-[5px] bg-white/40" />
+                  <SegmentedControlIndicator className="rounded-[5px] bg-white/[0.08]" />
                   {regions.map((item) => (
                     <SegmentedControlItem
                       key={item.value}
                       value={item.value}
-                      className="rounded-[5px] px-2 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-zinc-200 data-[checked]:text-zinc-50"
+                      className="rounded-[5px] px-2 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-white/40 data-[checked]:text-zinc-50"
                     >
                       {item.label}
                     </SegmentedControlItem>
