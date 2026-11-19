@@ -149,7 +149,20 @@ export function CrawlerPage() {
             leaderboard rows, then stops. It is not a continuous match archive.
           </p>
         </section>
-      ) : null}
+      ) : (
+        <section className="mt-7 border-y border-white/[0.08] py-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+            last activity
+          </p>
+          <p className="mt-1 text-lg font-medium text-zinc-100">Waiting for the next daily pass</p>
+          <p className="mt-2 max-w-3xl text-xs leading-5 text-zinc-500">
+            The resolver last ran {formatRelative(snapshot.lastRunAt)} and has used{' '}
+            {snapshot.requestsToday.toLocaleString()} requests today. A pass seeds the graph from
+            nearby players, fetches up to 300 new match details, checks exact MMR fingerprints, and
+            writes only confirmed links. It stops at the daily budget rather than scraping forever.
+          </p>
+        </section>
+      )}
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-400">
