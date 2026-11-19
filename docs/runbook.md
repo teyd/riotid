@@ -176,6 +176,11 @@ maintenance commands from the Dokploy container terminal using the
 `node apps/cli/src/main.ts` form. Single instance only: stop-first deploys, no
 replicas, no second scheduler.
 
+Locally, `mise run scheduler` supervises the API but does not run scheduled jobs
+unless `NODE_ENV=production`. To exercise the schedule without Riot calls, run
+with `NODE_ENV=production SCHEDULER_DRY_RUN=true mise run scheduler`; set
+`SCHEDULER_JOBS=false` when you only need the API process.
+
 Health check after deploy:
 
 ```bash
