@@ -249,13 +249,17 @@ export const loadPlayerDetail = (
       competitive_tier: number
       card_id: string
       title_id: string
+      season_id: string
+      season_name: string | null
     }>(sql`
       select
-        l.match_id, l.method, l.confidence, l.evidence, l.created_at,
+        l.match_id, l.method, l.confidence, l.evidence, l.created_at, l.season_id,
+        s.display_name as season_name,
         a.region, a.leaderboard_rank, a.ranked_rating, a.number_of_wins,
         a.competitive_tier, a.card_id, a.title_id
       from identity_links l
       join anonymous_rows a on a.id = l.anonymous_row_id
+      left join seasons s on s.uuid = l.season_id
       where l.puuid = ${puuid}
       order by l.created_at asc, l.id asc
     `)
@@ -321,6 +325,8 @@ export const loadPlayerDetail = (
           rankedRating: row.ranked_rating,
           numberOfWins: row.number_of_wins,
           competitiveTier: row.competitive_tier,
+          seasonId: row.season_id,
+          seasonName: row.season_name,
           cardId: row.card_id,
           titleId: row.title_id,
         },

@@ -67,6 +67,11 @@ export const cardArt = (cardId: string | null): string | null =>
 export const cardWideArt = (cardId: string | null): string | null =>
   cardId ? `https://media.valorant-api.com/playercards/${cardId}/wideart.png` : null
 
+export const vtlProfileUrl = (puuid: string): string => `https://vtl.lol/id/${puuid}`
+
+export const trackerProfileUrl = (name: string, tag: string): string =>
+  `https://tracker.gg/valorant/profile/riot/${encodeURIComponent(`${name}#${tag}`)}/overview`
+
 export const formatRelative = (value: number | null): string => {
   if (!value) return 'never'
 
