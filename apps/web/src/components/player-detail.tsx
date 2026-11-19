@@ -27,6 +27,7 @@ import {
   type PlayerDetail,
   vtlProfileUrl,
 } from '../lib/api.ts'
+import { CardArt } from './card-art.tsx'
 import { Badge, EmptyState, LoadingState, Section } from './ui.tsx'
 
 type Props = {
@@ -150,23 +151,14 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
               rel="noreferrer noopener"
               className="group flex items-center gap-2"
             >
-              <span className="relative flex h-10 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/[0.08] bg-white/[0.03] font-mono text-[9px] text-zinc-500">
-                <span aria-hidden>n/a</span>
-                {cardLargeArt(a.cardId) ? (
-                  <img
-                    src={cardLargeArt(a.cardId) ?? ''}
-                    alt=""
-                    width={28}
-                    height={40}
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 h-full w-full object-cover"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ) : null}
-              </span>
+              <CardArt
+                art={cardLargeArt(a.cardId)}
+                name={a.cardId}
+                fallback="n/a"
+                width={28}
+                height={40}
+                className="flex h-10 w-7 shrink-0 items-center justify-center rounded-sm border border-white/[0.08] bg-white/[0.03] font-mono text-[9px] text-zinc-500"
+              />
               <span className="font-mono text-[11px] text-zinc-500 group-hover:text-zinc-300">
                 {a.cardId.slice(0, 8)}
               </span>
@@ -221,20 +213,16 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto">
       <div className="relative h-24 w-full shrink-0 overflow-hidden border-b border-white/[0.08] bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px]">
-        {wideArt ? (
-          <img
-            src={wideArt}
-            alt=""
-            width={452}
-            height={128}
-            fetchPriority="high"
-            decoding="async"
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={(event) => {
-              event.currentTarget.style.display = 'none'
-            }}
-          />
-        ) : null}
+        <CardArt
+          art={wideArt}
+          name={name}
+          fallback=""
+          width={452}
+          height={128}
+          loading="eager"
+          fetchPriority="high"
+          className="block h-24 w-full"
+        />
       </div>
 
       <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-ink px-6 py-5">
@@ -253,19 +241,14 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
                 href={cardWideArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
                 className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:flex"
               >
-                <span aria-hidden>{(name || '?').slice(0, 1).toUpperCase()}</span>
-                {cardArt(resolvedCardId) ? (
-                  <img
-                    src={cardArt(resolvedCardId) ?? ''}
-                    alt={`${name || 'Player'} card`}
-                    width={56}
-                    height={56}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ) : null}
+                <CardArt
+                  art={cardArt(resolvedCardId)}
+                  name={name}
+                  width={56}
+                  height={56}
+                  loading="eager"
+                  className="flex size-14 items-center justify-center font-mono text-sm text-zinc-500"
+                />
               </HoverCardTrigger>
               <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
                 <img
