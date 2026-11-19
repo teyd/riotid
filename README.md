@@ -78,6 +78,26 @@ Dokploy's Infisical integration.
 
 Index and detail responses carry `ETag` and support `If-None-Match` (`304`). Errors use `{ error: { code, message, requestId } }`.
 
+## Live deployment
+
+Production runs at **https://riotid.teyd.dev** on Dokploy. The application uses
+the `Dockerfile` build (custom Git source, branch `feat/riotid`), a named volume
+`riotid-data` mounted at `/app/data`, and a Let's Encrypt domain through
+Cloudflare. The production scheduler runs a scan every 6 hours, catches up on
+boot, resolves anonymous rows daily, and writes a rotated backup after ten
+minutes and then every 24 hours.
+
+Manual operations use the token-protected admin endpoints (token lives in
+`ADMIN_TOKEN`):
+
+```bash
+curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://riotid.teyd.dev/api/v1/admin/scan
+curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://riotid.teyd.dev/api/v1/admin/anon
+```
+
+Both return immediately; poll `/api/v1/status` or `/api/v1/stats` for progress.
+The same token is stored locally at `~/.config/opencode/secrets/riotid-admin-token`.
+
 ## Deploy (Dokploy)
 
 1. Create or reuse the Dokploy project/environment, then create an application from this repository using the `Dockerfile` build.
