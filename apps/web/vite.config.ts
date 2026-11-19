@@ -8,6 +8,8 @@ import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import { defineConfig } from 'vite-plus'
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url))
+const apiPort = Number(process.env.PORT ?? 8787)
+const webPort = Number(process.env.WEB_PORT ?? 5173)
 
 export default defineConfig({
   plugins: [
@@ -18,10 +20,11 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    port: 5173,
+    port: webPort,
+    strictPort: true,
     proxy: {
-      '/api': 'http://localhost:8787',
-      '/healthz': 'http://localhost:8787',
+      '/api': `http://localhost:${apiPort}`,
+      '/healthz': `http://localhost:${apiPort}`,
     },
   },
 })
