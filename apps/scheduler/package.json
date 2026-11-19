@@ -1,0 +1,12 @@
+{
+  "name": "@riotid/scheduler",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vp test"
+  },
+  "dependencies": {
+    "@riotid/config": "workspace:*",
+    "effect": "4.1.4"
+  }
+}
