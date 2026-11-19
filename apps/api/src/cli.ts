@@ -202,6 +202,32 @@ const dbSeed = Effect.gen(function* () {
   )
 })
 
+const runAftercare = (config: {
+  databasePath: string
+  backupDirectory: string
+  backupKeepDays: number
+  runRetentionDays: number
+}) =>
+  Effect.gen(function* () {
+    const db = yield* Database
+    const backup = yield* backupDatabase({
+      source: config.databasePath,
+      directory: config.backupDirectory,
+      keepDays: config.backupKeepDays,
+    })
+    const pruned = yield* pruneRuns({ olderThanDays: config.runRetentionDays })
+    const now = new Date()
+    yield* db
+      .insert(meta)
+      .values({ key: 'lastBackupAt', value: now.toISOString(), updatedAt: now })
+      .onConflictDoUpdate({
+        target: meta.key,
+        set: { value: now.toISOString(), updatedAt: now },
+      })
+
+    return { backup, pruned }
+  }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
 const resetInterruptedRuns = Effect.gen(function* () {
   const config = yield* AppConfig
   const now = new Date()
@@ -779,6 +805,36 @@ const main = Effect.gen(function* () {
         while (true) {
           yield* Effect.sleep(`${config.scanIntervalHours} hours`)
           yield* logRun('scheduled scan', scanOnce(config, 'schedule'))
+        }
+      }),
+    )
+
+    yield* Effect.forkDetach(
+      Effect.gen(function* () {
+        yield* Effect.sleep('10 minutes')
+
+        while (true) {
+          const lastBackup = yield* Effect.gen(function* () {
+            const db = yield* Database
+            return yield* db.get<{ value: string }>(
+              `select value from meta where key = 'lastBackupAt'`,
+            )
+          }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+          const lastAt = lastBackup ? Date.parse(lastBackup.value) : 0
+          const now = yield* Clock.currentTimeMillis
+
+          if (now - lastAt >= 86_400_000) {
+            yield* runAftercare(config).pipe(
+              Effect.tap((result) =>
+                Effect.logInfo(
+                  `aftercare: backup ${result.backup.path}; pruned ${result.pruned.deleted} runs`,
+                ),
+              ),
+              Effect.catch((error) => Effect.logWarning(`aftercare failed: ${String(error)}`)),
+            )
+          }
+
+          yield* Effect.sleep('6 hours')
         }
       }),
     )
