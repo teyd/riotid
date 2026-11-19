@@ -13,6 +13,12 @@ const nav = [
 function Root() {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-ink text-zinc-100">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-panel focus:px-3 focus:py-2 focus:text-sm"
+      >
+        Skip to content
+      </a>
       <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-ink/95 backdrop-blur">
         <div className="flex h-16 items-center gap-8 px-5 sm:px-6">
           <Link
@@ -41,7 +47,7 @@ function Root() {
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <main id="main" className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Outlet />
       </main>
 

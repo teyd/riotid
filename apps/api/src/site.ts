@@ -132,8 +132,6 @@ export const buildSiteIndex = (
         row.region_changes,
         row.first_seen_at,
         row.last_seen_at,
-        row.last_name_change_at,
-        row.last_region_change_at,
         row.card_id,
       ]
     })
