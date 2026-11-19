@@ -36,7 +36,8 @@ checks must go through `effect-tsgo`; never call plain `vp check` in scripts.
 ## Invariants
 
 - The API is read-only: use `readDatabase()` only and never import ingest or Riot
-  code. Only the CLI and scheduler hold a write connection.
+  code. Only the CLI holds a write connection; the scheduler reads status and
+  spawns CLI jobs.
 - One writer, one instance. Do not scale replicas; stop the API before a restore.
 - Node 26 runs `.ts` directly: use explicit `.ts` relative imports and no enums.
 - Effect diagnostics are errors. Keep services and layers typed; do not run
