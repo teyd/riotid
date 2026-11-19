@@ -50,6 +50,7 @@ export const IndexStats = Schema.Struct({
   linked: Schema.Finite,
   unresolved: Schema.Finite,
   lastRunAt: Schema.NullOr(Schema.Finite),
+  nextRunAt: Schema.NullOr(Schema.Finite),
 })
 
 export const SiteIndex = Schema.Struct({

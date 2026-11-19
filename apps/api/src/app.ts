@@ -24,6 +24,7 @@ export type AppOptions = {
   readonly databasePath: string
   readonly webRoot?: string
   readonly indexWindowDays?: number
+  readonly scanIntervalHours?: number
   readonly rateLimits?: {
     readonly index?: number
     readonly players?: number
@@ -52,7 +53,7 @@ const encodeCached = (key: string, value: unknown, etag: string): CachedJson => 
   }
 }
 
-const indexFormat = 4
+const indexFormat = 5
 
 type Bucket = { count: number; resetAt: number }
 
@@ -96,6 +97,7 @@ export const makeApp = (options: AppOptions) => {
   }
   const webRoot = options.webRoot ?? join(repoRoot, 'apps/web/dist')
   const indexWindowDays = options.indexWindowDays ?? 30
+  const scanIntervalHours = options.scanIntervalHours ?? 6
   const buckets = new Map<string, Bucket>()
   let cachedIndex: CachedJson | null = null
 
@@ -121,13 +123,13 @@ export const makeApp = (options: AppOptions) => {
 
   const getIndex = Effect.gen(function* () {
     const version = yield* readIndexVersion
-    const key = `${options.databasePath}:${indexWindowDays}:${version}`
+    const key = `${options.databasePath}:${indexWindowDays}:${scanIntervalHours}:${version}`
 
     if (cachedIndex?.key === key) {
       return cachedIndex
     }
 
-    const value = yield* buildSiteIndex(Date.now(), indexWindowDays)
+    const value = yield* buildSiteIndex(Date.now(), indexWindowDays, scanIntervalHours)
     const cached = encodeCached(
       key,
       value,

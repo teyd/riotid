@@ -10,6 +10,7 @@ const program = Effect.gen(function* () {
   const app = makeApp({
     databasePath: config.databasePath,
     indexWindowDays: config.indexRetentionDays,
+    scanIntervalHours: config.scanIntervalHours,
   })
 
   serve({ fetch: app.fetch, port: config.port })

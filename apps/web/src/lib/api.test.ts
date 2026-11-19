@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { trackerProfileUrl, playerUrl, vtlProfileUrl } from './api.ts'
+import { formatScanCountdown, playerUrl, trackerProfileUrl, vtlProfileUrl } from './api.ts'
 
 describe('profile links', () => {
   it('encodes a Riot ID for tracker.gg', () => {
@@ -19,5 +19,26 @@ describe('profile links', () => {
     expect(playerUrl('https://riotid.example', 'a/b c')).toBe(
       'https://riotid.example/puuid/a%2Fb%20c',
     )
+  })
+})
+
+describe('scan countdown', () => {
+  const now = Date.UTC(2026, 10, 19, 21, 0, 0)
+  const inMinutes = (minutes: number) => now + minutes * 60_000
+
+  it('counts whole hours and minutes until the next scan', () => {
+    expect(formatScanCountdown(inMinutes(360), now)).toBe('in 6h')
+    expect(formatScanCountdown(inMinutes(90), now)).toBe('in 1h 30m')
+    expect(formatScanCountdown(inMinutes(45), now)).toBe('in 45m')
+    expect(formatScanCountdown(inMinutes(0.5), now)).toBe('in 1m')
+  })
+
+  it('marks a passed scan time as due', () => {
+    expect(formatScanCountdown(inMinutes(0), now)).toBe('due now')
+    expect(formatScanCountdown(inMinutes(-30), now)).toBe('due now')
+  })
+
+  it('stays empty when no scan is planned', () => {
+    expect(formatScanCountdown(null, now)).toBe('')
   })
 })
