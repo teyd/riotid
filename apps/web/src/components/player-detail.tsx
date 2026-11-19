@@ -72,6 +72,9 @@ const HistoryTimeline = ({
 
 type HistoryItem = { title: string; subtitle: string; current: boolean; at: number }
 
+const intervalRange = (startedAt: number, endedAt: number | null): string =>
+  `${formatDate(startedAt)} → ${endedAt ? formatDate(endedAt) : 'present'}`
+
 const HistorySection = ({
   title,
   empty,
@@ -353,7 +356,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             empty="No authoritative name yet."
             items={[...detail.names].reverse().map((interval) => ({
               title: `${interval.name}#${interval.tag}`,
-              subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
+              subtitle: intervalRange(interval.startedAt, interval.endedAt),
               current: interval.endedAt === null,
               at: interval.startedAt,
             }))}
@@ -364,7 +367,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             empty="No region interval observed."
             items={[...detail.regions].reverse().map((interval) => ({
               title: regionLabel(interval.region),
-              subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'} · ${regionShort(interval.region)} affinity`,
+              subtitle: `${intervalRange(interval.startedAt, interval.endedAt)} · ${regionShort(interval.region)} affinity`,
               current: interval.endedAt === null,
               at: interval.startedAt,
             }))}
@@ -375,7 +378,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             empty="No ban interval observed."
             items={[...detail.bans].reverse().map((interval) => ({
               title: interval.endedAt ? 'Banned, then unbanned' : 'Banned',
-              subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
+              subtitle: intervalRange(interval.startedAt, interval.endedAt),
               current: interval.endedAt === null,
               at: interval.startedAt,
             }))}

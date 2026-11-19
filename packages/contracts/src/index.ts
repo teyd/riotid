@@ -227,7 +227,7 @@ export const ServiceStatus = Schema.Struct({
   uptimeSeconds: Schema.Finite,
   database: Schema.Struct({
     ok: Schema.Boolean,
-    path: Schema.String,
+    file: Schema.String,
   }),
   index: Schema.Struct({
     version: Schema.Finite,
@@ -260,7 +260,6 @@ export const ServiceStatus = Schema.Struct({
     }),
   ),
   auth: Schema.Struct({
-    cookieFile: Schema.String,
     updatedAt: Schema.NullOr(Schema.Finite),
   }),
   anonymous: Schema.Struct({

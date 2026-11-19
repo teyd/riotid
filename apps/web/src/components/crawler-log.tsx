@@ -1,4 +1,4 @@
-import { Toolbar, ToolbarButton } from '@ui-sdk/react/toolbar'
+import { CodePanel } from './code-panel.tsx'
 import { useEffect, useRef, useState } from 'react'
 
 import type { CrawlerSnapshot } from '../lib/api.ts'
@@ -83,23 +83,14 @@ export const CrawlerLog = ({
   }
 
   return (
-    <section className="flex h-full min-h-[28rem] flex-col overflow-hidden rounded-lg border border-white/[0.08] bg-[#040404]">
-      <header className="flex shrink-0 items-center gap-2 border-b border-white/[0.08] px-4 py-2.5">
-        <span
-          className={`size-2 rounded-full ${running ? 'animate-pulse bg-[#4ade80]' : 'bg-zinc-600'}`}
-        />
-        <span className="font-mono text-[11px] text-zinc-300">crawler.log</span>
-        <span className="font-mono text-[10px] text-zinc-600">tail -f</span>
-        <Toolbar aria-label="Log actions" className="ml-auto">
-          <ToolbarButton
-            onClick={copy}
-            className="font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
-          >
-            {copied ? 'copied' : 'copy'}
-          </ToolbarButton>
-        </Toolbar>
-      </header>
-
+    <CodePanel
+      title="crawler.log"
+      meta="tail -f"
+      dot={running ? 'animate-pulse bg-[#4ade80]' : 'bg-zinc-600'}
+      copied={copied}
+      onCopy={copy}
+      className="h-full min-h-[28rem]"
+    >
       <div
         ref={scrollRef}
         role="log"
@@ -132,6 +123,6 @@ export const CrawlerLog = ({
           ))
         )}
       </div>
-    </section>
+    </CodePanel>
   )
 }

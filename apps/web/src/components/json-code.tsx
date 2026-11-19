@@ -14,19 +14,19 @@ const isObject = (value: JsonValue): value is JsonObject =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const Scalar = ({ value }: { value: JsonValue }) => {
-  if (typeof value === 'string') return <span className="text-emerald-300">"{value}"</span>
-  if (typeof value === 'number') return <span className="text-amber-300">{value}</span>
-  if (typeof value === 'boolean') return <span className="text-violet-300">{String(value)}</span>
-  if (value === null) return <span className="text-zinc-500">null</span>
+  if (typeof value === 'string') return <span className="text-emerald-300/90">"{value}"</span>
+  if (typeof value === 'number') return <span className="text-zinc-100">{value}</span>
+  if (typeof value === 'boolean') return <span className="text-sky-300">{String(value)}</span>
+  if (value === null) return <span className="text-zinc-600">null</span>
   return <span className="text-zinc-500">{JSON.stringify(value)}</span>
 }
 
 const JsonKey = ({ name, explanation }: { name: string; explanation?: string | undefined }) => {
-  if (!explanation) return <span className="text-sky-300">{name}</span>
+  if (!explanation) return <span className="text-zinc-300">{name}</span>
 
   return (
     <Tooltip>
-      <TooltipTrigger className="rounded-sm border-b border-dotted border-zinc-600 bg-transparent p-0 font-mono text-sky-300 hover:border-sky-400 hover:text-sky-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400">
+      <TooltipTrigger className="rounded-sm border-b border-dotted border-zinc-700 bg-transparent p-0 font-mono text-zinc-300 hover:border-zinc-500 hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400">
         {name}
       </TooltipTrigger>
       <TooltipContent
