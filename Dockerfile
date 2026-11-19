@@ -37,6 +37,12 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json pnpm-workspace.yaml ./
 COPY apps/api ./apps/api
 COPY packages ./packages
+COPY --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=prod-deps /app/packages/contracts/node_modules ./packages/contracts/node_modules
+COPY --from=prod-deps /app/packages/riot/node_modules ./packages/riot/node_modules
+COPY --from=prod-deps /app/packages/db/node_modules ./packages/db/node_modules
+COPY --from=prod-deps /app/packages/ingest/node_modules ./packages/ingest/node_modules
+COPY --from=prod-deps /app/packages/identity/node_modules ./packages/identity/node_modules
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 
 RUN mkdir -p /app/data && chown -R node:node /app/data
