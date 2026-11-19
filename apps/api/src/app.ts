@@ -32,6 +32,11 @@ export type AppOptions = {
     readonly stats?: number
     readonly status?: number
   }
+  readonly admin?: {
+    readonly token: string
+    readonly scan: () => Promise<unknown>
+    readonly resolve: () => Promise<unknown>
+  }
 }
 
 type CachedJson = {
@@ -266,6 +271,28 @@ export const makeApp = (options: AppOptions) => {
     c.header('Cache-Control', 'public, max-age=300, s-maxage=600')
     c.header('ETag', stats.etag)
     return c.body(stats.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
+  })
+
+  app.post('/api/v1/admin/:action', async (c) => {
+    if (!options.admin) {
+      return c.json(errorBody(c, 'not_found', 'Route not found.'), 404)
+    }
+
+    if (c.req.header('x-admin-token') !== options.admin.token) {
+      return c.json(errorBody(c, 'unauthorized', 'Invalid admin token.'), 401)
+    }
+
+    const action = c.req.param('action')
+
+    if (action !== 'scan' && action !== 'anon') {
+      return c.json(errorBody(c, 'not_found', 'Unknown admin action.'), 404)
+    }
+
+    if (await rateLimit(c, `admin:${action}`, 2)) return rateLimited(c)
+
+    const result = action === 'scan' ? await options.admin.scan() : await options.admin.resolve()
+
+    return c.json({ ok: true, result } as const, 200, { 'Cache-Control': 'no-store' })
   })
 
   app.get('/api/v1/status', async (c) => {

@@ -79,6 +79,7 @@ const AppConfig = Config.all({
   ),
   matchCacheAutotune: Config.Boolean('MATCH_CACHE_AUTOTUNE').pipe(Config.withDefault(true)),
   matchCacheDays: Config.Int('MATCH_CACHE_DAYS').pipe(Config.withDefault(30)),
+  adminToken: Config.String('ADMIN_TOKEN').pipe(Config.withDefault('')),
 }).pipe(
   Config.map((config) => {
     const root = fileURLToPath(new URL('../../..', import.meta.url))
@@ -373,6 +374,12 @@ const resolvePass = (config: {
       ),
     ),
   )
+
+const scanNow = (config: Parameters<typeof scanOnce>[0]) =>
+  Effect.runPromise(scanOnce(config, 'manual'))
+
+const resolveNow = (config: Parameters<typeof resolvePass>[0]) =>
+  Effect.runPromise(resolvePass(config))
 
 const anonResolve = Effect.gen(function* () {
   const config = yield* AppConfig
@@ -715,10 +722,20 @@ const main = Effect.gen(function* () {
     yield* resetInterruptedRuns
   }
 
+  const adminToken = config.adminToken
   const app = makeApp({
     databasePath: config.databasePath,
     cookieFile: config.cookieFile,
     indexWindowDays: config.indexRetentionDays,
+    ...(adminToken
+      ? {
+          admin: {
+            token: adminToken,
+            scan: () => scanNow(config),
+            resolve: () => resolveNow({ ...config, limit: 500 }),
+          },
+        }
+      : {}),
   })
 
   yield* Effect.logInfo(`riotid api listening on http://localhost:${config.port}`)
