@@ -1,5 +1,5 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { join } from 'node:path'
 
 import { repoRoot } from '@riotid/config'
@@ -7,6 +7,40 @@ import { Data, Effect } from 'effect'
 
 export const cliEntry = join(repoRoot, 'apps/cli/src/main.ts')
 export const apiEntry = join(repoRoot, 'apps/api/src/index.ts')
+
+export const stopChild = (child: ChildProcess, timeoutMs = 5_000): Effect.Effect<void> =>
+  Effect.callback<void>((resume) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resume(Effect.void)
+      return
+    }
+
+    let settled = false
+    let killTimer: ReturnType<typeof setTimeout> | undefined
+    let reapTimer: ReturnType<typeof setTimeout> | undefined
+
+    const finish = () => {
+      if (settled) return
+      settled = true
+      resume(Effect.void)
+    }
+
+    child.once('exit', finish)
+    child.once('error', finish)
+    child.kill('SIGTERM')
+
+    killTimer = setTimeout(() => {
+      child.kill('SIGKILL')
+      reapTimer = setTimeout(finish, 1_000)
+    }, timeoutMs)
+
+    return Effect.sync(() => {
+      if (killTimer !== undefined) clearTimeout(killTimer)
+      if (reapTimer !== undefined) clearTimeout(reapTimer)
+      child.off('exit', finish)
+      child.off('error', finish)
+    })
+  }).pipe(Effect.uninterruptible)
 
 export class JobError extends Data.TaggedError('JobError')<{
   readonly message: string
@@ -81,10 +115,7 @@ export const makeCliRunner = (options: { readonly dryRun: boolean }): CliRunner 
             }
           })
         }),
-      (child) =>
-        Effect.sync(() => {
-          if (child.exitCode === null) child.kill('SIGTERM')
-        }),
+      (child) => stopChild(child),
     )
   }
 

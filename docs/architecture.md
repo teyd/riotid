@@ -122,13 +122,25 @@ link stores `match_id`, `method`, `confidence`, and fingerprint evidence in
 In production the scheduler is the container entrypoint. It starts the API as a
 child process and spawns CLI jobs instead of running Riot work inside the API.
 
+Job orchestration is one XState v6 machine (`apps/scheduler/src/machine.ts`) with
+two parallel regions: the API supervisor and a single job slot. The slot has one
+active job at a time, so scan, identity, maintenance, and auth cannot overlap.
+
+- Boot: migrate, recover interrupted runs in production, read the last successful
+  scan, then refresh auth before any Riot work.
 - Scan: catch up on boot when the last success is older than
   `SCAN_INTERVAL_HOURS`, then repeat on that interval.
-- Identity: bounded `anon:resolve` batches; pause while a scan runs and resume
+- Identity: bounded `anon:resolve` batches; wait behind a scan and pause until
   after midnight UTC when the daily Riot budget is spent.
-- Auth: refresh the cookie jar before Riot work and while the process runs.
+- Auth: refresh the cookie jar before Riot work and every
+  `AUTH_REFRESH_MINUTES`.
 - Maintenance: create a backup shortly after boot and at most once per 24 hours,
   then prune runs older than `RUN_RETENTION_DAYS`.
+
+On `SIGINT`/`SIGTERM` the machine stops the job slot, waits for the CLI child to
+exit (SIGTERM, then SIGKILL after five seconds), stops the API child the same
+way, and exits zero. If the API child exits unexpectedly the scheduler exits one
+so the container restarts both.
 
 The scheduler and API share the same volume and environment. Do not run a second
 scheduler, and do not run CLI write commands against production while it is
