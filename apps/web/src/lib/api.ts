@@ -1,12 +1,6 @@
-import type {
-  CrawlerSnapshot,
-  PlayerDetail,
-  ServiceStatus,
-  SiteIndex,
-  SiteStats,
-} from '@riotid/contracts'
+import type { PlayerDetail, SiteIndex } from '@riotid/contracts'
 
-export type { CrawlerSnapshot, PlayerDetail, ServiceStatus, SiteIndex, SiteStats }
+export type { PlayerDetail, SiteIndex }
 
 export const P = {
   puuid: 0,
@@ -87,17 +81,6 @@ export const formatRelative = (value: number | null): string => {
   return `${Math.round(seconds / 2_592_000)}mo ago`
 }
 
-export const formatUntil = (value: number | null): string => {
-  if (!value) return '—'
-
-  const seconds = Math.max(0, Math.round((value - Date.now()) / 1000))
-
-  if (seconds < 60) return `in ${seconds}s`
-  if (seconds < 3600) return `in ${Math.round(seconds / 60)}m`
-  if (seconds < 86_400) return `in ${Math.round(seconds / 3600)}h`
-  return `in ${Math.round(seconds / 86_400)}d`
-}
-
 export const formatDate = (value: number | null): string => {
   if (!value) return '—'
   return new Date(value).toISOString().slice(0, 10)
@@ -128,6 +111,3 @@ const fetchJson = async <A>(path: string): Promise<A> => {
 export const fetchIndex = () => fetchJson<SiteIndex>('/api/v1/index')
 export const fetchPlayer = (puuid: string) =>
   fetchJson<PlayerDetail>(`/api/v1/players/${encodeURIComponent(puuid)}`)
-export const fetchStats = () => fetchJson<SiteStats>('/api/v1/stats')
-export const fetchStatus = () => fetchJson<ServiceStatus>('/api/v1/status')
-export const fetchCrawler = () => fetchJson<CrawlerSnapshot>('/api/v1/crawler')

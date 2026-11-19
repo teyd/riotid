@@ -65,7 +65,7 @@ Dokploy's Infisical integration.
 - **Identity** (`packages/identity`): unresolved anonymous rows are the work queue. It reuses a 30-day match-candidate cache, seeds nearby leaderboard ranks from `leaderboard_seeds`, fetches a bounded number of new matches, and links only when the MMR fingerprint (rank, RR, wins, tier) matches exactly. Ambiguous candidates are never linked.
 - **Database** (`packages/db`): SQLite in WAL mode with a read-only API connection and a read-write ingest/CLI connection. `player_names`, `player_regions`, and `banned_players` are interval tables; a nullable run id records which scan opened or closed an interval.
 - **API** (`apps/api`): Hono with a read-only database, an in-memory ETagged index for players seen in the last 30 days, per-IP rate limits, gzip, security headers, and SPA fallback. It never calls Riot.
-- **Web** (`apps/web`): React 19 + TanStack Router/Query/Virtual, virtualized master-detail list, timelines, link evidence, stats and status pages.
+- **Web** (`apps/web`): React 19 + TanStack Router/Query/Virtual, virtualized master-detail player list, timelines, and link evidence.
 
 ## API
 
@@ -73,8 +73,6 @@ Dokploy's Infisical integration.
 | ---------------------------- | ---------------------------------------------------------------------------------------- |
 | `GET /api/v1/index`          | Versioned tuple index for public players (banned and unresolved anonymous rows excluded) |
 | `GET /api/v1/players/:puuid` | Current player, name/region/ban timelines, counters, identity evidence                   |
-| `GET /api/v1/stats`          | Totals, region cards, tier/RR aggregates, recent changes, anonymous coverage             |
-| `GET /api/v1/status`         | Readiness, database/index versions, latest run, cookie-jar age                           |
 | `GET /healthz`               | Minimal database readiness                                                               |
 
 Index and detail responses carry `ETag` and support `If-None-Match` (`304`). Errors use `{ error: { code, message, requestId } }`.
@@ -98,9 +96,9 @@ node apps/api/src/cli.ts db:check
 node apps/api/src/cli.ts backup
 ```
 
-The crawler page streams the live match-candidate cache at `/crawler` via
-`GET /api/v1/crawler/stream` (SSE); `GET /api/v1/crawler` returns the same
-snapshot for first paint.
+The crawler writes to the `match_candidates` cache; `GET /api/v1/crawler` and
+its SSE stream were removed with the old crawler page. The data stays in SQLite
+for a future interface.
 
 The leaderboard scan is always the priority. The crawler runs continuously in
 small batches fifteen minutes apart, pauses while a scan runs, and yields if one
@@ -112,11 +110,9 @@ crawler schedules its next batch for 00:00 UTC instead of spinning.
 
 The shell is pure black with hairline borders, the player list is a resizable
 master pane (saved by ui-sdk `Resizable`), and the detail pane takes the rest of
-the width. Stats shows independent colored signal charts plus a log-scale
-magnitude view, so rare region moves stay visible next to the ladder. The crawler
-renders a Pino-style `crawler.log` from persisted batch events, and the status
-page is a syntax-highlighted `status.json` with hover definitions, a coverage
-donut, and relative duration bars for recent pipeline runs.
+the width. The interface currently has one page: the player index and its
+timelines. The old stats, crawler, and status pages are gone; their data still
+lives in SQLite for a future design.
 
 ## Analytics
 
