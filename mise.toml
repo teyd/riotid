@@ -35,5 +35,11 @@ run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:save"
 [tasks."auth:check"]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:check"
 
+[tasks."auth:refresh"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:refresh"
+
+[tasks.probe]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts probe"
+
 [tasks.ci]
 run = "mise run check && mise run test && mise run build"

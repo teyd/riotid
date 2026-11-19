@@ -1,7 +1,15 @@
 // @effect-diagnostics globalJsonInEffect:off
 import { Clock, Effect, Schema } from 'effect'
 
-import { cookieHeader, cookiesFromResponse, mergeCookieJar, type CookieJar } from './cookies.ts'
+import {
+  cookieHeader,
+  cookiesFromResponse,
+  loadCookieFile,
+  mergeCookieJar,
+  saveCookieFile,
+  type CookieFileError,
+  type CookieJar,
+} from './cookies.ts'
 import { RiotAuthError } from './errors.ts'
 import { fetchManual, readJson, UA_AUTH } from './http.ts'
 
@@ -163,4 +171,21 @@ export const reauth = (cookies: CookieJar): Effect.Effect<AuthSession, RiotAuthE
       country: user.country,
       expiresAt: now + tokens.expiresIn * 1000,
     }
+  })
+
+export const refreshSession = (
+  cookieFile: string,
+): Effect.Effect<AuthSession, RiotAuthError | CookieFileError> =>
+  Effect.gen(function* () {
+    const file = yield* loadCookieFile(cookieFile)
+
+    if (!file) {
+      return yield* new RiotAuthError({
+        message: `No cookie jar at ${cookieFile}. Run \`riotid auth:login\`.`,
+      })
+    }
+
+    const session = yield* reauth(file.cookies)
+    yield* saveCookieFile(cookieFile, session.cookies, file.source)
+    return session
   })

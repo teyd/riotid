@@ -8,6 +8,7 @@
     "test": "vp test"
   },
   "dependencies": {
+    "@effect/platform-node": "4.1.4",
     "@hono/node-server": "2.1.9",
     "@riotid/contracts": "workspace:*",
     "@riotid/riot": "workspace:*",

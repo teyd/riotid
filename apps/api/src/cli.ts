@@ -3,12 +3,14 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 
+import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
 import { serve } from '@hono/node-server'
 import {
   loadCookieFile,
   parseCookieInput,
   qrLogin,
   reauth,
+  refreshSession,
   RiotAuthError,
   saveCookieFile,
   type AuthSession,
@@ -16,6 +18,7 @@ import {
 import { Config, Effect } from 'effect'
 
 import { makeApp } from './app.ts'
+import { runProbe } from './probe.ts'
 
 const require = createRequire(import.meta.url)
 const qrcode = require('qrcode-terminal') as {
@@ -28,6 +31,7 @@ const AppConfig = Config.all({
   cookieFile: Config.String('COOKIE_FILE').pipe(Config.withDefault('./data/cookies.json')),
   countryCode: Config.String('RIOT_COUNTRY_CODE').pipe(Config.withDefault('US')),
   qrTimeoutSeconds: Config.Int('RIOT_QR_TIMEOUT_SECONDS').pipe(Config.withDefault(300)),
+  authKeepaliveHours: Config.Int('AUTH_KEEPALIVE_HOURS').pipe(Config.withDefault(6)),
 })
 
 const help = `riotid
@@ -38,6 +42,8 @@ Usage:
   riotid auth:login            Sign in with a Riot Mobile QR code
   riotid auth:save [file]      Import a pasted cookie jar (or read stdin)
   riotid auth:check            Verify the stored cookie jar
+  riotid auth:refresh          Refresh tokens and persist the cookie jar
+  riotid probe                 Probe live leaderboard/name/match endpoints
   riotid help                  Show this help
 `
 
@@ -87,15 +93,7 @@ const authSave = Effect.gen(function* () {
 
 const authCheck = Effect.gen(function* () {
   const config = yield* AppConfig
-  const file = yield* loadCookieFile(config.cookieFile)
-
-  if (!file) {
-    return yield* new RiotAuthError({
-      message: `No cookie jar at ${config.cookieFile}. Run \`riotid auth:login\`.`,
-    })
-  }
-
-  const session = yield* reauth(file.cookies)
+  const session = yield* refreshSession(config.cookieFile)
 
   yield* printSession(session, config.cookieFile)
 })
@@ -135,8 +133,14 @@ const main = Effect.gen(function* () {
     return
   }
 
-  if (command === 'auth:check') {
+  if (command === 'auth:check' || command === 'auth:refresh') {
     yield* authCheck
+    return
+  }
+
+  if (command === 'probe') {
+    const config = yield* AppConfig
+    yield* runProbe(config.cookieFile).pipe(Effect.provide(NodeHttpClient.layerNodeHttp))
     return
   }
 
@@ -153,6 +157,22 @@ const main = Effect.gen(function* () {
   yield* Effect.logInfo(`public origin: ${config.publicOrigin}`)
 
   serve({ fetch: app.fetch, port: config.port })
+
+  yield* Effect.forkDetach(
+    Effect.gen(function* () {
+      while (true) {
+        yield* Effect.sleep(`${config.authKeepaliveHours} hours`)
+        yield* refreshSession(config.cookieFile).pipe(
+          Effect.tap((session) =>
+            Effect.logInfo(`auth keepalive: region ${session.region}; tokens refreshed`),
+          ),
+          Effect.catch((error) => Effect.logWarning(`auth keepalive failed: ${error.message}`)),
+        )
+      }
+    }),
+  )
+
+  return yield* Effect.never
 })
 
 Effect.runPromise(main).catch((error: unknown) => {
