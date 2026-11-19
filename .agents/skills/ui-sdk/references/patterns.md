@@ -13,8 +13,8 @@ type CellProps = { value: string; row: string; column: string }
 const cellKey = (row: string, column: string) => `${row}\u001f${column}`
 
 const roving = createRovingFocus<State, CellProps>(context, {
-  slot: 'cell',
-  key: 'focused',
+  slot: "cell",
+  key: "focused",
   move: (event, { from, rtl }) => {
     const { rows, columns } = store.get()
     const row = rows.findIndex((r) => r.id === from.props.row)
@@ -33,7 +33,9 @@ const roving = createRovingFocus<State, CellProps>(context, {
       } as Record<string, [number, number]>
     )[event.key]
     if (!to) return undefined
-    return rows[to[0]] && columns[to[1]] ? cellKey(rows[to[0]].id, columns[to[1]].id) : from.key
+    return rows[to[0]] && columns[to[1]]
+      ? cellKey(rows[to[0]].id, columns[to[1]].id)
+      : from.key
   },
 })
 ```
@@ -47,7 +49,7 @@ const moved = roving.keydown(event, el)
 if (moved?.shift && rowOf(moved.key) !== rowOf(moved.from)) {
   selection.extend(rowOf(moved.key), {
     from: rowOf(moved.from),
-    reason: 'list-navigation',
+    reason: "list-navigation",
     event,
   })
 }
@@ -69,7 +71,7 @@ context.onDestroy(
     if (items === derivedFrom.items && value === derivedFrom.value) return
     derivedFrom = { items, value }
     store.set(split(items, value))
-  }),
+  })
 )
 ```
 
@@ -80,14 +82,17 @@ Storing the derived arrays, rather than computing them in a slot's `state`, is t
 `createSelection` infers its reasons from an `on<Key>Change` option. Internal state has none, so spell out the generics, and write with `store.set`:
 
 ```ts
-type SelectionReason = 'item-press' | 'list-navigation' | 'select-all'
-const selection = createSelection<Options, State, 'selected', SelectionReason>(context, {
-  key: 'selected',
-  set: (selected) => (store.set({ selected }), true),
-  order: () => store.get().ids,
-  multiple: () => true,
-  selectable: (id) => !itemById(id)?.disabled,
-})
+type SelectionReason = "item-press" | "list-navigation" | "select-all"
+const selection = createSelection<Options, State, "selected", SelectionReason>(
+  context,
+  {
+    key: "selected",
+    set: (selected) => (store.set({ selected }), true),
+    order: () => store.get().ids,
+    multiple: () => true,
+    selectable: (id) => !itemById(id)?.disabled,
+  }
+)
 ```
 
 Clicks map to it like this. `press` gets the click, so read its modifiers:
@@ -97,12 +102,12 @@ const mouse = event as MouseEvent | undefined
 if (mouse?.shiftKey)
   selection.extend(id, {
     from: store.get().focused,
-    reason: 'item-press',
+    reason: "item-press",
     event: mouse,
   })
 else if (mouse?.ctrlKey || mouse?.metaKey)
-  selection.toggle(id, { reason: 'item-press', event: mouse })
-else selection.choose(id, { reason: 'item-press', event: mouse })
+  selection.toggle(id, { reason: "item-press", event: mouse })
+else selection.choose(id, { reason: "item-press", event: mouse })
 ```
 
 `selects` on an array key takes an array of values: `selects({ selected: ({ key }) => [key] })`. On a scalar key, a value or a pair: `selects({ focused: ({ key }) => [key, null] })`.
@@ -112,12 +117,12 @@ else selection.choose(id, { reason: 'item-press', event: mouse })
 `createTypeahead()` returns the search function itself, with `reset()` and `active()` on it. Let Space continue a query in progress, else let it toggle:
 
 ```ts
-if (isTypeaheadKey(event) && (event.key !== ' ' || typeahead.active())) {
+if (isTypeaheadKey(event) && (event.key !== " " || typeahead.active())) {
   const items = roving.items()
   const index = typeahead(
     event.key,
     items.map((item) => labelOf(item.el)),
-    items.findIndex((item) => item.el === el),
+    items.findIndex((item) => item.el === el)
   )
   if (index !== -1) {
     event.preventDefault()
@@ -133,8 +138,8 @@ Keep focus in the input and highlight options with `aria-activedescendant`. The 
 
 ```ts
 const listbox = createListbox(context, {
-  key: 'highlighted',
-  focus: 'virtual',
+  key: "highlighted",
+  focus: "virtual",
   query: () => context.store.get().query,
 })
 ```
@@ -195,7 +200,10 @@ const recovery = createFocusRecovery<{ value: string; list: string }>({
 })
 // Bind it next to the roving group in the item slot:
 bind: (el, part) => {
-  const cleanups = [part.api.roving.bind(el, part), part.api.recovery.bind(el, part)]
+  const cleanups = [
+    part.api.roving.bind(el, part),
+    part.api.recovery.bind(el, part),
+  ]
   return () => cleanups.forEach((cleanup) => cleanup())
 }
 ```
@@ -208,14 +216,14 @@ Two lists side by side need two `createRovingFocus` groups, and a group is one s
 slots: (slot) => {
   const option = (side: Side) =>
     slot<OptionProps>({
-      role: 'option',
-      props: { value: 'string' },
+      role: "option",
+      props: { value: "string" },
       attrs: (state, part) => ({
         tabindex: part.api.blocks[side].roving.tabIndex(state, part),
       }),
       // …
     })
-  return { available: option('available'), chosen: option('chosen') /* … */ }
+  return { available: option("available"), chosen: option("chosen") /* … */ }
 }
 ```
 
@@ -229,7 +237,8 @@ Declare them in the callback's type, with a one-line comment naming which aren't
 
 ```ts
 // "select-all" isn't in the shared vocabulary.
-export type DataGridValueChangeReason = 'item-press' | 'list-navigation' | 'select-all'
+export type DataGridValueChangeReason =
+  "item-press" | "list-navigation" | "select-all"
 ```
 
 ## Stepper

@@ -73,7 +73,13 @@ function Composer({
       ) : isThread ? (
         <AlsoSendToChannelField id={channelId} />
       ) : null}
-      {isEditing ? <EditActions /> : isForwarding ? <ForwardActions /> : <DefaultActions />}
+      {isEditing ? (
+        <EditActions />
+      ) : isForwarding ? (
+        <ForwardActions />
+      ) : (
+        <DefaultActions />
+      )}
       <Footer onSubmit={onSubmit} />
     </form>
   )
@@ -181,7 +187,11 @@ function Composer({
 const ComposerContext = createContext<ComposerContextValue | null>(null)
 
 function ComposerProvider({ children, state, actions, meta }: ProviderProps) {
-  return <ComposerContext value={{ state, actions, meta }}>{children}</ComposerContext>
+  return (
+    <ComposerContext value={{ state, actions, meta }}>
+      {children}
+    </ComposerContext>
+  )
 }
 
 function ComposerFrame({ children }: { children: React.ReactNode }) {
@@ -270,7 +280,10 @@ function ChannelComposer({ channelId }: { channelId: string }) {
 
   return (
     <Composer.Frame>
-      <Composer.Input value={state.input} onChange={(text) => sync.updateInput(text)} />
+      <Composer.Input
+        value={state.input}
+        onChange={(text) => sync.updateInput(text)}
+      />
       <Composer.Submit onPress={() => sync.submit()} />
     </Composer.Frame>
   )
@@ -292,7 +305,11 @@ function ChannelProvider({
   const inputRef = useRef(null)
 
   return (
-    <Composer.Provider state={state} actions={{ update, submit }} meta={{ inputRef }}>
+    <Composer.Provider
+      state={state}
+      actions={{ update, submit }}
+      meta={{ inputRef }}
+    >
       {children}
     </Composer.Provider>
   )
@@ -330,7 +347,10 @@ function ForwardMessageProvider({ children }) {
   const forwardMessage = useForwardMessage()
 
   return (
-    <Composer.Provider state={state} actions={{ update: setState, submit: forwardMessage }}>
+    <Composer.Provider
+      state={state}
+      actions={{ update: setState, submit: forwardMessage }}
+    >
       {children}
     </Composer.Provider>
   )
@@ -698,7 +718,13 @@ itself.
 
 ```tsx
 // What does this component actually render?
-<Composer isThread isEditing={false} channelId="abc" showAttachments showFormatting={false} />
+<Composer
+  isThread
+  isEditing={false}
+  channelId='abc'
+  showAttachments
+  showFormatting={false}
+/>
 ```
 
 **Correct: explicit variants**
@@ -834,7 +860,7 @@ function ComposerFrame({ children }: { children: React.ReactNode }) {
 }
 
 function ComposerFooter({ children }: { children: React.ReactNode }) {
-  return <footer className="flex">{children}</footer>
+  return <footer className='flex'>{children}</footer>
 }
 
 // Usage is flexible
@@ -855,7 +881,10 @@ return (
 
 ```tsx
 // Render props work well when you need to pass data back
-<List data={items} renderItem={({ item, index }) => <Item item={item} index={index} />} />
+<List
+  data={items}
+  renderItem={({ item, index }) => <Item item={item} index={index} />}
+/>
 ```
 
 Use render props when the parent needs to provide data or state to the child.

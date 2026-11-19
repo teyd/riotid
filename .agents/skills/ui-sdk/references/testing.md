@@ -17,26 +17,26 @@ npm i -D vitest jsdom @testing-library/react @testing-library/dom @testing-libra
 `vitest.config.ts`:
 
 ```ts
-import { defineConfig, mergeConfig } from 'vitest/config'
-import viteConfig from './vite.config.ts'
+import { defineConfig, mergeConfig } from "vitest/config"
+import viteConfig from "./vite.config.ts"
 
 export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
-      environment: 'jsdom',
-      setupFiles: ['./src/test/setup.ts'],
+      environment: "jsdom",
+      setupFiles: ["./src/test/setup.ts"],
       css: false,
     },
-  }),
+  })
 )
 ```
 
 `src/test/setup.ts` holds the [jsdom stubs](#jsdom), strict mode and cleanup:
 
 ```ts
-import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { cleanup } from "@testing-library/react"
+import { afterEach } from "vitest"
 
 declare global {
   var __UI_SDK_STRICT__: boolean | undefined
@@ -61,9 +61,9 @@ afterEach(cleanup)
 `checkPattern(element, pattern)` checks roles, names, states, references between parts and the keyboard interactions of a WAI-ARIA pattern, and throws one error that lists every problem:
 
 ```ts
-import { checkPattern } from '@ui-sdk/core/testing'
+import { checkPattern } from "@ui-sdk/core/testing"
 
-await checkPattern(screen.getByRole('tablist').parentElement!, 'tabs')
+await checkPattern(screen.getByRole("tablist").parentElement!, "tabs")
 ```
 
 Patterns: `listbox`, `menu`, `menubar`, `tabs`, `radio-group`, `toolbar`, `tree`, `dialog`, `alertdialog`, `disclosure`, `accordion`, `combobox`, `slider`, `switch`, `checkbox`. Open a menu or dialog before checking it. A menu check activates an item, so use safe actions in tests.
@@ -71,27 +71,35 @@ Patterns: `listbox`, `menu`, `menubar`, `tabs`, `radio-group`, `toolbar`, `tree`
 ## Test a primitive
 
 ```ts
-import { checkDirection, checkServer, mount } from '@ui-sdk/core/testing'
-import { expect, test } from 'vitest'
-import { stepper } from './stepper'
+import { checkDirection, checkServer, mount } from "@ui-sdk/core/testing"
+import { expect, test } from "vitest"
+import { stepper } from "./stepper"
 
-test('arrows move between steps and Enter opens one', async () => {
-  const view = mount(stepper, {}, `<root><step value="a">A</step><step value="b">B</step></root>`)
+test("arrows move between steps and Enter opens one", async () => {
+  const view = mount(
+    stepper,
+    {},
+    `<root><step value="a">A</step><step value="b">B</step></root>`
+  )
   try {
-    await view.keys('Tab', 'ArrowRight', 'Enter')
-    expect(view.state.value).toBe('b')
+    await view.keys("Tab", "ArrowRight", "Enter")
+    expect(view.state.value).toBe("b")
     expect(view.changes.at(-1)).toMatchObject({
-      key: 'value',
-      source: 'keyboard',
+      key: "value",
+      source: "keyboard",
     })
   } finally {
     view.unmount()
   }
 })
 
-test('renders on the server and works in both directions', async () => {
+test("renders on the server and works in both directions", async () => {
   checkServer(stepper, {}, `<root><step value="a">A</step></root>`)
-  await checkDirection(stepper, {}, `<root><step value="a">A</step><step value="b">B</step></root>`)
+  await checkDirection(
+    stepper,
+    {},
+    `<root><step value="a">A</step><step value="b">B</step></root>`
+  )
 })
 ```
 
@@ -126,9 +134,9 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 }
 document.head.append(
-  Object.assign(document.createElement('style'), {
-    textContent: '[popover] { display: block !important }',
-  }),
+  Object.assign(document.createElement("style"), {
+    textContent: "[popover] { display: block !important }",
+  })
 )
 ```
 
@@ -142,13 +150,16 @@ Assign these rather than using `??=`: jsdom has some of them without the parts t
 const tools = new Map<string, { execute: (input: object) => unknown }>()
 Object.assign(document, {
   modelContext: {
-    registerTool: async (tool: { name: string; execute: (input: object) => unknown }) => {
+    registerTool: async (tool: {
+      name: string
+      execute: (input: object) => unknown
+    }) => {
       tools.set(tool.name, tool)
     },
   },
 })
 const unregister = registerTools(agent, { allow: () => true })
-expect(await tools.get('snapshot')!.execute({})).toBeInstanceOf(Array)
+expect(await tools.get("snapshot")!.execute({})).toBeInstanceOf(Array)
 unregister()
 ```
 

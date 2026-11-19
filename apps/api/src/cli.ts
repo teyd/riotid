@@ -67,7 +67,7 @@ const AppConfig = Config.all({
   backupKeepDays: Config.Int('BACKUP_KEEP_DAYS').pipe(Config.withDefault(7)),
   runRetentionDays: Config.Int('RUN_RETENTION_DAYS').pipe(Config.withDefault(180)),
   indexRetentionDays: Config.Int('INDEX_RETENTION_DAYS').pipe(Config.withDefault(30)),
-  anonBudget: Config.Int('ANON_RESOLVE_BUDGET').pipe(Config.withDefault(1000)),
+  anonBudget: Config.Int('ANON_RESOLVE_BUDGET').pipe(Config.withDefault(5000)),
   anonSeeds: Config.Int('ANON_SEEDS').pipe(Config.withDefault(100)),
   anonCoverageTarget: Config.Number('ANON_COVERAGE_TARGET').pipe(Config.withDefault(0.9)),
   matchCacheEnabled: Config.Boolean('MATCH_CACHE_ENABLED').pipe(Config.withDefault(true)),
@@ -777,17 +777,76 @@ const main = Effect.gen(function* () {
 
   serve({ fetch: app.fetch, port: config.port })
 
-  const runIdentityIfDue = Effect.gen(function* () {
-    const lastRun = yield* Effect.gen(function* () {
-      const db = yield* Database
-      return yield* db.get<{ value: string }>(`select value from meta where key = 'anon:lastRunAt'`)
-    }).pipe(Effect.provide(writeDatabase(config.databasePath)))
-    const lastRunAt = lastRun ? Date.parse(lastRun.value) : 0
-    const now = yield* Clock.currentTimeMillis
+  const nextUtcMidnight = (now: number) => {
+    const date = new Date(now)
+    return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1, 0, 0, 5)
+  }
 
-    if (now - lastRunAt >= 86_400_000) {
-      yield* Effect.sleep('1 minute')
-      yield* logRun('identity pass', resolvePass({ ...config, limit: 500 }))
+  const setCrawlerSchedule = (message: string, nextRunAt: number) =>
+    Effect.gen(function* () {
+      const db = yield* Database
+      const now = new Date()
+      yield* db.run(sql`
+        insert into meta (key, value, updated_at)
+        values ('anon:nextRunAt', ${String(nextRunAt)}, ${now.getTime()})
+        on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at
+      `)
+      yield* db.run(sql`
+        insert into meta (key, value, updated_at)
+        values ('anon:nextMessage', ${message}, ${now.getTime()})
+        on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at
+      `)
+    }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+  const crawlerLoop = Effect.gen(function* () {
+    yield* Effect.sleep('1 minute')
+
+    while (true) {
+      const state = yield* Effect.gen(function* () {
+        const db = yield* Database
+        const today = new Date().toISOString().slice(0, 10)
+        const used = yield* db.get<{ value: string }>(
+          sql`select value from meta where key = ${`anon:requests:${today}`}`,
+        )
+        const scanning = yield* db.get<{ n: number }>(
+          sql`select count(*) as n from runs where status = 'running'`,
+        )
+        return { used: Number(used?.value ?? '0') || 0, scanning: (scanning?.n ?? 0) > 0 }
+      }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+      const now = yield* Clock.currentTimeMillis
+
+      if (state.scanning) {
+        yield* setCrawlerSchedule('Leaderboard scan running; crawler paused', now + 60_000)
+        yield* Effect.sleep('1 minute')
+        continue
+      }
+
+      if (state.used >= config.anonBudget) {
+        const next = nextUtcMidnight(now)
+        yield* setCrawlerSchedule('Daily Riot budget reached; resuming at 00:00 UTC', next)
+        yield* Effect.sleep(`${Math.max(60_000, next - now)} millis`)
+        continue
+      }
+
+      yield* setCrawlerSchedule('Crawler batch running', 0)
+      const result = yield* resolvePass({ ...config, limit: 20 }).pipe(
+        Effect.tap((value) => Effect.logInfo(`crawler batch: ${JSON.stringify(value)}`)),
+        Effect.catch((error) =>
+          Effect.logWarning(`crawler batch failed: ${String(error)}`).pipe(Effect.as(null)),
+        ),
+      )
+      const failed = result === null
+      const worked = result !== null && result.tried > 0
+      const pauseMs = worked ? 10 * 60_000 : 30 * 60_000
+      yield* setCrawlerSchedule(
+        failed
+          ? 'Crawler batch failed; retrying in 30 minutes'
+          : worked
+            ? 'Next crawler batch in 10 minutes'
+            : 'No candidates; next check in 30 minutes',
+        now + pauseMs,
+      )
+      yield* Effect.sleep(`${pauseMs} millis`)
     }
   })
 
@@ -808,15 +867,14 @@ const main = Effect.gen(function* () {
           yield* logRun('boot scan', scanOnce(config, 'boot'))
         }
 
-        yield* runIdentityIfDue
-
         while (true) {
           yield* Effect.sleep(`${config.scanIntervalHours} hours`)
           yield* logRun('scheduled scan', scanOnce(config, 'schedule'))
-          yield* runIdentityIfDue
         }
       }),
     )
+
+    yield* Effect.forkDetach(crawlerLoop)
 
     yield* Effect.forkDetach(
       Effect.gen(function* () {

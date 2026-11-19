@@ -85,7 +85,7 @@ Production runs at **https://riotid.teyd.dev** on Dokploy. The application uses
 the `Dockerfile` build (GitHub source, branch `main`), a named volume
 `riotid-data` mounted at `/app/data`, and a Let's Encrypt domain through
 Cloudflare. The production scheduler runs a scan every 6 hours, catches up on
-boot, resolves anonymous rows daily, and writes a rotated backup after ten
+boot, resolves anonymous rows continuously, and writes a rotated backup after ten
 minutes and then every 24 hours.
 
 Deploy the current repository branch with `mise run deploy` (it reads the Dokploy key from `~/.config/dokploy/api-key`). Scans, identity passes, backups, and the schema check run from the container terminal:
@@ -102,14 +102,12 @@ The crawler page streams the live match-candidate cache at `/crawler` via
 `GET /api/v1/crawler/stream` (SSE); `GET /api/v1/crawler` returns the same
 snapshot for first paint.
 
-The leaderboard scan is always the priority. A scheduled scan runs first; the
-identity pass waits 60 seconds after it finishes and only starts when the daily
-budget is due. If a manual or early scan starts during a crawler pass, the
-crawler checks the run lock every ten match details, records a paused progress
-snapshot, and yields. Requests are paced at 150 ms, capped at 300 new match
-details per pass and 1,000 Riot requests per day, and 429/5xx responses retry
-with exponential backoff. There is no fixed “stop before the next scan” window:
-the next scan is six hours away, and preemption covers manual/early scans.
+The leaderboard scan is always the priority. The crawler runs continuously in
+small batches ten minutes apart, pauses while a scan runs, and yields if one
+starts mid-batch. Requests are paced at 150 ms, capped at 20 rows per batch,
+300 new match details per batch, and 5,000 Riot requests per day; 429/5xx
+responses retry with exponential backoff. When the daily budget is spent, the
+crawler schedules its next batch for 00:00 UTC instead of spinning.
 
 ## Interface
 
@@ -132,7 +130,7 @@ the status page renders recent pipeline runs with ui-sdk `Waterfall`.
    node apps/api/src/cli.ts anon:resolve
    ```
 
-6. The production scheduler runs scans every `SCAN_INTERVAL_HOURS`, catches up on boot, and runs a daily identity pass. Verify with `node apps/api/src/cli.ts status`.
+6. The production scheduler runs scans every `SCAN_INTERVAL_HOURS`, catches up on boot, and runs continuous crawler batches until the daily Riot budget is spent. Verify with `node apps/api/src/cli.ts status`.
 
 Single instance only: the run lock and SQLite writer assume one process. Deploy with stop-first; do not scale replicas.
 

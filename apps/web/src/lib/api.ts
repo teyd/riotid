@@ -87,6 +87,17 @@ export const formatRelative = (value: number | null): string => {
   return `${Math.round(seconds / 2_592_000)}mo ago`
 }
 
+export const formatUntil = (value: number | null): string => {
+  if (!value) return '—'
+
+  const seconds = Math.max(0, Math.round((value - Date.now()) / 1000))
+
+  if (seconds < 60) return `in ${seconds}s`
+  if (seconds < 3600) return `in ${Math.round(seconds / 60)}m`
+  if (seconds < 86_400) return `in ${Math.round(seconds / 3600)}h`
+  return `in ${Math.round(seconds / 86_400)}d`
+}
+
 export const formatDate = (value: number | null): string => {
   if (!value) return '—'
   return new Date(value).toISOString().slice(0, 10)

@@ -24,8 +24,8 @@ Read https://ui-sdk.dev/web.md first: the web components docs in one file, for a
 Each component's page, like `node_modules/@ui-sdk/web/docs/components/input.md`, shows its tags and markup. `node_modules/@ui-sdk/web/custom-elements.json` lists every tag each entry defines, with its attributes and their types, properties, the controller's methods on `.api`, events, parts and data attributes. Search it for a tag, like `"tagName": "ui-input-group"`, before probing. To confirm what an entry defines, probe it:
 
 ```ts
-import '@ui-sdk/web/input'
-for (const tag of ['ui-input', 'ui-input-group', 'ui-input-clear'])
+import "@ui-sdk/web/input"
+for (const tag of ["ui-input", "ui-input-group", "ui-input-clear"])
   console.log(tag, !!customElements.get(tag))
 ```
 
@@ -45,11 +45,11 @@ Parts that keep native behavior need the native element inside them. The console
 ```ts
 createParts(clearableInput, {
   root: {
-    tag: 'ui-clearable-input',
-    display: 'block',
+    tag: "ui-clearable-input",
+    display: "block",
     // Read lazily: elements inside may upgrade after this one.
     options: (el) => ({
-      input: () => el.querySelector<UiInputElement>('ui-input')?.api,
+      input: () => el.querySelector<UiInputElement>("ui-input")?.api,
     }),
   },
 })
@@ -69,8 +69,8 @@ createParts(clearableInput, {
 Import the module that defines your elements in `beforeAll`, mount markup with `innerHTML`, and wait a tick before asserting, since parts register and sync after they connect. Dispatch real events with `bubbles: true`:
 
 ```ts
-const event = new KeyboardEvent('keydown', {
-  key: 'Escape',
+const event = new KeyboardEvent("keydown", {
+  key: "Escape",
   bubbles: true,
   cancelable: true,
 })

@@ -30,13 +30,13 @@ The process exits with the code that matches `status` (see Response envelope bel
 ## SDK form
 
 ```typescript
-import { generate } from 'drizzle-kit'
+import { generate } from 'drizzle-kit';
 
 const response = await generate({
   dialect: 'postgresql',
   schema: './src/db/schema.ts',
   out: './drizzle',
-})
+});
 
 if (response.status === 'ok') {
   // response.migration_path is the path to the new SQL file
@@ -92,8 +92,8 @@ drizzle-kit generate --output json --config missing.ts
 SDK equivalent of the happy path:
 
 ```typescript
-import { generate } from 'drizzle-kit'
+import { generate } from 'drizzle-kit';
 
-const r = await generate({ dialect: 'postgresql', schema: './src/db/schema.ts', out: './drizzle' })
-if (r.status === 'ok') console.log(r.migration_path)
+const r = await generate({ dialect: 'postgresql', schema: './src/db/schema.ts', out: './drizzle' });
+if (r.status === 'ok') console.log(r.migration_path);
 ```
