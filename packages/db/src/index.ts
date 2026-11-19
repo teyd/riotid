@@ -1,4 +1,6 @@
 export * from './client.ts'
+export * from './paths.ts'
+export * from './read-model.ts'
 export * from './schema.ts'
 export * from './check.ts'
 export * from './seed.ts'

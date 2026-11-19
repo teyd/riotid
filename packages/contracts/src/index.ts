@@ -72,6 +72,8 @@ export const NameInterval = Schema.Struct({
   endedRunId: Schema.NullOr(Schema.Finite),
 })
 
+export type NameInterval = typeof NameInterval.Type
+
 export const RegionInterval = Schema.Struct({
   region: Region,
   startedAt: Schema.Finite,
@@ -80,6 +82,8 @@ export const RegionInterval = Schema.Struct({
   endedRunId: Schema.NullOr(Schema.Finite),
 })
 
+export type RegionInterval = typeof RegionInterval.Type
+
 export const BanInterval = Schema.Struct({
   startedAt: Schema.Finite,
   endedAt: Schema.NullOr(Schema.Finite),
@@ -87,6 +91,8 @@ export const BanInterval = Schema.Struct({
   startedRunId: Schema.NullOr(Schema.Finite),
   endedRunId: Schema.NullOr(Schema.Finite),
 })
+
+export type BanInterval = typeof BanInterval.Type
 
 export const IdentityEvidence = Schema.Struct({
   matchId: Schema.NullOr(Schema.String),
