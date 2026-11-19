@@ -47,11 +47,6 @@ function Root() {
       <main id="main" className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Outlet />
       </main>
-
-      <footer className="flex h-10 shrink-0 items-center justify-between gap-4 border-t border-white/[0.06] px-5 font-mono text-[11px] text-zinc-500 sm:px-6">
-        <span>unofficial fan project · not affiliated with Riot Games</span>
-        <span className="hidden sm:block">data from public competitive leaderboards</span>
-      </footer>
     </div>
   )
 }
