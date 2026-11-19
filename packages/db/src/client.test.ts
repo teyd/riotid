@@ -120,7 +120,9 @@ describe('database', () => {
 
   it('rejects writes through the read-only layer', async () => {
     await withDatabase('riotid-db-', async (path) => {
-      await Effect.runPromise(migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(path))))
+      await Effect.runPromise(
+        migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(path))),
+      )
 
       const program = Effect.gen(function* () {
         const db = yield* Database

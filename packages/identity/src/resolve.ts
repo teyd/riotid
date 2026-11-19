@@ -48,6 +48,8 @@ export type ResolveResult = {
   readonly matchesFetched: number
   readonly coverage: number
   readonly matchCap: number
+  readonly budgetUsed: number
+  readonly budgetRemaining: number
 }
 
 type Meter = { used: number; budget: number }
@@ -813,5 +815,7 @@ export const resolveAnonymous = (
       matchesFetched,
       coverage,
       matchCap,
+      budgetUsed: meter.used,
+      budgetRemaining: Math.max(0, meter.budget - meter.used),
     }
   })
