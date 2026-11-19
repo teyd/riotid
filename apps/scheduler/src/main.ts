@@ -19,6 +19,7 @@ type ResolvePayload = {
 }
 
 const apiStopTimeoutMs = 5_000
+let shuttingDown = false
 
 const attempt = <A>(label: string, effect: Effect.Effect<A | null, unknown>) =>
   effect.pipe(
@@ -68,14 +69,20 @@ const watchApi = (child: ChildProcess | null, shutdown: Deferred.Deferred<void>)
   if (!child) return Effect.void
 
   return Effect.callback<string>((resume) => {
-    child.once('exit', (code, signal) => {
+    const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
       resume(Effect.succeed(`${code ?? signal ?? 'unknown'}`))
-    })
+    }
+
+    child.once('exit', onExit)
+    return Effect.sync(() => child.off('exit', onExit))
   }).pipe(
     Effect.flatMap((reason) =>
-      Effect.logWarning(`api exited (${reason}); stopping the scheduler`).pipe(
-        Effect.andThen(Deferred.succeed(shutdown, undefined)),
-      ),
+      shuttingDown
+        ? Effect.void
+        : Effect.logWarning(`api exited (${reason}); stopping the scheduler`).pipe(
+            Effect.andThen(Effect.sync(() => (process.exitCode = 1))),
+            Effect.andThen(Deferred.succeed(shutdown, undefined)),
+          ),
     ),
   )
 }
@@ -199,10 +206,10 @@ const maintenanceLoop = (runner: CliRunner, config: AppConfig, lock: Semaphore.S
     }
   })
 
-const authLoop = (runner: CliRunner, config: AppConfig) =>
+const authLoop = (runner: CliRunner, config: AppConfig, lock: Semaphore.Semaphore) =>
   Effect.gen(function* () {
     while (true) {
-      yield* attempt('auth:refresh', runner.run(['auth:refresh', '--json']))
+      yield* lock.withPermits(1)(attempt('auth:refresh', runner.run(['auth:refresh', '--json'])))
       yield* Effect.sleep(config.authRefreshMinutes * MINUTE_MS)
     }
   })
@@ -211,6 +218,7 @@ const shutdown = Deferred.makeUnsafe<void>()
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
+    shuttingDown = true
     Deferred.doneUnsafe(shutdown, Effect.void)
   })
 }
@@ -236,18 +244,21 @@ const main = Effect.gen(function* () {
 
   yield* Effect.forkScoped(watchApi(api, shutdown))
 
-  if (config.nodeEnv === 'production' && config.jobsEnabled) {
+  const scheduled = config.nodeEnv === 'production' && config.jobsEnabled
+
+  if (scheduled) {
     yield* Effect.forkScoped(scanLoop(runner, config, scanRunning, lock))
     yield* Effect.forkScoped(identityLoop(runner, config, scanRunning, lock))
     yield* Effect.forkScoped(maintenanceLoop(runner, config, lock))
+    yield* Effect.forkScoped(authLoop(runner, config, lock))
   }
 
   // SCHEDULER_JOBS=false keeps the API supervised without spawning any job.
-  if (config.jobsEnabled) {
-    yield* Effect.forkScoped(authLoop(runner, config))
-  }
-
-  yield* Effect.logInfo(`scheduler running (scan every ${config.scanIntervalHours}h)`)
+  yield* Effect.logInfo(
+    scheduled
+      ? `scheduler running (scan every ${config.scanIntervalHours}h)`
+      : 'scheduler running (jobs disabled)',
+  )
   yield* Deferred.await(shutdown)
   yield* Effect.logInfo('scheduler shutting down')
 })

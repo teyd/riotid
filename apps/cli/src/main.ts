@@ -510,7 +510,7 @@ const status: Command = {
       }
 
       if (!flags.json) {
-        yield* Effect.logInfo(`riotid api ready on port ${config.port}`)
+        yield* Effect.logInfo(`riotid ready on port ${config.port}`)
         yield* Effect.logInfo(
           file
             ? `cookie jar: ${config.cookieFile} · source ${file.source} · updated ${file.updatedAt}`
