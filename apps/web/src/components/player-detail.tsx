@@ -192,7 +192,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             : undefined
         }
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-4">
             {cardArt(resolvedCardId) ? (
               <HoverCard>
@@ -250,7 +250,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
 
           <Toolbar
             aria-label="Player links"
-            className="flex shrink-0 flex-wrap items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wide"
+            className="flex shrink-0 flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wide sm:justify-end"
           >
             {name && tag ? (
               <ToolbarLink
