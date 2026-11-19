@@ -249,6 +249,16 @@ export const ServiceStatus = Schema.Struct({
       durationMs: Schema.NullOr(Schema.Finite),
     }),
   ),
+  recentRuns: Schema.Array(
+    Schema.Struct({
+      id: Schema.Finite,
+      status: Schema.String,
+      trigger: Schema.String,
+      startedAt: Schema.Finite,
+      finishedAt: Schema.NullOr(Schema.Finite),
+      durationMs: Schema.NullOr(Schema.Finite),
+    }),
+  ),
   auth: Schema.Struct({
     cookieFile: Schema.String,
     updatedAt: Schema.NullOr(Schema.Finite),
@@ -291,6 +301,7 @@ export const CrawlerSnapshot = Schema.Struct({
   cache: Schema.Struct({
     matches: Schema.Finite,
     rows: Schema.Finite,
+    byRegion: Schema.Record(Schema.String, Schema.Finite),
   }),
   matches: Schema.Array(CrawlerMatch),
   activity: Schema.NullOr(

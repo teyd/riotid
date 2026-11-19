@@ -1,77 +1,74 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Meter, MeterIndicator, MeterLabel, MeterTrack } from '@ui-sdk/react/meter'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
-import { TrendChart } from '../components/trend-chart.tsx'
+import {
+  Donut,
+  chartAxisTick,
+  chartColors,
+  chartTooltipStyle,
+  regionColors,
+} from '../components/charts.tsx'
+import { MetricGrid, Panel, StatRow } from '../components/panel.tsx'
 import { ErrorState, LoadingState } from '../components/ui.tsx'
-import { fetchStats, formatRelative, regionLabel, type SiteStats } from '../lib/api.ts'
+import { fetchStats, formatDate, formatRelative, regionLabel, type SiteStats } from '../lib/api.ts'
 
-const NumberCell = ({ label, value }: { label: string; value: string | number }) => (
-  <div className="border-l border-white/[0.07] pl-4 first:border-0 first:pl-0">
-    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">{label}</p>
-    <p className="mt-1.5 text-2xl font-semibold tracking-tight text-zinc-100 tabular-nums">
-      {typeof value === 'number' ? value.toLocaleString() : value}
-    </p>
-  </div>
-)
-
-const RegionRow = ({ region, data }: { region: string; data: SiteStats['regions'][string] }) => {
+const RegionCard = ({ region, data }: { region: string; data: SiteStats['regions'][string] }) => {
   const tiers = Object.entries(data.tiers)
-    .map(([tier, count]) => ({ tier: Number(tier), count }))
-    .sort((left, right) => right.tier - left.tier)
-    .slice(0, 6)
-  const max = Math.max(...tiers.map((tier) => tier.count), 1)
+    .map(([tier, count]) => ({ tier: `T${tier}`, count }))
+    .sort((left, right) => Number(left.tier.slice(1)) - Number(right.tier.slice(1)))
+    .slice(-6)
+  const color = regionColors[region] ?? chartColors.players
 
   return (
-    <div className="grid gap-5 py-6 lg:grid-cols-[180px_1fr_1fr_1fr]">
-      <div>
+    <div className="rounded-lg border border-white/[0.08] p-4">
+      <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-base font-medium text-zinc-100">{regionLabel(region)}</h3>
-        <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-zinc-500">
-          {region} affinity
-        </p>
+        <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-600">
+          {data.players.toLocaleString()} players
+        </span>
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-5 gap-y-2 font-mono text-[11px]">
-        {[
-          ['players', data.players.toLocaleString()],
-          ['banned', data.banned.toLocaleString()],
-          ['linked anon', data.linked.toLocaleString()],
-          ['unresolved', data.unresolved.toLocaleString()],
-        ].map(([label, value]) => (
-          <div key={String(label)} className="flex justify-between gap-3">
-            <dt className="text-zinc-500">{label}</dt>
-            <dd className="text-zinc-300 tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <dl className="grid grid-cols-3 gap-x-4 font-mono text-[11px]">
-        {[
-          ['avg rr', data.averageRating],
-          ['median', data.medianRating],
-          ['top rr', data.topRating.toLocaleString()],
-        ].map(([label, value]) => (
-          <div key={String(label)}>
-            <dt className="text-zinc-500">{label}</dt>
-            <dd className="mt-1 text-sm text-zinc-200 tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className="space-y-1.5">
-        {tiers.map((tier) => (
-          <div key={tier.tier} className="flex items-center gap-3 font-mono text-[10px]">
-            <span className="w-7 text-right text-zinc-500">T{tier.tier}</span>
-            <div className="h-1.5 flex-1 overflow-hidden rounded bg-white/[0.06]">
-              <div
-                className="h-full rounded bg-accent/70"
-                style={{ width: `${(tier.count / max) * 100}%` }}
-              />
-            </div>
-            <span className="w-12 text-right text-zinc-400 tabular-nums">{tier.count}</span>
-          </div>
-        ))}
+      <div className="mt-3 h-24">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={tiers}
+            margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+            barCategoryGap={3}
+          >
+            <Tooltip
+              contentStyle={chartTooltipStyle}
+              labelStyle={{ color: '#a1a1aa' }}
+              cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+            />
+            <XAxis dataKey="tier" tick={chartAxisTick} axisLine={false} tickLine={false} />
+            <Bar dataKey="count" radius={[2, 2, 0, 0]} fill={color} maxBarSize={28} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
+
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[10px]">
+        {(
+          [
+            ['avg rr', data.averageRating],
+            ['median', data.medianRating],
+            ['banned', data.banned.toLocaleString()],
+            ['linked', data.linked.toLocaleString()],
+          ] satisfies Array<readonly [string, string | number]>
+        ).map(([label, value]) => (
+          <StatRow key={label} label={label} value={value} />
+        ))}
+      </dl>
     </div>
   )
 }
@@ -87,11 +84,15 @@ export function StatsPage() {
   if (stats.isError) return <ErrorState error={stats.error} />
 
   const data = stats.data
+  const history = data.history.map((entry) => ({
+    ...entry,
+    label: formatDate(entry.at),
+  }))
 
   return (
     <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-5 py-9 sm:px-6">
       <header className="max-w-3xl">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
           Ladder aggregates
         </p>
         <h1 className="mt-2 text-4xl font-semibold tracking-tight text-zinc-50 text-balance">
@@ -103,76 +104,153 @@ export function StatsPage() {
         </p>
       </header>
 
-      <section className="mt-8 grid grid-cols-2 gap-x-5 gap-y-6 border-y border-white/[0.08] py-6 sm:grid-cols-4 lg:grid-cols-8">
-        <NumberCell label="players" value={data.totals.players} />
-        <NumberCell label="banned" value={data.totals.banned} />
-        <NumberCell label="renames" value={data.totals.nameChanges} />
-        <NumberCell label="region moves" value={data.totals.regionChanges} />
-        <NumberCell label="bans seen" value={data.totals.bans} />
-        <NumberCell label="unbans" value={data.totals.unbans} />
-        <NumberCell label="linked anon" value={data.totals.linked} />
-        <NumberCell label="unresolved" value={data.totals.unresolved} />
-      </section>
+      <MetricGrid
+        className="mt-8 sm:grid-cols-4 lg:grid-cols-8"
+        items={[
+          ['players', data.totals.players],
+          ['banned', data.totals.banned],
+          ['renames', data.totals.nameChanges],
+          ['region moves', data.totals.regionChanges],
+          ['bans seen', data.totals.bans],
+          ['unbans', data.totals.unbans],
+          ['linked anon', data.totals.linked],
+          ['unresolved', data.totals.unresolved],
+        ]}
+      />
 
-      <div className="mt-8">
-        <TrendChart history={data.history} />
+      <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <Panel
+          title="Scan activity"
+          description="One point per completed scan. Left axis is ladder size; right axis is churn."
+        >
+          <div className="mt-4 h-64">
+            {history.length === 0 ? (
+              <p className="text-sm text-zinc-600">No completed scans yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={history} margin={{ top: 8, right: 4, bottom: 0, left: -12 }}>
+                  <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={chartAxisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    minTickGap={36}
+                  />
+                  <YAxis yAxisId="left" tick={chartAxisTick} axisLine={false} tickLine={false} />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={chartAxisTick}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={{ color: '#a1a1aa' }}
+                    itemStyle={{ padding: 0 }}
+                  />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="players"
+                    name="players"
+                    stroke={chartColors.players}
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="nameChanges"
+                    name="renames"
+                    stroke={chartColors.renames}
+                    strokeWidth={1.5}
+                    dot={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="regionChanges"
+                    name="region moves"
+                    stroke={chartColors.moves}
+                    strokeWidth={1.5}
+                    dot={false}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="anonymous"
+                    name="anonymous"
+                    stroke={chartColors.anonymous}
+                    strokeWidth={1.5}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-zinc-500">
+            {[
+              ['players', chartColors.players],
+              ['renames', chartColors.renames],
+              ['region moves', chartColors.moves],
+              ['anonymous', chartColors.anonymous],
+            ].map(([label, color]) => (
+              <span key={label} className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
+                {label}
+              </span>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel
+          title="Identity coverage"
+          description="Only exact match-graph fingerprints become links."
+        >
+          <div className="mt-4">
+            <Donut
+              data={[
+                { name: 'linked', value: data.coverage.linked, color: chartColors.players },
+                { name: 'unresolved', value: data.coverage.unresolved, color: chartColors.muted },
+              ]}
+              centerValue={`${(data.coverage.ratio * 100).toFixed(1)}%`}
+              centerLabel="linked"
+            />
+          </div>
+          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[10px]">
+            <StatRow label="linked rows" value={data.coverage.linked} />
+            <StatRow label="unresolved rows" value={data.coverage.unresolved} muted />
+          </dl>
+        </Panel>
       </div>
 
-      <section className="mt-8 grid gap-8 border-b border-white/[0.08] pb-8 lg:grid-cols-[1fr_320px]">
-        <div>
-          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">
-            Identity coverage
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
-            Anonymized leaderboard rows carry no identity. We link them only when a match-graph MMR
-            fingerprint is exact; ambiguous rows stay unresolved. Coverage grows as more matches are
-            observed, and never reaches 100% for players who never share a match with a known
-            player.
-          </p>
-        </div>
-        <Meter value={Math.round(data.coverage.ratio * 1000) / 10} className="self-center">
-          <div className="flex items-baseline justify-between">
-            <MeterLabel className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-              linked / observed
-            </MeterLabel>
-            <span className="font-mono text-xs text-zinc-300 tabular-nums">
-              {(data.coverage.ratio * 100).toFixed(2)}%
-            </span>
+      <section className="mt-10">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div className="max-w-2xl">
+            <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">
+              By region
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-500">
+              Rating and tier aggregates come from the latest leaderboard snapshot. Player counts
+              include banned players; the public index excludes them.
+            </p>
           </div>
-          <MeterTrack className="mt-2 h-1.5 overflow-hidden rounded bg-white/[0.06]">
-            <MeterIndicator className="h-full rounded bg-accent" />
-          </MeterTrack>
-          <p className="mt-2 font-mono text-[10px] text-zinc-600">
-            {data.coverage.linked.toLocaleString()} linked ·{' '}
-            {data.coverage.unresolved.toLocaleString()} unresolved
-          </p>
-        </Meter>
-      </section>
-
-      <section className="mt-8">
-        <div className="max-w-2xl">
-          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">By region</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-500">
-            Rating and tier aggregates come from the latest leaderboard snapshot. Player counts
-            include banned players; the public index excludes them.
+          <p className="font-mono text-[10px] text-zinc-600">
+            {data.totals.runs.toLocaleString()} {data.totals.runs === 1 ? 'scan' : 'scans'} observed
           </p>
         </div>
-        <div className="mt-3 divide-y divide-white/[0.07] border-y border-white/[0.08]">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {Object.entries(data.regions).map(([region, regionData]) => (
-            <RegionRow key={region} region={region} data={regionData} />
+            <RegionCard key={region} region={region} data={regionData} />
           ))}
         </div>
       </section>
 
-      <section className="mt-10 grid gap-9 lg:grid-cols-3">
-        <div>
-          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">
-            Recent renames
-          </h2>
-          <p className="mt-2 text-xs leading-5 text-zinc-600">
-            The most recent name intervals that ended.
-          </p>
-          <div className="mt-3 divide-y divide-white/[0.05] border-t border-white/[0.07]">
+      <section className="mt-10 grid gap-4 lg:grid-cols-3">
+        <Panel title="Recent renames" description="The most recent name intervals that ended.">
+          <div className="mt-2 divide-y divide-white/[0.05]">
             {data.recent.names.length === 0 ? (
               <p className="py-3 text-sm text-zinc-600">No renames recorded.</p>
             ) : (
@@ -194,16 +272,13 @@ export function StatsPage() {
               ))
             )}
           </div>
-        </div>
+        </Panel>
 
-        <div>
-          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">
-            Recent region moves
-          </h2>
-          <p className="mt-2 text-xs leading-5 text-zinc-600">
-            Transfers are only recorded when one region claims a player in a scan.
-          </p>
-          <div className="mt-3 divide-y divide-white/[0.05] border-t border-white/[0.07]">
+        <Panel
+          title="Recent region moves"
+          description="Transfers are only recorded when one region claims a player in a scan."
+        >
+          <div className="mt-2 divide-y divide-white/[0.05]">
             {data.recent.regions.length === 0 ? (
               <p className="py-3 text-sm text-zinc-600">No region moves recorded.</p>
             ) : (
@@ -225,16 +300,10 @@ export function StatsPage() {
               ))
             )}
           </div>
-        </div>
+        </Panel>
 
-        <div>
-          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">
-            Most changed
-          </h2>
-          <p className="mt-2 text-xs leading-5 text-zinc-600">
-            Lifetime counters, not a recent window.
-          </p>
-          <div className="mt-3 divide-y divide-white/[0.05] border-t border-white/[0.07]">
+        <Panel title="Most changed" description="Lifetime counters, not a recent window.">
+          <div className="mt-2 divide-y divide-white/[0.05]">
             {data.mostChanged.map((row) => (
               <Link
                 key={row.puuid}
@@ -252,7 +321,7 @@ export function StatsPage() {
               </Link>
             ))}
           </div>
-        </div>
+        </Panel>
       </section>
     </div>
   )
