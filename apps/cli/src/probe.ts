@@ -14,6 +14,12 @@ import { Effect } from 'effect'
 
 const regions = ['na', 'eu', 'ap', 'kr'] as const
 
+export type ProbeResult = {
+  readonly regions: Record<string, number>
+  readonly names: number
+  readonly anonymized: number
+}
+
 const probeRegion = (
   session: AuthSession,
   clientVersion: string,
@@ -166,13 +172,19 @@ export const runProbe = (cookieFile: string) =>
       yield* Effect.logInfo(`anonymous ${JSON.stringify(row)}`)
     }
 
-    yield* Effect.logInfo(
-      `probe summary: regions=${JSON.stringify(
-        Object.fromEntries(regionResults.map(([region, result]) => [region, result.status])),
-      )} names=${names.length} anonymized=${anonymized.length}`,
+    const statuses = Object.fromEntries(
+      regionResults.map(([region, result]) => [region, result.status]),
     )
+
+    yield* Effect.logInfo(
+      `probe summary: regions=${JSON.stringify(statuses)} names=${names.length} anonymized=${anonymized.length}`,
+    )
+
+    return { regions: statuses, names: names.length, anonymized: anonymized.length }
   }).pipe(
     Effect.catchTag('RiotRequestError', (error) =>
-      Effect.logError(`probe failed: ${error.message} (status ${error.status ?? 'unknown'})`),
+      Effect.logError(`probe failed: ${error.message} (status ${error.status ?? 'unknown'})`).pipe(
+        Effect.as<ProbeResult>({ regions: {}, names: 0, anonymized: 0 }),
+      ),
     ),
   )
