@@ -68,7 +68,7 @@ const AppConfig = Config.all({
   runRetentionDays: Config.Int('RUN_RETENTION_DAYS').pipe(Config.withDefault(180)),
   indexRetentionDays: Config.Int('INDEX_RETENTION_DAYS').pipe(Config.withDefault(30)),
   anonBudget: Config.Int('ANON_RESOLVE_BUDGET').pipe(Config.withDefault(5000)),
-  anonSeeds: Config.Int('ANON_SEEDS').pipe(Config.withDefault(100)),
+  anonSeeds: Config.Int('ANON_SEEDS').pipe(Config.withDefault(20)),
   anonCoverageTarget: Config.Number('ANON_COVERAGE_TARGET').pipe(Config.withDefault(0.9)),
   matchCacheEnabled: Config.Boolean('MATCH_CACHE_ENABLED').pipe(Config.withDefault(true)),
   matchCacheMatchesPerRegion: Config.Int('MATCH_CACHE_MATCHES_PER_REGION').pipe(
@@ -829,7 +829,7 @@ const main = Effect.gen(function* () {
       }
 
       yield* setCrawlerSchedule('Crawler batch running', 0)
-      const result = yield* resolvePass({ ...config, limit: 20 }).pipe(
+      const result = yield* resolvePass({ ...config, limit: 8 }).pipe(
         Effect.tap((value) => Effect.logInfo(`crawler batch: ${JSON.stringify(value)}`)),
         Effect.catch((error) =>
           Effect.logWarning(`crawler batch failed: ${String(error)}`).pipe(Effect.as(null)),
@@ -837,12 +837,12 @@ const main = Effect.gen(function* () {
       )
       const failed = result === null
       const worked = result !== null && result.tried > 0
-      const pauseMs = worked ? 10 * 60_000 : 30 * 60_000
+      const pauseMs = worked ? 15 * 60_000 : 30 * 60_000
       yield* setCrawlerSchedule(
         failed
           ? 'Crawler batch failed; retrying in 30 minutes'
           : worked
-            ? 'Next crawler batch in 10 minutes'
+            ? 'Next crawler batch in 15 minutes'
             : 'No candidates; next check in 30 minutes',
         now + pauseMs,
       )

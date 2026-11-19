@@ -103,9 +103,8 @@ The crawler page streams the live match-candidate cache at `/crawler` via
 snapshot for first paint.
 
 The leaderboard scan is always the priority. The crawler runs continuously in
-small batches ten minutes apart, pauses while a scan runs, and yields if one
-starts mid-batch. Requests are paced at 150 ms, capped at 20 rows per batch,
-300 new match details per batch, and 5,000 Riot requests per day; 429/5xx
+small batches fifteen minutes apart, pauses while a scan runs, and yields if one
+starts mid-batch. Requests are paced at 150 ms, capped at 8 rows and 24 new match details per batch, and 5,000 Riot requests per day; 429/5xx
 responses retry with exponential backoff. When the daily budget is spent, the
 crawler schedules its next batch for 00:00 UTC instead of spinning.
 
