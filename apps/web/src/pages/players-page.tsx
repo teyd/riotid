@@ -196,6 +196,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
     queryFn: fetchIndex,
     staleTime: 60_000,
     refetchInterval: 120_000,
+    refetchIntervalInBackground: true,
   })
 
   const status = useQuery({
@@ -203,6 +204,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
     queryFn: fetchStatus,
     staleTime: 60_000,
     refetchInterval: 60_000,
+    refetchIntervalInBackground: true,
   })
 
   const rows = useMemo(() => {
