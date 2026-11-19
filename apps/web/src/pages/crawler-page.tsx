@@ -146,7 +146,9 @@ export function CrawlerPage() {
           ) : null}
           <p className="mt-3 text-xs leading-5 text-zinc-600">
             The crawler is budgeted and runs daily; it enriches the match graph around anonymous
-            leaderboard rows, then stops. It is not a continuous match archive.
+            leaderboard rows, then stops. Leaderboard scans take priority: the crawler starts one
+            minute after a successful scan, yields if another scan begins, and paces every Riot
+            request. It is not a continuous match archive.
           </p>
         </section>
       ) : (
@@ -159,7 +161,8 @@ export function CrawlerPage() {
             The resolver last ran {formatRelative(snapshot.lastRunAt)} and has used{' '}
             {snapshot.requestsToday.toLocaleString()} requests today. A pass seeds the graph from
             nearby players, fetches up to 300 new match details, checks exact MMR fingerprints, and
-            writes only confirmed links. It stops at the daily budget rather than scraping forever.
+            writes only confirmed links. It starts one minute after a completed leaderboard scan,
+            yields when a new scan starts, paces requests, and stops at the daily budget.
           </p>
         </section>
       )}
