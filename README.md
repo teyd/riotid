@@ -118,6 +118,14 @@ renders a Pino-style `crawler.log` from persisted batch events, and the status
 page is a syntax-highlighted `status.json` with hover definitions, a coverage
 donut, and relative duration bars for recent pipeline runs.
 
+## Analytics
+
+Umami is self-hosted on Dokploy at `https://umami.teyd.dev` (admin:
+`https://umami-admin.hake-morray.ts.net`). The web shell loads
+`https://umami.teyd.dev/script.js` for website
+`f08560b4-c1de-4f12-b5f2-8ebbc8f01efa`, scoped to `riotid.teyd.dev`. The API
+CSP allows the script and its collection endpoint.
+
 ## Deploy (Dokploy)
 
 1. Create or reuse the Dokploy project/environment, then create an application from this repository using the `Dockerfile` build.
