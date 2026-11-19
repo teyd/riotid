@@ -131,7 +131,7 @@ export const PlayerList = ({
                 boxShadow: active ? 'inset 2px 0 0 #fafafa' : undefined,
               }}
             >
-              <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/[0.06] bg-white/[0.03] font-mono text-[11px] text-zinc-500">
+              <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/[0.06] bg-white/[0.03] font-mono text-[12px] text-zinc-500">
                 <span aria-hidden>{(name || '?').slice(0, 1).toUpperCase()}</span>
                 {art ? (
                   <img
@@ -152,21 +152,21 @@ export const PlayerList = ({
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-1.5">
-                  <span className="truncate text-[15px] font-medium tracking-tight text-zinc-100">
+                  <span className="truncate text-[16px] font-medium tracking-tight text-zinc-100">
                     {name || 'Anonymous'}
                   </span>
                   {tag ? (
                     <span className="shrink-0 font-mono text-xs text-zinc-500">#{tag}</span>
                   ) : null}
                 </div>
-                <div className="mt-1 flex items-center gap-2 font-mono text-[11px] text-zinc-500">
+                <div className="mt-1 flex items-center gap-2 font-mono text-[12px] text-zinc-500">
                   <span>{regionShort(region)}</span>
                   {row[P.nameChanges] > 0 ? <span>{row[P.nameChanges]} name</span> : null}
                   {row[P.regionChanges] > 0 ? <span>{row[P.regionChanges]} region</span> : null}
                 </div>
               </div>
 
-              <div className="shrink-0 font-mono text-[11px] text-zinc-500 tabular-nums">
+              <div className="shrink-0 font-mono text-[12px] text-zinc-500 tabular-nums">
                 {formatRelative(row[P.lastSeenAt])}
               </div>
             </button>

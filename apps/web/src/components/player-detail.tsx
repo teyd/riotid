@@ -16,7 +16,6 @@ import {
   cardLargeArt,
   cardWideArt,
   fetchPlayer,
-  FLAG,
   formatDate,
   formatDateTime,
   formatRelative,
@@ -61,7 +60,7 @@ const HistoryTimeline = ({
           <TimelineTitle className="truncate text-sm text-zinc-100">{item.title}</TimelineTitle>
           <TimelineTime
             dateTime={new Date(item.at).toISOString()}
-            className="mt-1 block font-mono text-[11px] text-zinc-500"
+            className="mt-1 block font-mono text-[12px] text-zinc-500"
           >
             {item.subtitle}
           </TimelineTime>
@@ -84,7 +83,7 @@ const HistorySection = ({
 }) => (
   <Section
     title={title}
-    meta={<span className="font-mono text-[10px] text-zinc-500">{items.length}</span>}
+    meta={<span className="font-mono text-[11px] text-zinc-500">{items.length}</span>}
   >
     {items.length === 0 ? (
       <p className="text-xs text-zinc-500">{empty}</p>
@@ -97,14 +96,14 @@ const HistorySection = ({
 const HeaderStat = ({ label, value }: { label: string; value: string }) => (
   <div className="px-3 py-3 sm:px-4">
     <dt className="text-zinc-500">{label}</dt>
-    <dd className="mt-1 whitespace-nowrap text-[12px] text-zinc-200 sm:text-sm">{value}</dd>
+    <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">{value}</dd>
   </div>
 )
 
 const EvidenceDetail = ({ label, value }: { label: string; value: string | number }) => (
   <div>
-    <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
-    <dd className="mt-1 break-all font-mono text-[11px] text-zinc-200">{value}</dd>
+    <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
+    <dd className="mt-1 break-all font-mono text-[12px] text-zinc-200">{value}</dd>
   </div>
 )
 
@@ -127,7 +126,7 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
               : 'The anonymized leaderboard row still carried a puuid, so no match graph was needed.'}
           </p>
         </div>
-        <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
+        <span className="font-mono text-[12px] text-zinc-400 tabular-nums">
           {(link.confidence / 100).toFixed(2)}% confidence
         </span>
       </div>
@@ -140,7 +139,7 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
         <EvidenceDetail label="region" value={regionLabel(a.region)} />
         <EvidenceDetail label="season" value={a.seasonName ?? 'unknown act'} />
         <div>
-          <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">card</dt>
+          <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">card</dt>
           <dd className="mt-1 flex items-center gap-2">
             <a
               href={cardLargeArt(a.cardId) ?? cardArt(a.cardId) ?? '#'}
@@ -165,7 +164,7 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
         </div>
       </dl>
 
-      <div className="mt-4 space-y-1.5 font-mono text-[11px]">
+      <div className="mt-4 space-y-1.5 font-mono text-[12px]">
         {matchUrl ? (
           <p className="break-all">
             <span className="text-zinc-500">match </span>
@@ -196,7 +195,6 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
   const [copied, setCopied] = useState(false)
 
   const detail = query.data
-  const flags = row?.[P.flags] ?? 0
   const name = detail?.player.name ?? row?.[P.name] ?? ''
   const tag = detail?.player.tag ?? row?.[P.tag] ?? ''
   const region = detail?.player.region ?? row?.[P.region] ?? null
@@ -211,111 +209,113 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto">
-      <div className="border-b border-white/[0.08] bg-ink px-6 py-5">
-        <div className="flex items-stretch gap-4 sm:gap-5">
-          <HoverCard>
-            <HoverCardTrigger
-              href={wideArt ?? cardArt(resolvedCardId) ?? '#'}
-              className="relative block w-16 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:w-24"
-              style={{ aspectRatio: '268 / 640' }}
-            >
-              <span className="absolute inset-0 flex items-center justify-center" aria-hidden>
-                {(name || '?').slice(0, 1).toUpperCase()}
-              </span>
-              {(cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId)) ? (
-                <img
-                  src={cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? ''}
-                  alt={`${name || 'Player'} card`}
-                  width={268}
-                  height={640}
-                  decoding="async"
-                  className="absolute inset-0 h-full w-full object-cover"
-                  onError={(event) => {
-                    event.currentTarget.style.display = 'none'
-                  }}
-                />
-              ) : null}
-            </HoverCardTrigger>
-            <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
-              <img
-                src={cardWideArt(resolvedCardId) ?? ''}
-                alt=""
-                className="h-36 w-full object-cover"
-              />
-              <p className="px-3 py-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
-                {name || 'Anonymous'}
-                {tag ? `#${tag}` : ''}
-              </p>
-            </HoverCardContent>
-          </HoverCard>
+      <div className="relative h-24 w-full shrink-0 overflow-hidden border-b border-white/[0.08] bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:28px_28px]">
+        {wideArt ? (
+          <img
+            src={wideArt}
+            alt=""
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none'
+            }}
+          />
+        ) : null}
+      </div>
 
-          <div className="flex min-w-0 flex-1 flex-col">
-            <button
-              type="button"
-              onClick={onBack}
-              className="mb-4 flex items-center gap-1 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 lg:hidden"
-            >
-              ← players
-            </button>
+      <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-ink px-6 py-5">
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-4 flex items-center gap-1 font-mono text-[11px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 lg:hidden"
+        >
+          ← players
+        </button>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <h1 className="text-2xl font-semibold tracking-tight break-words text-zinc-50 sm:text-3xl">
-                    {name || 'Anonymous'}
-                  </h1>
-                  {tag ? <span className="font-mono text-sm text-zinc-400">#{tag}</span> : null}
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <Badge>{regionLabel(region)}</Badge>
-                  {flags & FLAG.anonymized ? <Badge tone="info">linked anonymously</Badge> : null}
-                  {detail?.player.isBanned ? <Badge tone="warn">banned</Badge> : null}
-                  {flags & FLAG.nameChange ? <Badge tone="neutral">renamed</Badge> : null}
-                  {flags & FLAG.regionChange ? <Badge tone="accent">moved</Badge> : null}
-                </div>
-              </div>
-
-              <Toolbar
-                aria-label="Player links"
-                className="flex shrink-0 flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-wide sm:justify-end"
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <HoverCard>
+              <HoverCardTrigger
+                href={cardWideArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
+                className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:flex"
               >
-                {name && tag ? (
-                  <ToolbarLink
-                    href={trackerProfileUrl(name, tag)}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="text-zinc-400 hover:text-zinc-100"
-                  >
-                    tracker.gg ↗
-                  </ToolbarLink>
+                <span aria-hidden>{(name || '?').slice(0, 1).toUpperCase()}</span>
+                {cardArt(resolvedCardId) ? (
+                  <img
+                    src={cardArt(resolvedCardId) ?? ''}
+                    alt={`${name || 'Player'} card`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.style.display = 'none'
+                    }}
+                  />
                 ) : null}
-                <ToolbarLink
-                  href={vtlProfileUrl(puuid)}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="text-zinc-400 hover:text-zinc-100"
-                >
-                  vtl.lol ↗
-                </ToolbarLink>
-                <ToolbarButton onClick={copy} className="text-zinc-400 hover:text-zinc-100">
-                  {copied ? 'copied' : 'copy link'}
-                </ToolbarButton>
-              </Toolbar>
+              </HoverCardTrigger>
+              <HoverCardContent className="z-50 w-72 overflow-hidden rounded-lg border border-white/10 bg-panel shadow-2xl">
+                <img
+                  src={cardWideArt(resolvedCardId) ?? ''}
+                  alt=""
+                  className="h-36 w-full object-cover"
+                />
+                <p className="px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-400">
+                  {name || 'Anonymous'}
+                  {tag ? `#${tag}` : ''}
+                </p>
+              </HoverCardContent>
+            </HoverCard>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <h1 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
+                  {name || 'Anonymous'}
+                </h1>
+                {tag ? <span className="font-mono text-sm text-zinc-400">#{tag}</span> : null}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <Badge>{regionLabel(region)}</Badge>
+                {detail?.player.isBanned ? <Badge tone="warn">banned</Badge> : null}
+              </div>
             </div>
-
-            <dl className="mt-auto grid grid-cols-3 divide-x pt-5 divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[11px]">
-              <HeaderStat
-                label="first seen"
-                value={formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
-              />
-              <HeaderStat
-                label="last seen"
-                value={formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
-              />
-              <HeaderStat label="observations" value={String(detail?.player.timesSeen ?? '—')} />
-            </dl>
           </div>
+
+          <Toolbar
+            aria-label="Player links"
+            className="flex shrink-0 flex-wrap items-center gap-3 font-mono text-[11px] uppercase tracking-wide sm:justify-end"
+          >
+            {name && tag ? (
+              <ToolbarLink
+                href={trackerProfileUrl(name, tag)}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-zinc-400 hover:text-zinc-100"
+              >
+                tracker.gg ↗
+              </ToolbarLink>
+            ) : null}
+            <ToolbarLink
+              href={vtlProfileUrl(puuid)}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-zinc-400 hover:text-zinc-100"
+            >
+              vtl.lol ↗
+            </ToolbarLink>
+            <ToolbarButton onClick={copy} className="text-zinc-400 hover:text-zinc-100">
+              {copied ? 'copied' : 'copy link'}
+            </ToolbarButton>
+          </Toolbar>
         </div>
+
+        <dl className="mt-5 grid grid-cols-3 divide-x divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[12px]">
+          <HeaderStat
+            label="first seen"
+            value={formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
+          />
+          <HeaderStat
+            label="last seen"
+            value={formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
+          />
+          <HeaderStat label="observations" value={String(detail?.player.timesSeen ?? '—')} />
+        </dl>
       </div>
 
       {query.isPending ? <LoadingState label="Loading history" /> : null}
@@ -373,7 +373,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
                 ['unbans', detail.player.unbanCount],
               ].map(([label, value]) => (
                 <div key={String(label)}>
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">
                     {label}
                   </dt>
                   <dd className="mt-1 text-2xl font-semibold text-zinc-100 tabular-nums">
@@ -388,7 +388,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             <Section
               title="Identity evidence"
               meta={
-                <span className="font-mono text-[10px] text-zinc-500">{detail.links.length}</span>
+                <span className="font-mono text-[11px] text-zinc-500">{detail.links.length}</span>
               }
             >
               <div className="space-y-2">
@@ -399,7 +399,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             </Section>
           ) : null}
 
-          <div className="border-t border-white/[0.06] px-5 py-4 font-mono text-[10px] text-zinc-500">
+          <div className="border-t border-white/[0.06] px-5 py-4 font-mono text-[11px] text-zinc-500">
             puuid {puuid} · last change {formatDateTime(detail.player.lastNameChangeAt)}
           </div>
         </>

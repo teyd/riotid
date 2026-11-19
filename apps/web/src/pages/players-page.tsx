@@ -185,7 +185,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   autoComplete="off"
                   className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
                 />
-                <kbd className="hidden rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 sm:block">
+                <kbd className="hidden rounded border border-white/10 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 sm:block">
                   /
                 </kbd>
               </div>
@@ -212,7 +212,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     <SegmentedControlItem
                       key={item.value}
                       value={item.value}
-                      className="rounded-[5px] px-2 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-zinc-300 data-[checked]:text-zinc-100"
+                      className="rounded-[5px] px-2 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-zinc-300 data-[checked]:text-zinc-100"
                     >
                       {item.label}
                     </SegmentedControlItem>
@@ -220,7 +220,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 </SegmentedControl>
 
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-[10px] text-zinc-500 tabular-nums">
+                  <span className="font-mono text-[11px] text-zinc-500 tabular-nums">
                     {rows.length.toLocaleString()}
                   </span>
                   <Select
@@ -233,10 +233,10 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     <SelectLabel className="sr-only">Sort players</SelectLabel>
                     <SelectTrigger
                       aria-label={`Sort players: ${sortOption?.label ?? sort}`}
-                      className="flex h-7 items-center gap-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
+                      className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
                     >
                       <span>{sortOption?.trigger ?? sort}</span>
-                      <span aria-hidden className="text-[9px] leading-none text-zinc-500">
+                      <span aria-hidden className="text-[11px] leading-none text-zinc-500">
                         ▼
                       </span>
                     </SelectTrigger>
@@ -269,7 +269,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
               />
             </div>
 
-            <div className="border-t border-white/[0.06] px-4 py-3 font-mono text-[10px] text-zinc-500">
+            <div className="border-t border-white/[0.06] px-4 py-3 font-mono text-[11px] text-zinc-500">
               {index.isError ? (
                 <span className="text-zinc-300">API offline — retrying</span>
               ) : (
@@ -307,7 +307,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
           ) : (
             <div className="relative flex h-full items-center justify-center overflow-hidden p-8">
               <div className="relative max-w-md text-center">
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">
+                <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-accent">
                   master–detail
                 </p>
                 <h2 className="mt-4 text-4xl font-semibold tracking-tight text-zinc-100 text-balance">
@@ -329,13 +329,13 @@ export function PlayersPage({ selected }: { selected?: string }) {
                       <p className="text-lg font-semibold text-zinc-100 tabular-nums">
                         {value?.toLocaleString() ?? '—'}
                       </p>
-                      <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+                      <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">
                         {label}
                       </p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-5 flex justify-center gap-4 font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+                <div className="mt-5 flex justify-center gap-4 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
                   <Link to="/stats" className="hover:text-zinc-200">
                     stats
                   </Link>

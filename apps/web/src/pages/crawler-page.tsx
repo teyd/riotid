@@ -64,7 +64,7 @@ export function CrawlerPage() {
     <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-5 py-9 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-zinc-500">
             identity pipeline
           </p>
           <h1 className="mt-2 text-4xl font-semibold tracking-tight text-zinc-50">Match crawler</h1>
@@ -74,7 +74,7 @@ export function CrawlerPage() {
             participant fingerprints are stored — never full match data.
           </p>
         </div>
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide">
+        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide">
           <span
             className={`size-1.5 rounded-full ${connected ? 'animate-pulse bg-[#4ade80]' : 'bg-zinc-600'}`}
           />
@@ -103,7 +103,7 @@ export function CrawlerPage() {
             <>
               <p className="mt-2 text-lg font-medium text-zinc-100">{activity.message}</p>
               {snapshot.schedule.message ? (
-                <p className="mt-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+                <p className="mt-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
                   {snapshot.schedule.message}
                   {snapshot.schedule.nextRunAt
                     ? ` · ${formatUntil(snapshot.schedule.nextRunAt)}`
@@ -112,7 +112,7 @@ export function CrawlerPage() {
               ) : null}
 
               <div className="mt-5">
-                <div className="flex items-baseline justify-between font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+                <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-wide text-zinc-500">
                   <span>riot requests</span>
                   <span className="tabular-nums">
                     {used} / {budget}
@@ -125,7 +125,7 @@ export function CrawlerPage() {
                 </Progress>
               </div>
 
-              <dl className="mt-5 grid grid-cols-3 gap-4 border-t border-white/[0.06] pt-4 font-mono text-[10px]">
+              <dl className="mt-5 grid grid-cols-3 gap-4 border-t border-white/[0.06] pt-4 font-mono text-[11px]">
                 <div>
                   <dt className="uppercase tracking-wide text-zinc-500">matches fetched</dt>
                   <dd className="mt-1 text-lg text-zinc-100 tabular-nums">
@@ -143,7 +143,7 @@ export function CrawlerPage() {
               </dl>
 
               {activity.currentMatchId ? (
-                <p className="mt-4 truncate font-mono text-[10px] text-zinc-500">
+                <p className="mt-4 truncate font-mono text-[11px] text-zinc-500">
                   current match{' '}
                   <a
                     href={`https://vtl.lol/match/${activity.currentMatchId}`}
@@ -205,7 +205,7 @@ export function CrawlerPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[10px]">
+          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
             {byRegion.map((entry) => (
               <div key={entry.region} className="flex justify-between">
                 <dt className="text-zinc-500">{entry.label}</dt>
@@ -218,10 +218,10 @@ export function CrawlerPage() {
 
       <section className="mt-4 rounded-lg border border-white/[0.08]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
-          <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">
             recently discovered matches
           </h2>
-          <p className="font-mono text-[10px] text-zinc-500">
+          <p className="font-mono text-[11px] text-zinc-500">
             latest {snapshot.matches.length} of {snapshot.cache.matches.toLocaleString()} ·{' '}
             {snapshot.running ? 'pass in progress' : 'resolver idle'}
           </p>
@@ -234,7 +234,7 @@ export function CrawlerPage() {
           />
         ) : (
           <div className="px-5 pb-2">
-            <div className="hidden grid-cols-[1fr_100px_90px_120px_120px] gap-3 border-b border-white/[0.08] py-2 font-mono text-[9px] uppercase tracking-wide text-zinc-500 sm:grid">
+            <div className="hidden grid-cols-[1fr_100px_90px_120px_120px] gap-3 border-b border-white/[0.08] py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-500 sm:grid">
               <span>match</span>
               <span>region</span>
               <span className="text-right">players</span>
@@ -255,17 +255,17 @@ export function CrawlerPage() {
                     ↗
                   </span>
                 </span>
-                <span className="text-right font-mono text-[11px] text-zinc-400 sm:text-left">
+                <span className="text-right font-mono text-[12px] text-zinc-400 sm:text-left">
                   {regionLabel(match.region)}
                   <span className="ml-1 text-zinc-500 sm:hidden">{regionShort(match.region)}</span>
                 </span>
-                <span className="text-right font-mono text-[11px] text-zinc-400 tabular-nums">
+                <span className="text-right font-mono text-[12px] text-zinc-400 tabular-nums">
                   {match.participants}
                 </span>
-                <span className="text-right font-mono text-[11px] text-zinc-500 tabular-nums">
+                <span className="text-right font-mono text-[12px] text-zinc-500 tabular-nums">
                   {formatDateTime(match.gameStartAt).slice(0, 10)}
                 </span>
-                <span className="text-right font-mono text-[11px] text-zinc-500">
+                <span className="text-right font-mono text-[12px] text-zinc-500">
                   {formatRelative(match.discoveredAt)}
                 </span>
               </a>
