@@ -66,6 +66,7 @@
     "apps/**/*.tsx",
     "packages/**/*.ts",
     "packages/**/*.tsx",
+    "perf/**/*.ts",
     "tools/**/*.ts",
     "*.ts"
   ],

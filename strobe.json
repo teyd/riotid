@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/@hona/strobe/schema/strobe.v1.json",
+  "build": {
+    "command": "pnpm install --frozen-lockfile --prefer-offline && pnpm exec vp build apps/web",
+    "output": "apps/web/dist"
+  },
+  "serve": {
+    "command": "pnpm --dir apps/web exec vp preview --host 127.0.0.1 --port {port} --strictPort",
+    "ready": "http://127.0.0.1:{port}/",
+    "dir": "apps/web/dist"
+  },
+  "harness": ["perf"],
+  "unit": "ms"
+}
