@@ -24,7 +24,8 @@ import {
   displayName,
   fetchIndex,
   fetchPlayer,
-  formatRelative,
+  formatScanCountdown,
+  formatScanTime,
   P,
   type IndexRow,
   type Region,
@@ -63,6 +64,81 @@ const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
 )
 
 const score = (row: IndexRow) => row[P.nameChanges] * 2 + row[P.regionChanges] * 3
+
+type ScanStatusProps = {
+  players: number | null
+  nameChanges: number | null
+  lastRunAt: number | null
+  nextRunAt: number | null
+  isError: boolean
+  onRetry: () => void
+}
+
+const ScanStatus = ({
+  players,
+  nameChanges,
+  lastRunAt,
+  nextRunAt,
+  isError,
+  onRetry,
+}: ScanStatusProps) => {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const exact = (value: number) => new Date(value).toLocaleString()
+
+  return (
+    <footer
+      role={isError ? 'status' : undefined}
+      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400"
+    >
+      {isError ? (
+        <>
+          <span className="text-zinc-300">API offline — retrying</span>
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex min-h-6 items-center px-1 text-zinc-200 underline decoration-white/30 underline-offset-2 hover:text-white"
+          >
+            Retry now
+          </button>
+        </>
+      ) : (
+        <>
+          <span>{players?.toLocaleString() ?? '—'} public players</span>
+          <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
+          <span className="sm:ms-auto">
+            last scan{' '}
+            {lastRunAt ? (
+              <time dateTime={new Date(lastRunAt).toISOString()} title={exact(lastRunAt)}>
+                {formatScanTime(lastRunAt)}
+              </time>
+            ) : (
+              'never'
+            )}
+          </span>
+          <span>
+            next scan{' '}
+            {nextRunAt ? (
+              <>
+                <time dateTime={new Date(nextRunAt).toISOString()} title={exact(nextRunAt)}>
+                  {formatScanTime(nextRunAt)}
+                </time>{' '}
+                <span>({formatScanCountdown(nextRunAt, now)})</span>
+              </>
+            ) : (
+              '—'
+            )}
+          </span>
+        </>
+      )}
+    </footer>
+  )
+}
 
 export function PlayersPage({ selected }: { selected?: string }) {
   const p = selected ?? null
@@ -334,30 +410,6 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 onEscape={escape}
               />
             </div>
-
-            <div
-              role={index.isError ? 'status' : undefined}
-              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] px-4 py-3 font-mono text-[11px] text-zinc-400"
-            >
-              {index.isError ? (
-                <>
-                  <span className="text-zinc-300">API offline — retrying</span>
-                  <button
-                    type="button"
-                    onClick={() => void index.refetch()}
-                    className="inline-flex min-h-6 items-center px-1 text-zinc-200 underline decoration-white/30 underline-offset-2 hover:text-white"
-                  >
-                    Retry now
-                  </button>
-                </>
-              ) : (
-                <span>
-                  {index.data?.players.length.toLocaleString() ?? '—'} public players ·{' '}
-                  {index.data?.stats.nameChanges.toLocaleString() ?? '—'} name changes ·{' '}
-                  {formatRelative(index.data?.stats.lastRunAt ?? null)}
-                </span>
-              )}
-            </div>
           </section>
         </ResizablePanel>
 
@@ -447,6 +499,15 @@ export function PlayersPage({ selected }: { selected?: string }) {
           </section>
         </ResizablePanel>
       </Resizable>
+
+      <ScanStatus
+        players={index.data?.players.length ?? null}
+        nameChanges={index.data?.stats.nameChanges ?? null}
+        lastRunAt={index.data?.stats.lastRunAt ?? null}
+        nextRunAt={index.data?.stats.nextRunAt ?? null}
+        isError={index.isError}
+        onRetry={() => void index.refetch()}
+      />
     </div>
   )
 }

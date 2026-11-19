@@ -42,13 +42,20 @@ describe('api', () => {
       const body = (await response.json()) as {
         version: number
         players: Array<[string, string, string, string, number]>
-        stats: { players: number; linked: number; unresolved: number }
+        stats: {
+          players: number
+          linked: number
+          unresolved: number
+          lastRunAt: number
+          nextRunAt: number
+        }
       }
 
       expect(body.version).toBe(1)
       expect(body.players).toHaveLength(2)
       expect(body.players.map((row) => row[0])).not.toContain('seed-player-3')
       expect(body.stats.unresolved).toBe(1)
+      expect(body.stats.nextRunAt - body.stats.lastRunAt).toBe(6 * 3_600_000)
 
       const changed = body.players.find((row) => row[0] === 'seed-player-1')
       expect(changed?.[1]).toBe('Seed One')
@@ -61,6 +68,20 @@ describe('api', () => {
       })
       expect(cached.status).toBe(304)
     })
+  })
+
+  it('plans the next scan from the configured interval', async () => {
+    await withApp(
+      async (app) => {
+        const response = await request(app, '/api/v1/index')
+        const body = (await response.json()) as {
+          stats: { lastRunAt: number; nextRunAt: number }
+        }
+
+        expect(body.stats.nextRunAt - body.stats.lastRunAt).toBe(2 * 3_600_000)
+      },
+      { scanIntervalHours: 2 },
+    )
   })
 
   it('serves player timelines and link evidence', async () => {

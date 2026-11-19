@@ -14,6 +14,7 @@ import { Effect } from 'effect'
 import { Database } from './client.ts'
 
 const dayMs = 86_400_000
+const hourMs = 3_600_000
 
 type PlayerRow = {
   puuid: string
@@ -43,6 +44,7 @@ export const readIndexVersion: Effect.Effect<number, unknown, Database> = Effect
 export const buildSiteIndex = (
   now = Date.now(),
   indexWindowDays = 30,
+  scanIntervalHours = 6,
 ): Effect.Effect<SiteIndex, unknown, Database> =>
   Effect.gen(function* () {
     const db = yield* Database
@@ -138,6 +140,9 @@ export const buildSiteIndex = (
         linked: anonymous?.linked ?? 0,
         unresolved: anonymous?.unresolved ?? 0,
         lastRunAt: latestRun?.finished_at ?? null,
+        nextRunAt: latestRun?.finished_at
+          ? latestRun.finished_at + scanIntervalHours * hourMs
+          : null,
       },
       cards,
       players,

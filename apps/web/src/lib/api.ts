@@ -62,6 +62,30 @@ export const formatRelative = (value: number | null): string => {
   return `${Math.round(seconds / 2_592_000)}mo ago`
 }
 
+const scanTimeFormat = new Intl.DateTimeFormat(undefined, {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
+export const formatScanTime = (value: number | null): string =>
+  value ? scanTimeFormat.format(value) : '—'
+
+const formatMinutes = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  if (hours === 0) return `${rest}m`
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
+}
+
+export const formatScanCountdown = (target: number | null, now: number): string => {
+  if (!target) return ''
+
+  const minutes = Math.ceil((target - now) / 60_000)
+  return minutes > 0 ? `in ${formatMinutes(minutes)}` : 'due now'
+}
+
 export const formatDate = (value: number | null): string => {
   if (!value) return '—'
   return new Date(value).toISOString().slice(0, 10)
