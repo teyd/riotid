@@ -63,6 +63,9 @@ export const runs = sqliteTable(
     check('runs_status_check', sql`${table.status} IN ('running', 'succeeded', 'failed')`),
     check('runs_trigger_check', sql`${table.trigger} IN ('schedule', 'manual', 'boot')`),
     index('runs_started_idx').on(table.startedAt),
+    index('runs_succeeded_finished_idx')
+      .on(table.finishedAt)
+      .where(sql`${table.status} = 'succeeded'`),
     uniqueIndex('runs_running_idx')
       .on(table.status)
       .where(sql`${table.status} = 'running'`),
@@ -96,7 +99,6 @@ export const runRegions = sqliteTable(
     primaryKey({ columns: [table.runId, table.region] }),
     check('run_regions_region_check', sql`${table.region} IN ('na', 'eu', 'ap', 'kr')`),
     check('run_regions_status_check', sql`${table.status} IN ('running', 'succeeded', 'failed')`),
-    index('run_regions_region_idx').on(table.region, table.status),
   ],
 )
 
@@ -139,9 +141,12 @@ export const players = sqliteTable(
       'players_counters_check',
       sql`${table.timesSeen} >= 0 AND ${table.nameChanges} >= 0 AND ${table.regionChanges} >= 0 AND ${table.banCount} >= 0 AND ${table.unbanCount} >= 0`,
     ),
-    index('players_region_idx').on(table.region, table.lastSeenAt),
-    index('players_last_seen_idx').on(table.lastSeenAt),
-    index('players_name_idx').on(table.name),
+    index('players_region_public_idx')
+      .on(table.region, table.lastSeenAt)
+      .where(sql`${table.isBanned} = 0`),
+    index('players_public_last_seen_idx')
+      .on(table.lastSeenAt, table.puuid)
+      .where(sql`${table.isBanned} = 0`),
   ],
 )
 
@@ -318,7 +323,6 @@ export const identityLinks = sqliteTable(
     check('identity_links_confidence_check', sql`${table.confidence} BETWEEN 0 AND 10000`),
     uniqueIndex('identity_links_anonymous_idx').on(table.anonymousRowId),
     uniqueIndex('identity_links_player_season_idx').on(table.puuid, table.seasonId),
-    index('identity_links_puuid_idx').on(table.puuid),
   ],
 )
 
@@ -338,13 +342,14 @@ export const matchCandidates = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.matchId, table.puuid] }),
     check('match_candidates_region_check', sql`${table.region} IN ('na', 'eu', 'ap', 'kr')`),
-    index('match_candidates_lookup_idx').on(
+    index('match_candidates_fingerprint_idx').on(
       table.region,
       table.competitiveTier,
       table.cardId,
       table.titleId,
+      table.gameStartAt,
     ),
-    index('match_candidates_puuid_idx').on(table.puuid),
+    index('match_candidates_player_idx').on(table.puuid, table.gameStartAt),
     index('match_candidates_created_idx').on(table.createdAt),
   ],
 )
