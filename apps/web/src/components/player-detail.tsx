@@ -8,7 +8,7 @@ import {
   TimelineTitle,
 } from '@ui-sdk/react/timeline'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   cardArt,
@@ -18,6 +18,7 @@ import {
   formatDateTime,
   formatRelative,
   P,
+  playerUrl,
   regionLabel,
   regionShort,
   trackerProfileUrl,
@@ -25,8 +26,9 @@ import {
   type PlayerDetail,
   vtlProfileUrl,
 } from '../lib/api.ts'
+import { copyText } from '../lib/clipboard.ts'
 import { CardArt } from './card-art.tsx'
-import { Badge, EmptyState, LoadingState, Section } from './ui.tsx'
+import { Badge, LoadingState, Section } from './ui.tsx'
 
 type Props = {
   readonly puuid: string
@@ -45,7 +47,7 @@ const HistoryTimeline = ({
   <Timeline aria-label={label} className="space-y-0">
     {items.map((item, index) => (
       <TimelineItem
-        key={`${item.at}-${index}`}
+        key={`${item.at}-${item.title}-${item.subtitle}`}
         status={item.current ? 'current' : 'complete'}
         className="relative grid grid-cols-[10px_1fr] gap-x-4 pb-5 last:pb-0"
       >
@@ -59,7 +61,7 @@ const HistoryTimeline = ({
           <TimelineTitle className="truncate text-sm text-zinc-100">{item.title}</TimelineTitle>
           <TimelineTime
             dateTime={new Date(item.at).toISOString()}
-            className="mt-1 block font-mono text-[12px] text-zinc-500"
+            className="mt-1 block font-mono text-[12px] text-zinc-400"
           >
             {item.subtitle}
           </TimelineTime>
@@ -85,10 +87,10 @@ const HistorySection = ({
 }) => (
   <Section
     title={title}
-    meta={<span className="font-mono text-[11px] text-zinc-500">{items.length}</span>}
+    meta={<span className="font-mono text-[11px] text-zinc-400">{items.length}</span>}
   >
     {items.length === 0 ? (
-      <p className="text-xs text-zinc-500">{empty}</p>
+      <p className="text-xs text-zinc-400">{empty}</p>
     ) : (
       <HistoryTimeline label={title} items={items} />
     )}
@@ -97,14 +99,14 @@ const HistorySection = ({
 
 const HeaderStat = ({ label, value }: { label: string; value: string }) => (
   <div className="flex flex-col justify-center px-3 py-2.5 sm:px-4">
-    <dt className="text-[11px] leading-4 text-zinc-500">{label}</dt>
+    <dt className="text-[11px] leading-4 text-zinc-400">{label}</dt>
     <dd className="mt-0.5 whitespace-nowrap text-[14px] leading-5 text-zinc-200">{value}</dd>
   </div>
 )
 
 const EvidenceDetail = ({ label, value }: { label: string; value: string | number }) => (
   <div>
-    <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
+    <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-400">{label}</dt>
     <dd className="mt-1 break-all font-mono text-[12px] text-zinc-200">{value}</dd>
   </div>
 )
@@ -112,6 +114,17 @@ const EvidenceDetail = ({ label, value }: { label: string; value: string | numbe
 const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
   const a = link.anonymous
   const matchUrl = link.matchId ? `https://vtl.lol/match/${link.matchId}` : null
+  const cardHref = cardLargeArt(a.cardId) ?? cardArt(a.cardId)
+  const cardImage = (
+    <CardArt
+      art={cardLargeArt(a.cardId)}
+      name={a.cardId}
+      fallback="n/a"
+      width={28}
+      height={40}
+      className="flex h-10 w-7 shrink-0 items-center justify-center rounded-sm border border-white/[0.08] bg-white/[0.03] font-mono text-[9px] text-zinc-400"
+    />
+  )
 
   return (
     <div className="border-t border-white/[0.07] py-5 first:border-t-0 first:pt-0">
@@ -122,13 +135,13 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
               ? 'Exact MMR fingerprint in a shared match'
               : 'Direct puuid from the leaderboard row'}
           </p>
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-zinc-500">
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-zinc-400">
             {link.method === 'match_graph'
               ? 'Leaderboard rank is unique per region. Rank, rating, wins, and tier matched exactly; the match supplies the identity.'
               : 'The anonymized leaderboard row still carried a puuid, so no match graph was needed.'}
           </p>
         </div>
-        <span className="font-mono text-[12px] text-zinc-400 tabular-nums">
+        <span className="font-mono text-[12px] text-zinc-300 tabular-nums">
           {(link.confidence / 100).toFixed(2)}% confidence
         </span>
       </div>
@@ -141,26 +154,26 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
         <EvidenceDetail label="region" value={regionLabel(a.region)} />
         <EvidenceDetail label="season" value={a.seasonName ?? 'unknown act'} />
         <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">card</dt>
+          <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-400">card</dt>
           <dd className="mt-1">
-            <a
-              href={cardLargeArt(a.cardId) ?? cardArt(a.cardId) ?? '#'}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="group flex items-center gap-2"
-            >
-              <CardArt
-                art={cardLargeArt(a.cardId)}
-                name={a.cardId}
-                fallback="n/a"
-                width={28}
-                height={40}
-                className="flex h-10 w-7 shrink-0 items-center justify-center rounded-sm border border-white/[0.08] bg-white/[0.03] font-mono text-[9px] text-zinc-500"
-              />
-              <span className="font-mono text-[11px] text-zinc-500 group-hover:text-zinc-300">
-                {a.cardId.slice(0, 8)}
+            {cardHref ? (
+              <a
+                href={cardHref}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="group flex items-center gap-2"
+              >
+                {cardImage}
+                <span className="font-mono text-[11px] text-zinc-400 group-hover:text-zinc-200">
+                  {a.cardId.slice(0, 8)}
+                </span>
+              </a>
+            ) : (
+              <span className="flex items-center gap-2">
+                {cardImage}
+                <span className="font-mono text-[11px] text-zinc-400">{a.cardId.slice(0, 8)}</span>
               </span>
-            </a>
+            )}
           </dd>
         </div>
       </dl>
@@ -168,7 +181,7 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
       <div className="mt-4 space-y-1.5 font-mono text-[12px]">
         {matchUrl ? (
           <p className="break-all">
-            <span className="text-zinc-500">match </span>
+            <span className="text-zinc-400">match </span>
             <a
               href={matchUrl}
               target="_blank"
@@ -179,11 +192,44 @@ const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
             </a>
           </p>
         ) : (
-          <p className="text-zinc-500">no match lookup required</p>
+          <p className="text-zinc-400">no match lookup required</p>
         )}
-        <p className="text-zinc-500">linked {formatDateTime(link.createdAt)}</p>
+        <p className="text-zinc-400">linked {formatDateTime(link.createdAt)}</p>
       </div>
     </div>
+  )
+}
+
+const CopyLink = ({ puuid }: { puuid: string }) => {
+  const [status, setStatus] = useState<'idle' | 'copied' | 'error'>('idle')
+  const timer = useRef<number | undefined>(undefined)
+
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  const copy = async () => {
+    window.clearTimeout(timer.current)
+    const copied = await copyText(playerUrl(window.location.origin, puuid))
+    setStatus(copied ? 'copied' : 'error')
+    timer.current = window.setTimeout(() => setStatus('idle'), copied ? 1600 : 4000)
+  }
+
+  return (
+    <>
+      <ToolbarButton
+        onClick={copy}
+        aria-label="Copy link to this player"
+        className="inline-flex min-h-6 items-center rounded-sm px-1 text-zinc-300 hover:text-white"
+      >
+        {status === 'copied' ? 'copied' : status === 'error' ? 'copy failed' : 'copy link'}
+      </ToolbarButton>
+      <span role="status" className="sr-only">
+        {status === 'copied'
+          ? 'Link copied to clipboard.'
+          : status === 'error'
+            ? 'Could not copy the link. Copy the address from the browser instead.'
+            : ''}
+      </span>
+    </>
   )
 }
 
@@ -193,55 +239,68 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
     queryFn: () => fetchPlayer(puuid),
     staleTime: 60_000,
   })
-  const [copied, setCopied] = useState(false)
+  const backRef = useRef<HTMLButtonElement>(null)
 
   const detail = query.data
   const name = detail?.player.name ?? row?.[P.name] ?? ''
   const tag = detail?.player.tag ?? row?.[P.tag] ?? ''
   const region = detail?.player.region ?? row?.[P.region] ?? null
   const resolvedCardId = detail?.player.cardId ?? cardId
+  const cardHref = cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId)
 
-  const copy = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}/puuid/${puuid}`)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1200)
-  }
+  const cardImage = (
+    <CardArt
+      art={cardArt(resolvedCardId)}
+      name={name}
+      width={56}
+      height={56}
+      loading="eager"
+      className="flex size-14 items-center justify-center font-mono text-sm text-zinc-400"
+    />
+  )
+
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      backRef.current?.focus()
+    }
+  }, [puuid])
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto">
       <div className="sticky top-0 z-10 border-b border-white/[0.08] bg-ink px-6 py-5">
         <button
+          ref={backRef}
           type="button"
           onClick={onBack}
-          className="mb-4 flex items-center gap-1 font-mono text-[11px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 lg:hidden"
+          aria-label="Back to player list"
+          className="-ml-2 mb-4 flex min-h-11 items-center gap-1 rounded-sm px-2 font-mono text-[11px] uppercase tracking-wide text-zinc-400 hover:text-zinc-100 lg:hidden"
         >
-          ← players
+          <span aria-hidden>←</span> players
         </button>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <a
-              href={cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId) ?? '#'}
-              target="_blank"
-              rel="noreferrer noopener"
-              aria-label="Open player card"
-              className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] font-mono text-sm text-zinc-500 sm:flex"
-            >
-              <CardArt
-                art={cardArt(resolvedCardId)}
-                name={name}
-                width={56}
-                height={56}
-                loading="eager"
-                className="flex size-14 items-center justify-center font-mono text-sm text-zinc-500"
-              />
-            </a>
+            {cardHref ? (
+              <a
+                href={cardHref}
+                target="_blank"
+                rel="noreferrer noopener"
+                aria-label="Open player card in a new tab"
+                className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/20 bg-white/[0.03] font-mono text-sm text-zinc-400 sm:flex"
+              >
+                {cardImage}
+              </a>
+            ) : (
+              <span className="relative hidden size-14 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/20 bg-white/[0.03] sm:flex">
+                {cardImage}
+              </span>
+            )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <h1 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
+                <h2 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
                   {name || 'Anonymous'}
-                </h1>
-                {tag ? <span className="font-mono text-sm text-zinc-400">#{tag}</span> : null}
+                </h2>
+                {tag ? <span className="font-mono text-sm text-zinc-300">#{tag}</span> : null}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <Badge>{regionLabel(region)}</Badge>
@@ -250,32 +309,32 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             </div>
           </div>
 
-          <Toolbar
-            aria-label="Player links"
-            className="flex shrink-0 flex-wrap items-center gap-3 font-mono text-[11px] uppercase tracking-wide sm:justify-end"
-          >
-            {name && tag ? (
+          <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+            <Toolbar
+              aria-label="Player links"
+              className="flex flex-wrap items-center gap-3 font-mono text-[11px] uppercase tracking-wide sm:justify-end"
+            >
+              {name && tag ? (
+                <ToolbarLink
+                  href={trackerProfileUrl(name, tag)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex min-h-6 items-center rounded-sm px-1 text-zinc-300 hover:text-white"
+                >
+                  tracker.gg <span aria-hidden>↗</span>
+                </ToolbarLink>
+              ) : null}
               <ToolbarLink
-                href={trackerProfileUrl(name, tag)}
+                href={vtlProfileUrl(puuid)}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-zinc-400 hover:text-zinc-100"
+                className="inline-flex min-h-6 items-center rounded-sm px-1 text-zinc-300 hover:text-white"
               >
-                tracker.gg ↗
+                vtl.lol <span aria-hidden>↗</span>
               </ToolbarLink>
-            ) : null}
-            <ToolbarLink
-              href={vtlProfileUrl(puuid)}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="text-zinc-400 hover:text-zinc-100"
-            >
-              vtl.lol ↗
-            </ToolbarLink>
-            <ToolbarButton onClick={copy} className="text-zinc-400 hover:text-zinc-100">
-              {copied ? 'copied' : 'copy link'}
-            </ToolbarButton>
-          </Toolbar>
+              <CopyLink puuid={puuid} />
+            </Toolbar>
+          </div>
         </div>
 
         <dl className="mt-5 grid grid-cols-3 divide-x divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[12px]">
@@ -291,15 +350,25 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
         </dl>
       </div>
 
-      {query.isPending ? <LoadingState label="Loading history" /> : null}
+      {query.isPending ? <LoadingState label="Loading history…" /> : null}
       {query.isError ? (
-        <EmptyState title="Could not load this player." hint={query.error.message} />
+        <div role="alert" className="flex flex-col items-start gap-3 px-6 py-6">
+          <p className="text-base text-zinc-200">Could not load this player.</p>
+          <p className="font-mono text-xs text-zinc-400">{query.error.message}</p>
+          <button
+            type="button"
+            onClick={() => void query.refetch()}
+            className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
+          >
+            Retry
+          </button>
+        </div>
       ) : null}
 
       {detail ? (
         <>
           {detail.player.isBanned ? (
-            <div className="border-t border-white/[0.08] bg-white/[0.03] px-5 py-3 text-xs text-zinc-400">
+            <div className="border-t border-white/[0.08] bg-white/[0.03] px-5 py-3 text-xs text-zinc-300">
               Ban state comes from the competitive leaderboard flag. History is retained.
             </div>
           ) : null}
@@ -346,7 +415,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
                 ['unbans', detail.player.unbanCount],
               ].map(([label, value]) => (
                 <div key={String(label)}>
-                  <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-400">
                     {label}
                   </dt>
                   <dd className="mt-1 text-2xl font-semibold text-zinc-100 tabular-nums">
@@ -361,7 +430,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             <Section
               title="Identity evidence"
               meta={
-                <span className="font-mono text-[11px] text-zinc-500">{detail.links.length}</span>
+                <span className="font-mono text-[11px] text-zinc-400">{detail.links.length}</span>
               }
             >
               <div className="space-y-2">
@@ -372,7 +441,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             </Section>
           ) : null}
 
-          <div className="border-t border-white/[0.06] px-5 py-4 font-mono text-[11px] text-zinc-500">
+          <div className="border-t border-white/[0.06] px-5 py-4 font-mono text-[11px] text-zinc-400">
             puuid {puuid} · last change {formatDateTime(detail.player.lastNameChangeAt)}
           </div>
         </>

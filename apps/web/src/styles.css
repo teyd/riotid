@@ -21,7 +21,12 @@
 html {
   color-scheme: dark;
   background: var(--color-ink);
-  overscroll-behavior: none;
+}
+
+@media (pointer: fine) {
+  html {
+    overscroll-behavior: none;
+  }
 }
 
 @layer base {
