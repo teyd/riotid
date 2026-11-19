@@ -72,6 +72,7 @@ const index = (): SiteIndex => {
       linked: 26_250,
       unresolved: 3_100,
       lastRunAt: NOW - 3_600_000,
+      nextRunAt: NOW + 5 * 3_600_000,
     },
     cards,
     players,
