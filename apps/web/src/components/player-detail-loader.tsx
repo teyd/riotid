@@ -11,13 +11,29 @@ type Props = {
   readonly puuid: string
   readonly row: IndexRow | null
   readonly cardId: string | null
+  readonly focusOnMount: boolean
+  readonly focusHeading: boolean
   readonly onBack: () => void
 }
 
 const Fallback = () => <DetailSkeleton />
 
-export const PlayerDetailLoader = ({ puuid, row, cardId, onBack }: Props) => (
+export const PlayerDetailLoader = ({
+  puuid,
+  row,
+  cardId,
+  focusOnMount,
+  focusHeading,
+  onBack,
+}: Props) => (
   <Suspense fallback={<Fallback />}>
-    <PlayerDetailPanel puuid={puuid} row={row} cardId={cardId} onBack={onBack} />
+    <PlayerDetailPanel
+      puuid={puuid}
+      row={row}
+      cardId={cardId}
+      focusOnMount={focusOnMount}
+      focusHeading={focusHeading}
+      onBack={onBack}
+    />
   </Suspense>
 )

@@ -34,6 +34,7 @@ type Sort = 'recentChanges' | 'changes' | 'recent' | 'new' | 'name'
 
 let initialSelectionDone = false
 let restoreSearchFocus = false
+let selectionSource: 'list' | 'search' | null = null
 
 const sorts: Array<{ value: Sort; label: string; trigger: string }> = [
   { value: 'recentChanges', label: 'Recent name changes', trigger: 'renames' },
@@ -160,8 +161,10 @@ export function PlayersPage({ selected }: { selected?: string }) {
     return () => window.cancelAnimationFrame(frame)
   }, [])
 
-  const select = (puuid: string | null) => {
+  const select = (puuid: string | null, source: 'list' | 'search' = 'list') => {
+    if (puuid === p) return
     if (puuid) {
+      selectionSource = source
       void navigate({ to: '/puuid/$puuid', params: { puuid }, replace: true })
       return
     }
@@ -223,13 +226,11 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && rows[0]) {
                       event.preventDefault()
-                      select(rows[0][P.puuid])
-                      searchRef.current?.blur()
+                      select(rows[0][P.puuid], 'search')
                     }
                     if (event.key === 'ArrowDown' && rows[0]) {
                       event.preventDefault()
-                      select(rows[0][P.puuid])
-                      searchRef.current?.blur()
+                      select(rows[0][P.puuid], 'search')
                     }
                     if (event.key === 'Escape') {
                       event.preventDefault()
@@ -325,6 +326,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 cards={index.data?.cards ?? []}
                 selected={p ?? null}
                 loading={index.isPending}
+                filtered={deferredQuery.trim() !== '' || region !== 'all'}
+                focusSelectedOnMount={selectionSource === 'list'}
                 searchRef={searchRef}
                 onSelect={select}
                 onPrefetch={prefetch}
@@ -379,6 +382,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 puuid={p}
                 row={selectedRow}
                 cardId={selectedCard}
+                focusOnMount={selectionSource !== null}
+                focusHeading={selectionSource === 'search'}
                 onBack={backToList}
               />
             ) : index.isPending ? (
