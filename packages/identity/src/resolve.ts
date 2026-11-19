@@ -19,7 +19,7 @@ type Region = (typeof regions)[number]
 
 const regionList: ReadonlyArray<Region> = regions
 const maxCandidatesPerRow = 100
-const maxMatchDetailsPerPass = 300
+const maxMatchDetailsPerPass = (limit: number) => Math.min(300, Math.max(10, limit * 3))
 
 export class CrawlerPausedError extends Data.TaggedError('CrawlerPausedError')<{
   readonly message: string
@@ -353,7 +353,7 @@ export const resolveAnonymous = (
       const cachedIds = new Set(cached.map((row) => row.matchId))
       const fresh = matchIds
         .filter((matchId) => !cachedIds.has(matchId))
-        .slice(0, maxMatchDetailsPerPass)
+        .slice(0, maxMatchDetailsPerPass(config.limit))
 
       for (const matchId of fresh) {
         if (!canSpend()) break
