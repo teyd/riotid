@@ -785,7 +785,10 @@ export const resolveAnonymous = (
 
     yield* report({
       phase: 'done',
-      message: plans.length > 0 ? `Linked ${plans.length} rows` : 'Pass complete; no new links',
+      message:
+        plans.length > 0
+          ? `Linked ${plans.length} ${plans.length === 1 ? 'row' : 'rows'}`
+          : 'Pass complete; no new links',
       linked: plans.length,
       ambiguous,
       tried: unresolvedRows.length,
