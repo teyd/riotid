@@ -190,7 +190,7 @@ export const PlayerList = ({
                 onClick={() => onSelect(puuid)}
                 onMouseEnter={() => onPrefetch(puuid)}
                 onFocus={() => onPrefetch(puuid)}
-                className="absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left transition-colors hover:bg-white/[0.035] focus-visible:outline-none data-[selected=true]:bg-white/[0.065]"
+                className="absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left hover:bg-white/[0.035] focus-visible:outline-none data-[selected=true]:bg-white/10"
                 style={{ transform: `translateY(${item.start}px)` }}
               >
                 <CardArt
