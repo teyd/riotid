@@ -309,7 +309,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                         <SelectItem
                           key={item.value}
                           value={item.value}
-                          className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/10 data-[highlighted]:text-zinc-50 data-[selected]:text-zinc-50"
+                          className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/40 data-[highlighted]:text-zinc-50 data-[selected]:text-zinc-50"
                         >
                           {item.label}
                         </SelectItem>
