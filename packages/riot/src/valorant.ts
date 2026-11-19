@@ -1,4 +1,6 @@
-// @effect-diagnostics globalDate:off globalDateInEffect:off
+// @effect-diagnostics globalDate:off globalDateInEffect:off nodeBuiltinImport:off
+import { gunzipSync } from 'node:zlib'
+
 import { Clock, Data, Effect, Schema } from 'effect'
 import * as HttpClient from 'effect/http/HttpClient'
 import * as HttpClientRequest from 'effect/http/HttpClientRequest'
@@ -123,7 +125,9 @@ const requestJson = <S extends Schema.Constraint>(
   schema: S,
 ): Effect.Effect<S['Type'], RiotRequestError, HttpClient.HttpClient | S['DecodingServices']> =>
   Effect.gen(function* () {
-    const response = yield* HttpClient.execute(request).pipe(
+    const response = yield* HttpClient.execute(
+      request.pipe(HttpClientRequest.setHeader('Accept-Encoding', 'gzip')),
+    ).pipe(
       Effect.mapError(
         (error) =>
           new RiotRequestError({
@@ -132,21 +136,44 @@ const requestJson = <S extends Schema.Constraint>(
       ),
     )
 
+    const bodyText = (target: typeof response) =>
+      Effect.gen(function* () {
+        const encoding = target.headers['content-encoding']
+
+        if (encoding !== 'gzip') {
+          return yield* target.text
+        }
+
+        const buffer = yield* target.arrayBuffer
+        return gunzipSync(new Uint8Array(buffer)).toString('utf8')
+      })
+
     if (response.status < 200 || response.status >= 300) {
-      const body = yield* response.text.pipe(Effect.orElseSucceed(() => ''))
+      const body = yield* bodyText(response).pipe(Effect.orElseSucceed(() => ''))
       return yield* new RiotRequestError({
         message: `Riot request failed with HTTP ${response.status}: ${body.slice(0, 200)}`,
         status: response.status,
       })
     }
 
-    const json = yield* response.json.pipe(
-      Effect.mapError(
-        (error) =>
+    const json = yield* Effect.gen(function* () {
+      const body = yield* bodyText(response)
+      return yield* Effect.try({
+        try: () => JSON.parse(body) as unknown,
+        catch: (error) =>
           new RiotRequestError({
             message: `Riot response was not valid JSON: ${String(error)}`,
             status: response.status,
           }),
+      })
+    }).pipe(
+      Effect.mapError((error) =>
+        error instanceof RiotRequestError
+          ? error
+          : new RiotRequestError({
+              message: `Riot response body failed: ${String(error)}`,
+              status: response.status,
+            }),
       ),
     )
 

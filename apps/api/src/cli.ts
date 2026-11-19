@@ -2,6 +2,7 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off globalJsonInEffect:off
 import { copyFileSync, existsSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { isAbsolute, resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { fileURLToPath } from 'node:url'
 
@@ -17,7 +18,7 @@ import {
   players,
   pruneRuns,
   readDatabase,
-  seedDatabase,
+  seedDemoDatabase,
   writeDatabase,
 } from '@riotid/db'
 import {
@@ -78,7 +79,19 @@ const AppConfig = Config.all({
   ),
   matchCacheAutotune: Config.Boolean('MATCH_CACHE_AUTOTUNE').pipe(Config.withDefault(true)),
   matchCacheDays: Config.Int('MATCH_CACHE_DAYS').pipe(Config.withDefault(30)),
-})
+}).pipe(
+  Config.map((config) => {
+    const root = fileURLToPath(new URL('../../..', import.meta.url))
+    const absolute = (value: string) => (isAbsolute(value) ? value : resolve(root, value))
+
+    return {
+      ...config,
+      cookieFile: absolute(config.cookieFile),
+      databasePath: absolute(config.databasePath),
+      backupDirectory: absolute(config.backupDirectory),
+    }
+  }),
+)
 
 const help = `riotid
 
@@ -179,10 +192,12 @@ const dbSeed = Effect.gen(function* () {
   }
 
   yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
-  const result = yield* seedDatabase.pipe(Effect.provide(writeDatabase(config.databasePath)))
+  const result = yield* seedDemoDatabase.pipe(Effect.provide(writeDatabase(config.databasePath)))
 
   yield* Effect.logInfo(
-    result.seeded ? `seeded ${config.databasePath} (run ${result.runId})` : 'seed already applied',
+    result.seeded
+      ? `seeded demo data at ${config.databasePath} (run ${result.runId})`
+      : 'demo seed already applied',
   )
 })
 
@@ -665,6 +680,22 @@ const main = Effect.gen(function* () {
   const config = yield* AppConfig
 
   yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+  if (config.nodeEnv !== 'production') {
+    const count = yield* Effect.gen(function* () {
+      const db = yield* Database
+      return yield* db.get<{ n: number }>(sql`select count(*) as n from players`)
+    }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+    if ((count?.n ?? 0) === 0) {
+      const seeded = yield* seedDemoDatabase.pipe(
+        Effect.provide(writeDatabase(config.databasePath)),
+      )
+      if (seeded.seeded) {
+        yield* Effect.logInfo('seeded demo development data')
+      }
+    }
+  }
 
   const app = makeApp({
     databasePath: config.databasePath,

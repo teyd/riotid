@@ -9,7 +9,8 @@ import { describe, expect, it } from 'vite-plus/test'
 import { checkDatabase } from './check.ts'
 import { Database, migrateDatabase, writeDatabase } from './client.ts'
 import { playerNames } from './schema.ts'
-import { seedDatabase } from './seed.ts'
+import { seedDatabase, seedDemoDatabase } from './seed.ts'
+import { databaseStats } from './maintenance.ts'
 
 const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url))
 
@@ -45,6 +46,30 @@ describe('seed and invariants', () => {
       expect(second.seeded).toBe(false)
       expect(report.ok).toBe(true)
       expect(report.counts.nameOverlaps).toBe(0)
+    })
+  })
+
+  it('seeds an invariant-clean demo dataset once', async () => {
+    await withDatabase('riotid-demo-', async (path) => {
+      const program = Effect.gen(function* () {
+        yield* migrateDatabase(migrationsFolder)
+        const first = yield* seedDemoDatabase
+        const second = yield* seedDemoDatabase
+        const report = yield* checkDatabase
+        const stats = yield* databaseStats
+
+        return { first, second, report, stats }
+      })
+
+      const { first, second, report, stats } = await runDb(path, program)
+
+      expect(first.seeded).toBe(true)
+      expect(second.seeded).toBe(false)
+      expect(report.ok).toBe(true)
+      expect(stats.players).toBe(28)
+      expect(stats.linkedAnonymous).toBe(4)
+      expect(stats.unresolvedAnonymous).toBe(12)
+      expect(stats.openBans).toBe(3)
     })
   })
 
