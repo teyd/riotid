@@ -777,6 +777,13 @@ const main = Effect.gen(function* () {
             startScan: () => startAdminJob('scan', () => scanNow(config)),
             startResolve: () =>
               startAdminJob('resolve', () => resolveNow({ ...config, limit: 500 })),
+            checkBackup: (file) => {
+              if (!file.startsWith(config.backupDirectory)) {
+                return Promise.reject(new Error('backup path is outside the backup directory'))
+              }
+
+              return Effect.runPromise(checkDatabase.pipe(Effect.provide(readDatabase(file))))
+            },
           },
         }
       : {}),

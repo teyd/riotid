@@ -203,6 +203,7 @@ describe('api', () => {
             resolved += 1
             return { started: true }
           },
+          checkBackup: async () => ({ ok: true }),
         },
       },
     )

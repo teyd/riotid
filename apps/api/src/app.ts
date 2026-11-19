@@ -36,6 +36,7 @@ export type AppOptions = {
     readonly token: string
     readonly startScan: () => { readonly started: boolean; readonly running?: boolean }
     readonly startResolve: () => { readonly started: boolean; readonly running?: boolean }
+    readonly checkBackup: (file: string) => Promise<unknown>
   }
 }
 
@@ -271,6 +272,25 @@ export const makeApp = (options: AppOptions) => {
     c.header('Cache-Control', 'public, max-age=300, s-maxage=600')
     c.header('ETag', stats.etag)
     return c.body(stats.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
+  })
+
+  app.post('/api/v1/admin/check', async (c) => {
+    if (!options.admin) {
+      return c.json(errorBody(c, 'not_found', 'Route not found.'), 404)
+    }
+
+    if (c.req.header('x-admin-token') !== options.admin.token) {
+      return c.json(errorBody(c, 'unauthorized', 'Invalid admin token.'), 401)
+    }
+
+    const body = (await c.req.json().catch(() => ({}))) as { file?: unknown }
+
+    if (typeof body.file !== 'string') {
+      return c.json(errorBody(c, 'invalid_file', 'Expected a backup file path.'), 400)
+    }
+
+    const report = await options.admin.checkBackup(body.file)
+    return c.json({ ok: true, report } as const, 200, { 'Cache-Control': 'no-store' })
   })
 
   app.post('/api/v1/admin/:action', async (c) => {
