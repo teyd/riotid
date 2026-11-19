@@ -11,9 +11,11 @@ import { sql } from 'drizzle-orm'
 import { Effect, ManagedRuntime } from 'effect'
 import { Hono, type Context } from 'hono'
 import { compress } from 'hono/compress'
+import { streamSSE } from 'hono/streaming'
 
 import {
   buildServiceStatus,
+  crawlerSnapshot,
   buildSiteIndex,
   buildSiteStats,
   loadPlayerDetail,
@@ -32,12 +34,6 @@ export type AppOptions = {
     readonly stats?: number
     readonly status?: number
   }
-  readonly admin?: {
-    readonly token: string
-    readonly startScan: () => { readonly started: boolean; readonly running?: boolean }
-    readonly startResolve: () => { readonly started: boolean; readonly running?: boolean }
-    readonly checkBackup: (file: string) => Promise<unknown>
-  }
 }
 
 type CachedJson = {
@@ -48,7 +44,21 @@ type CachedJson = {
   readonly etag: string
 }
 
-const indexFormat = 3
+const encodeCached = (key: string, value: unknown, etag: string): CachedJson => {
+  const json = JSON.stringify(value)
+  const gzip = gzipSync(json)
+  const br = brotliCompressSync(json, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 } })
+
+  return {
+    key,
+    json,
+    gzip: gzip.buffer.slice(gzip.byteOffset, gzip.byteOffset + gzip.byteLength) as ArrayBuffer,
+    br: br.buffer.slice(br.byteOffset, br.byteOffset + br.byteLength) as ArrayBuffer,
+    etag,
+  }
+}
+
+const indexFormat = 4
 
 let cachedIndex: CachedJson | null = null
 let cachedStats: CachedJson | null = null
@@ -63,28 +73,11 @@ const getIndex = (databasePath: string, indexWindowDays: number) =>
     }
 
     const value = yield* buildSiteIndex(Date.now(), indexWindowDays)
-    const json = JSON.stringify(value)
-    const cached = {
+    const cached = encodeCached(
       key,
-      json,
-      gzip: (() => {
-        const buffer = gzipSync(json)
-        return buffer.buffer.slice(
-          buffer.byteOffset,
-          buffer.byteOffset + buffer.byteLength,
-        ) as ArrayBuffer
-      })(),
-      br: (() => {
-        const buffer = brotliCompressSync(json, {
-          params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 },
-        })
-        return buffer.buffer.slice(
-          buffer.byteOffset,
-          buffer.byteOffset + buffer.byteLength,
-        ) as ArrayBuffer
-      })(),
-      etag: `"${indexFormat}-${value.version}-${value.players.length}"`,
-    }
+      value,
+      `"${indexFormat}-${value.version}-${value.players.length}"`,
+    )
     cachedIndex = cached
     return cached
   })
@@ -99,26 +92,7 @@ const getStats = (databasePath: string) =>
     }
 
     const value = yield* buildSiteStats
-    const json = JSON.stringify(value)
-    const buffer = gzipSync(json)
-    const cached = {
-      key,
-      json,
-      gzip: buffer.buffer.slice(
-        buffer.byteOffset,
-        buffer.byteOffset + buffer.byteLength,
-      ) as ArrayBuffer,
-      br: (() => {
-        const buffer = brotliCompressSync(json, {
-          params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 },
-        })
-        return buffer.buffer.slice(
-          buffer.byteOffset,
-          buffer.byteOffset + buffer.byteLength,
-        ) as ArrayBuffer
-      })(),
-      etag: `"${version}"`,
-    }
+    const cached = encodeCached(key, value, `"${version}"`)
     cachedStats = cached
     return cached
   })
@@ -305,45 +279,26 @@ export const makeApp = (options: AppOptions) => {
     return c.body(stats.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
   })
 
-  app.post('/api/v1/admin/check', async (c) => {
-    if (!options.admin) {
-      return c.json(errorBody(c, 'not_found', 'Route not found.'), 404)
-    }
+  app.get('/api/v1/crawler', async (c) => {
+    if (await rateLimit(c, 'crawler', limits.stats)) return rateLimited(c)
 
-    if (c.req.header('x-admin-token') !== options.admin.token) {
-      return c.json(errorBody(c, 'unauthorized', 'Invalid admin token.'), 401)
-    }
-
-    const body = (await c.req.json().catch(() => ({}))) as { file?: unknown }
-
-    if (typeof body.file !== 'string') {
-      return c.json(errorBody(c, 'invalid_file', 'Expected a backup file path.'), 400)
-    }
-
-    const report = await options.admin.checkBackup(body.file)
-    return c.json({ ok: true, report } as const, 200, { 'Cache-Control': 'no-store' })
+    const snapshot = await runDb(crawlerSnapshot())
+    return c.json(snapshot, 200, { 'Cache-Control': 'no-store' })
   })
 
-  app.post('/api/v1/admin/:action', async (c) => {
-    if (!options.admin) {
-      return c.json(errorBody(c, 'not_found', 'Route not found.'), 404)
-    }
+  app.get('/api/v1/crawler/stream', async (c) => {
+    if (await rateLimit(c, 'crawler-stream', 10)) return rateLimited(c)
 
-    if (c.req.header('x-admin-token') !== options.admin.token) {
-      return c.json(errorBody(c, 'unauthorized', 'Invalid admin token.'), 401)
-    }
+    c.header('Cache-Control', 'no-store, no-transform')
+    c.header('X-Accel-Buffering', 'no')
 
-    const action = c.req.param('action')
-
-    if (action !== 'scan' && action !== 'anon') {
-      return c.json(errorBody(c, 'not_found', 'Unknown admin action.'), 404)
-    }
-
-    if (await rateLimit(c, `admin:${action}`, 2)) return rateLimited(c)
-
-    const result = action === 'scan' ? options.admin.startScan() : options.admin.startResolve()
-
-    return c.json({ ok: true, ...result } as const, 200, { 'Cache-Control': 'no-store' })
+    return streamSSE(c, async (stream) => {
+      while (!stream.aborted) {
+        const snapshot = await runDb(crawlerSnapshot())
+        await stream.writeSSE({ event: 'snapshot', data: JSON.stringify(snapshot) })
+        await stream.sleep(3000)
+      }
+    })
   })
 
   app.get('/api/v1/status', async (c) => {

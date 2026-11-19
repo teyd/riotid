@@ -79,7 +79,6 @@ const AppConfig = Config.all({
   ),
   matchCacheAutotune: Config.Boolean('MATCH_CACHE_AUTOTUNE').pipe(Config.withDefault(true)),
   matchCacheDays: Config.Int('MATCH_CACHE_DAYS').pipe(Config.withDefault(30)),
-  adminToken: Config.String('ADMIN_TOKEN').pipe(Config.withDefault('')),
 }).pipe(
   Config.map((config) => {
     const root = fileURLToPath(new URL('../../..', import.meta.url))
@@ -400,37 +399,6 @@ const resolvePass = (config: {
       ),
     ),
   )
-
-const adminJobs = new Set<string>()
-
-const startAdminJob = (name: string, run: () => Promise<unknown>) => {
-  if (adminJobs.has(name)) {
-    return { started: false, running: true }
-  }
-
-  adminJobs.add(name)
-  process.stderr.write(`admin ${name} started\n`)
-  void run()
-    .then(() => process.stderr.write(`admin ${name} finished\n`))
-    .catch((error: unknown) => process.stderr.write(`admin ${name} failed: ${String(error)}\n`))
-    .finally(() => adminJobs.delete(name))
-
-  return { started: true }
-}
-
-const checkBackupAt = (file: string, backupDirectory: string) => {
-  if (!file.startsWith(backupDirectory)) {
-    return Promise.reject(new Error('backup path is outside the backup directory'))
-  }
-
-  return Effect.runPromise(checkDatabase.pipe(Effect.provide(readDatabase(file))))
-}
-
-const scanNow = (config: Parameters<typeof scanOnce>[0]) =>
-  Effect.runPromise(scanOnce(config, 'manual'))
-
-const resolveNow = (config: Parameters<typeof resolvePass>[0]) =>
-  Effect.runPromise(resolvePass(config))
 
 const anonResolve = Effect.gen(function* () {
   const config = yield* AppConfig
@@ -773,22 +741,10 @@ const main = Effect.gen(function* () {
     yield* resetInterruptedRuns
   }
 
-  const adminToken = config.adminToken
   const app = makeApp({
     databasePath: config.databasePath,
     cookieFile: config.cookieFile,
     indexWindowDays: config.indexRetentionDays,
-    ...(adminToken
-      ? {
-          admin: {
-            token: adminToken,
-            startScan: () => startAdminJob('scan', () => scanNow(config)),
-            startResolve: () =>
-              startAdminJob('resolve', () => resolveNow({ ...config, limit: 500 })),
-            checkBackup: (file) => checkBackupAt(file, config.backupDirectory),
-          },
-        }
-      : {}),
   })
 
   yield* Effect.logInfo(`riotid api listening on http://localhost:${config.port}`)

@@ -1,6 +1,7 @@
 // @effect-diagnostics globalJsonInEffect:off
 import { Database } from '@riotid/db'
 import type {
+  CrawlerSnapshot,
   IndexPlayer,
   PlayerDetail,
   Region,
@@ -143,6 +144,7 @@ export const buildSiteIndex = (
         row.first_seen_at,
         row.last_seen_at,
         row.card_id ? (cardIndexes.get(row.card_id) ?? null) : null,
+        row.last_name_change_at,
       ]
     })
 
@@ -597,6 +599,13 @@ export const buildServiceStatus = (options: {
         coalesce(sum(case when status = 'linked' then 1 else 0 end), 0) as linked
       from anonymous_rows
     `)
+    const metaRows = yield* db.all<{ key: string; value: string }>(sql`
+      select key, value from meta
+      where key in ('lastBackupAt', 'anon:lastRunAt')
+    `)
+    const metaValues = new Map(metaRows.map((row) => [row.key, row.value]))
+    const backupAt = metaValues.get('lastBackupAt')
+    const anonRunAt = metaValues.get('anon:lastRunAt')
     const databaseOk = ping?.ok === 1
 
     return {
@@ -622,5 +631,60 @@ export const buildServiceStatus = (options: {
         unresolved: anonymous?.unresolved ?? 0,
         linked: anonymous?.linked ?? 0,
       },
+      lastBackupAt: backupAt ? Date.parse(backupAt) : null,
+      lastAnonRunAt: anonRunAt ? Date.parse(anonRunAt) : null,
+    }
+  })
+
+export const crawlerSnapshot = (
+  now = Date.now(),
+): Effect.Effect<CrawlerSnapshot, unknown, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database
+    const today = new Date(now).toISOString().slice(0, 10)
+    const lastRun = yield* db.get<{ value: string }>(
+      sql`select value from meta where key = 'anon:lastRunAt'`,
+    )
+    const runningSince = yield* db.get<{ value: string }>(
+      sql`select value from meta where key = 'anon:runningSince'`,
+    )
+    const requests = yield* db.get<{ value: string }>(
+      sql`select value from meta where key = ${`anon:requests:${today}`}`,
+    )
+    const cache = yield* db.get<{ rows: number; matches: number }>(sql`
+      select count(*) as rows, count(distinct match_id) as matches from match_candidates
+    `)
+    const matches = yield* db.all<{
+      match_id: string
+      region: Region
+      participants: number
+      game_start_at: number
+      discovered_at: number
+    }>(sql`
+      select
+        match_id,
+        region,
+        count(*) as participants,
+        min(game_start_at) as game_start_at,
+        max(created_at) as discovered_at
+      from match_candidates
+      group by match_id, region
+      order by discovered_at desc
+      limit 80
+    `)
+    const since = Number(runningSince?.value ?? '0')
+
+    return {
+      running: since > 0 && now - since < 15 * 60_000,
+      lastRunAt: lastRun ? Date.parse(lastRun.value) : null,
+      requestsToday: Number(requests?.value ?? '0') || 0,
+      cache: { matches: cache?.matches ?? 0, rows: cache?.rows ?? 0 },
+      matches: matches.map((row) => ({
+        matchId: row.match_id,
+        region: row.region,
+        participants: row.participants,
+        gameStartAt: row.game_start_at,
+        discoveredAt: row.discovered_at,
+      })),
     }
   })

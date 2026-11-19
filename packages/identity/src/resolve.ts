@@ -135,6 +135,7 @@ export const resolveAnonymous = (
     const nowDate = new Date(now)
     const today = nowDate.toISOString().slice(0, 10)
     const version = yield* source.getVersion
+    yield* writeMeta('anon:runningSince', String(now), nowDate)
     const usedToday = Number((yield* readMeta(`anon:requests:${today}`)) ?? '0')
     const meter: Meter = { used: Number.isFinite(usedToday) ? usedToday : 0, budget: config.budget }
     const mmrCache = new Map<string, Fingerprint | null>()
@@ -635,6 +636,7 @@ export const resolveAnonymous = (
       history.length = 0
     }
 
+    yield* writeMeta('anon:runningSince', '0', nowDate)
     yield* writeMeta(`anon:requests:${today}`, String(meter.used), nowDate)
     yield* writeMeta('anon:lastRunAt', nowDate.toISOString(), nowDate)
     yield* writeMeta(key, JSON.stringify(history.slice(-7)), nowDate)

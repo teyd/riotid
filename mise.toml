@@ -48,10 +48,21 @@ run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:migrate"
 run = "pnpm --dir packages/db exec drizzle-kit generate"
 
 [tasks.deploy]
-run = "bash scripts/deploy.sh"
+run = '''
+set -euo pipefail
+KEY_FILE="${DOKPLOY_API_KEY_FILE:-$HOME/.config/dokploy/api-key}"
+APP_ID="${DOKPLOY_APP_ID:-your-app-id}"
+DOKPLOY="${DOKPLOY_URL:-http://dokploy.internal:3000}"
+curl -fsS -X POST \
+  -H "x-api-key: $(tr -d '\r\n' < "$KEY_FILE")" \
+  -H 'content-type: application/json' \
+  -d "{\"applicationId\":\"$APP_ID\"}" \
+  "$DOKPLOY/api/application.deploy" >/dev/null
+echo 'Deployment queued'
+'''
 
 [tasks.perf]
-run = "node scripts/perf-check.mjs"
+run = "node apps/web/perf-check.mjs"
 
 [tasks.scan]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts scan"
