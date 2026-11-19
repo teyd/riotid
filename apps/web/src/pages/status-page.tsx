@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
 
-import { Badge, ErrorState } from '../components/ui.tsx'
+import { ErrorState, LoadingState } from '../components/ui.tsx'
 import { fetchStatus, formatDateTime, formatRelative } from '../lib/api.ts'
 
 const Row = ({
@@ -12,13 +13,31 @@ const Row = ({
   value: string
   hint?: string | undefined
 }) => (
-  <div className="flex items-baseline justify-between gap-4 border-b border-white/[0.04] py-3 last:border-0">
-    <span className="font-mono text-[11px] uppercase tracking-wide text-zinc-500">{label}</span>
-    <span className="text-right font-mono text-xs text-zinc-300">
+  <div className="grid grid-cols-[150px_1fr] gap-4 border-b border-white/[0.05] py-3 last:border-0">
+    <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</span>
+    <span className="font-mono text-xs text-zinc-200">
       {value}
-      {hint ? <span className="ml-2 text-zinc-600">{hint}</span> : null}
+      {hint ? <span className="mt-1 block break-all text-zinc-500">{hint}</span> : null}
     </span>
   </div>
+)
+
+const Group = ({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: ReactNode
+}) => (
+  <section className="grid gap-5 border-t border-white/[0.08] py-7 lg:grid-cols-[230px_1fr] lg:gap-10">
+    <div>
+      <h2 className="text-sm font-medium text-zinc-200">{title}</h2>
+      <p className="mt-2 text-xs leading-5 text-zinc-500">{description}</p>
+    </div>
+    <div>{children}</div>
+  </section>
 )
 
 export function StatusPage() {
@@ -29,75 +48,121 @@ export function StatusPage() {
     staleTime: 10_000,
   })
 
-  if (status.isPending) {
-    return <div className="p-6 font-mono text-xs text-zinc-500">Checking readiness…</div>
-  }
-
+  if (status.isPending) return <LoadingState label="Checking readiness" />
   if (status.isError) return <ErrorState error={status.error} />
 
   const data = status.data
 
   return (
-    <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-5 py-8 sm:px-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">readiness</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">Service status</h1>
+    <div className="mx-auto h-full w-full max-w-4xl overflow-y-auto px-5 py-9 sm:px-6">
+      <header>
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-accent">Readiness</p>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-4xl font-semibold tracking-tight text-zinc-50">System status</h1>
+          <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
+            <span className={`size-2 rounded-full ${data.ok ? 'bg-accent' : 'bg-amber-400'}`} />
+            {data.ok ? 'operational' : 'degraded'}
+          </span>
         </div>
-        <Badge tone={data.ok ? 'accent' : 'warn'}>{data.ok ? 'operational' : 'degraded'}</Badge>
-      </div>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">
+          The public API is read-only and never calls Riot. Scans refresh the index; the identity
+          pass and backups run on their own schedules.
+        </p>
+      </header>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-5 py-3">
-          <Row
-            label="api"
-            value={data.ok ? 'ok' : 'error'}
-            hint={`up ${Math.floor(data.uptimeSeconds / 60)}m`}
-          />
-          <Row
-            label="database"
-            value={data.database.ok ? 'ok' : 'error'}
-            hint={data.database.path}
-          />
-          <Row
-            label="index"
-            value={`v${data.index.version}`}
-            hint={`${data.index.players.toLocaleString()} players`}
-          />
-          <Row
-            label="season"
-            value={data.season?.name ?? '—'}
-            hint={data.season ? `ends ${formatDateTime(data.season.endsAt)}` : undefined}
-          />
-        </div>
+      <Group
+        title="Runtime"
+        description="The API process, the SQLite file, and the in-memory public index."
+      >
+        <Row label="api uptime" value={formatDuration(data.uptimeSeconds)} />
+        <Row
+          label="database"
+          value={data.database.ok ? 'open · read-only' : 'unavailable'}
+          hint={data.database.path}
+        />
+        <Row
+          label="index"
+          value={`v${data.index.version} · ${data.index.players.toLocaleString()} players`}
+        />
+        <Row
+          label="season"
+          value={data.season?.name ?? 'none'}
+          hint={data.season ? `ends ${formatDateTime(data.season.endsAt)}` : undefined}
+        />
+      </Group>
 
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-5 py-3">
-          <Row
-            label="latest run"
-            value={data.latestRun ? `#${data.latestRun.id} ${data.latestRun.status}` : '—'}
-            hint={
-              data.latestRun?.finishedAt
-                ? `${formatRelative(data.latestRun.finishedAt)} · ${Math.round((data.latestRun.durationMs ?? 0) / 1000)}s`
-                : undefined
-            }
-          />
-          <Row
-            label="cookie jar"
-            value={data.auth.updatedAt ? formatRelative(data.auth.updatedAt) : 'missing'}
-          />
-          <Row
-            label="anonymous"
-            value={`${data.anonymous.unresolved.toLocaleString()} unresolved`}
-            hint={`${data.anonymous.linked.toLocaleString()} linked`}
-          />
-          <Row label="request id" value={status.data ? 'ok' : '—'} />
-        </div>
-      </div>
+      <Group
+        title="Pipeline"
+        description="Scans, identity resolution, and the local backup rotation."
+      >
+        <Row
+          label="latest scan"
+          value={
+            data.latestRun
+              ? `#${data.latestRun.id} ${data.latestRun.status} · ${data.latestRun.trigger}`
+              : 'none'
+          }
+          hint={
+            data.latestRun?.finishedAt
+              ? `${formatRelative(data.latestRun.finishedAt)} · ${Math.round((data.latestRun.durationMs ?? 0) / 1000)}s`
+              : undefined
+          }
+        />
+        <Row
+          label="identity pass"
+          value={data.lastAnonRunAt ? formatRelative(data.lastAnonRunAt) : 'not run yet'}
+          hint={data.lastAnonRunAt ? formatDateTime(data.lastAnonRunAt) : 'daily scheduler'}
+        />
+        <Row
+          label="last backup"
+          value={data.lastBackupAt ? formatRelative(data.lastBackupAt) : 'not created yet'}
+          hint={data.lastBackupAt ? formatDateTime(data.lastBackupAt) : 'daily rotation'}
+        />
+      </Group>
 
-      <p className="mt-6 font-mono text-xs leading-6 text-zinc-500">
-        Data freshness follows the scan scheduler. The API is read-only and never calls Riot. Cookie
-        jar path: {data.auth.cookieFile}.
+      <Group
+        title="Riot auth"
+        description="The long-lived cookie jar lives on the data volume; tokens refresh every 45 minutes."
+      >
+        <Row
+          label="cookie jar"
+          value={data.auth.updatedAt ? formatRelative(data.auth.updatedAt) : 'missing'}
+          hint={data.auth.cookieFile}
+        />
+        <Row
+          label="refresh policy"
+          value="45 minutes"
+          hint="QR login is only needed when the jar expires"
+        />
+      </Group>
+
+      <Group
+        title="Coverage"
+        description="Anonymized leaderboard rows are linked only with an exact match-graph fingerprint."
+      >
+        <Row
+          label="anonymous rows"
+          value={`${data.anonymous.linked.toLocaleString()} linked · ${data.anonymous.unresolved.toLocaleString()} unresolved`}
+          hint={`${data.anonymous.total.toLocaleString()} observed`}
+        />
+        <Row
+          label="public index"
+          value={`${data.index.players.toLocaleString()} players`}
+          hint="banned and unresolved rows excluded"
+        />
+      </Group>
+
+      <p className="mt-6 font-mono text-[10px] leading-5 text-zinc-600">
+        Unofficial fan project · not affiliated with Riot Games. Status refreshes every 30 seconds.
       </p>
     </div>
   )
+}
+
+const formatDuration = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+  if (seconds < 86_400)
+    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
+  return `${Math.floor(seconds / 86_400)}d`
 }

@@ -7,6 +7,7 @@ export const Route = createRootRoute({
 const nav = [
   { to: '/', label: 'players' },
   { to: '/stats', label: 'stats' },
+  { to: '/crawler', label: 'crawler' },
   { to: '/status', label: 'status' },
 ] as const
 
@@ -21,11 +22,7 @@ function Root() {
       </a>
       <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-ink/95 backdrop-blur">
         <div className="flex h-16 items-center gap-8 px-5 sm:px-6">
-          <Link
-            to="/"
-            search={{ p: undefined }}
-            className="shrink-0 text-lg font-semibold tracking-tight"
-          >
+          <Link to="/" className="shrink-0 text-lg font-semibold tracking-tight">
             riot<span className="text-accent">id</span>
           </Link>
           <nav className="flex items-center gap-1.5">
