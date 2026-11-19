@@ -13,7 +13,5 @@
     "drizzle-orm": "1.0.0-rc.5",
     "effect": "4.1.4"
   },
-  "devDependencies": {
-    "@riotid/test-utils": "workspace:*"
-  }
+  "devDependencies": {}
 }

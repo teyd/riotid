@@ -1,10 +1,27 @@
-import { migrationsFolder, withDatabase } from '@riotid/test-utils'
+import { promises as fs } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { eq } from 'drizzle-orm'
 import { Effect, Exit } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { Database, migrateDatabase, readDatabase, writeDatabase } from './client.ts'
 import { playerNames, players } from './schema.ts'
+
+const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url))
+
+const withDatabase = async (prefix: string, run: (path: string) => Promise<void>) => {
+  const directory = await fs.mkdtemp(join(tmpdir(), prefix))
+  const path = join(directory, 'test.db')
+
+  try {
+    await run(path)
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true })
+  }
+}
 
 describe('database', () => {
   it('migrates an empty database and persists a player', async () => {

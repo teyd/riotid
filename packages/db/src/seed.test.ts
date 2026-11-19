@@ -1,11 +1,31 @@
-import { migrationsFolder, runDb, withDatabase } from '@riotid/test-utils'
+import { promises as fs } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { checkDatabase } from './check.ts'
-import { Database, migrateDatabase } from './client.ts'
+import { Database, migrateDatabase, writeDatabase } from './client.ts'
 import { playerNames } from './schema.ts'
 import { seedDatabase } from './seed.ts'
+
+const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url))
+
+const withDatabase = async (prefix: string, run: (path: string) => Promise<void>) => {
+  const directory = await fs.mkdtemp(join(tmpdir(), prefix))
+  const path = join(directory, 'test.db')
+
+  try {
+    await run(path)
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true })
+  }
+}
+
+const runDb = <A>(path: string, effect: Effect.Effect<A, unknown, Database>) =>
+  Effect.runPromise(effect.pipe(Effect.provide(writeDatabase(path))))
 
 describe('seed and invariants', () => {
   it('seeds once and passes the invariant check', async () => {

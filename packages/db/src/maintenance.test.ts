@@ -1,9 +1,10 @@
 // @effect-diagnostics nodeBuiltinImport:off
 import { promises as fs } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import { fileURLToPath } from 'node:url'
 
-import { migrationsFolder, withTempDirectory } from '@riotid/test-utils'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
@@ -12,6 +13,22 @@ import { Database, migrateDatabase, writeDatabase } from './client.ts'
 import { backupDatabase, databaseStats, pruneRuns } from './maintenance.ts'
 import { playerNames, runs } from './schema.ts'
 import { seedDatabase } from './seed.ts'
+
+const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url))
+
+const withTempDirectory = async (
+  prefix: string,
+  run: (directory: string, path: string) => Promise<void>,
+) => {
+  const directory = await fs.mkdtemp(join(tmpdir(), prefix))
+  const path = join(directory, 'test.db')
+
+  try {
+    await run(directory, path)
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true })
+  }
+}
 
 const prepare = (path: string) =>
   Effect.gen(function* () {
