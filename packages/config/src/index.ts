@@ -45,6 +45,9 @@ export const AppConfig = Config.all({
   maintenanceIntervalHours: Config.Int('SCHEDULER_MAINTENANCE_INTERVAL_HOURS').pipe(
     Config.withDefault(24),
   ),
+  dryRun: Config.Boolean('SCHEDULER_DRY_RUN').pipe(Config.withDefault(false)),
+  // Gates the scheduled job loops only; the scheduler still migrates and serves the API.
+  jobsEnabled: Config.Boolean('SCHEDULER_JOBS').pipe(Config.withDefault(true)),
 }).pipe(
   Config.map((config) => ({
     ...config,
