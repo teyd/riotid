@@ -85,6 +85,16 @@ describe('api', () => {
 
       const response = await request(app, '/api/v1/players/seed-player-1')
       expect(response.status).toBe(200)
+      expect(response.headers.get('cache-control')).toContain('s-maxage=600')
+
+      const detailEtag = response.headers.get('etag')
+      expect(detailEtag).toBeTruthy()
+
+      const revalidated = await request(app, '/api/v1/players/seed-player-1', {
+        headers: { 'if-none-match': detailEtag ?? '' },
+      })
+      expect(revalidated.status).toBe(304)
+      expect(await revalidated.text()).toBe('')
 
       const body = (await response.json()) as {
         player: { name: string; region: string; isBanned: boolean }
@@ -181,6 +191,25 @@ describe('api', () => {
           headers: { 'cf-connecting-ip': '203.0.113.8' },
         })
         expect(other.status).toBe(200)
+      },
+      { rateLimits: { index: 1 } },
+    )
+  })
+
+  it('keeps rate-limit buckets scoped to each app instance', async () => {
+    const ip = { 'cf-connecting-ip': '198.51.100.9' }
+
+    await withApp(
+      async (first) => {
+        expect((await request(first, '/api/v1/index', { headers: ip })).status).toBe(200)
+        expect((await request(first, '/api/v1/index', { headers: ip })).status).toBe(429)
+
+        await withApp(
+          async (second) => {
+            expect((await request(second, '/api/v1/index', { headers: ip })).status).toBe(200)
+          },
+          { rateLimits: { index: 1 } },
+        )
       },
       { rateLimits: { index: 1 } },
     )
