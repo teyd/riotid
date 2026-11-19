@@ -50,6 +50,9 @@ run = "pnpm --dir packages/db exec drizzle-kit generate"
 [tasks.deploy]
 run = "bash scripts/deploy.sh"
 
+[tasks.perf]
+run = "node scripts/perf-check.mjs"
+
 [tasks.scan]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts scan"
 
