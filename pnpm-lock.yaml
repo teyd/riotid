@@ -316,6 +316,12 @@ importers:
         specifier: 4.3.5
         version: 4.3.5
 
+  packages/config:
+    dependencies:
+      effect:
+        specifier: 4.1.4
+        version: 4.1.4
+
   packages/contracts:
     dependencies:
       effect:
@@ -327,6 +333,9 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 4.1.4
         version: 4.1.4(effect@4.1.4)
+      '@riotid/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       drizzle-orm:
         specifier: 1.0.0-rc.5
         version: 1.0.0-rc.5(@effect/sql-sqlite-node@4.1.4(effect@4.1.4))(effect@4.1.4)(zod@4.6.7)

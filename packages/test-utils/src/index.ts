@@ -1,13 +1,12 @@
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-import { Database, migrateDatabase, writeDatabase } from '@riotid/db'
+import { Database, migrateDatabase, migrationsFolder, writeDatabase } from '@riotid/db'
 import { RiotSource, type RiotSourceShape, type AuthSession } from '@riotid/riot'
 import { Effect, Layer } from 'effect'
 
-export const migrationsFolder = fileURLToPath(new URL('../../db/drizzle', import.meta.url))
+export { migrationsFolder }
 
 export const session: AuthSession = {
   cookies: {},

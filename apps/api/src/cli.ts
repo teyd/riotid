@@ -15,6 +15,8 @@ import {
   databaseStats,
   meta,
   migrateDatabase,
+  migrationsFolder,
+  loadPlayerDetail,
   players,
   pruneRuns,
   readDatabase,
@@ -46,7 +48,6 @@ import { Clock, Config, Effect, Layer } from 'effect'
 
 import { makeApp } from './app.ts'
 import { runProbe } from './probe.ts'
-import { loadPlayerDetail } from './site.ts'
 
 const require = createRequire(import.meta.url)
 const qrcode = require('qrcode-terminal') as {
@@ -161,7 +162,6 @@ const authCheck = Effect.gen(function* () {
   yield* printSession(session, config.cookieFile)
 })
 
-const migrationsFolder = fileURLToPath(new URL('../../../packages/db/drizzle', import.meta.url))
 const jsonOutput = process.argv.includes('--json')
 const printJson = (value: unknown) => process.stdout.write(`${JSON.stringify(value)}\n`)
 const logRun = <A, E, R>(label: string, effect: Effect.Effect<A, E, R>) =>

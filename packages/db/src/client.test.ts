@@ -1,16 +1,14 @@
 import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { Effect, Exit } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { Database, migrateDatabase, readDatabase, writeDatabase } from './client.ts'
+import { migrationsFolder } from './paths.ts'
 import { playerNames, players } from './schema.ts'
-
-const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url))
 
 const withDatabase = async (prefix: string, run: (path: string) => Promise<void>) => {
   const directory = await fs.mkdtemp(join(tmpdir(), prefix))
@@ -122,11 +120,7 @@ describe('database', () => {
 
   it('rejects writes through the read-only layer', async () => {
     await withDatabase('riotid-db-', async (path) => {
-      await Effect.runPromise(
-        Effect.gen(function* () {
-          yield* migrateDatabase(migrationsFolder)
-        }).pipe(Effect.provide(writeDatabase(path))),
-      )
+      await Effect.runPromise(migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(path))))
 
       const program = Effect.gen(function* () {
         const db = yield* Database
@@ -140,6 +134,25 @@ describe('database', () => {
       }).pipe(Effect.provide(readDatabase(path)))
 
       expect(Exit.isFailure(await Effect.runPromise(program))).toBe(true)
+    })
+  })
+
+  it('creates missing parent directories for a writable database', async () => {
+    await withDatabase('riotid-db-', async (path) => {
+      const nested = join(path, '..', 'fresh', 'nested', 'riotid.db')
+
+      await Effect.runPromise(
+        migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(nested))),
+      )
+
+      const rows = await Effect.runPromise(
+        Effect.gen(function* () {
+          const db = yield* Database
+          return yield* db.get<{ n: number }>(sql`select count(*) as n from players`)
+        }).pipe(Effect.provide(readDatabase(nested))),
+      )
+
+      expect(rows?.n).toBe(0)
     })
   })
 })
