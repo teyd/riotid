@@ -69,6 +69,36 @@ const HistoryTimeline = ({
   </Timeline>
 )
 
+type HistoryItem = { title: string; subtitle: string; current: boolean; at: number }
+
+const HistorySection = ({
+  title,
+  empty,
+  items,
+}: {
+  title: string
+  empty: string
+  items: ReadonlyArray<HistoryItem>
+}) => (
+  <Section
+    title={title}
+    meta={<span className="font-mono text-[10px] text-zinc-500">{items.length}</span>}
+  >
+    {items.length === 0 ? (
+      <p className="text-xs text-zinc-500">{empty}</p>
+    ) : (
+      <HistoryTimeline label={title} items={items} />
+    )}
+  </Section>
+)
+
+const HeaderStat = ({ label, value }: { label: string; value: string }) => (
+  <div className="px-3 py-3 sm:px-4">
+    <dt className="text-zinc-500">{label}</dt>
+    <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">{value}</dd>
+  </div>
+)
+
 const EvidenceDetail = ({ label, value }: { label: string; value: string | number }) => (
   <div>
     <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
@@ -279,24 +309,15 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
         </div>
 
         <dl className="mt-5 grid grid-cols-3 divide-x divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[11px]">
-          <div className="px-3 py-3 sm:px-4">
-            <dt className="text-zinc-600">first seen</dt>
-            <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">
-              {formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
-            </dd>
-          </div>
-          <div className="px-3 py-3 sm:px-4">
-            <dt className="text-zinc-600">last seen</dt>
-            <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">
-              {formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
-            </dd>
-          </div>
-          <div className="px-3 py-3 sm:px-4">
-            <dt className="text-zinc-600">observations</dt>
-            <dd className="mt-1 whitespace-nowrap text-[13px] text-zinc-200 sm:text-sm">
-              {detail?.player.timesSeen ?? '—'}
-            </dd>
-          </div>
+          <HeaderStat
+            label="first seen"
+            value={formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
+          />
+          <HeaderStat
+            label="last seen"
+            value={formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
+          />
+          <HeaderStat label="observations" value={String(detail?.player.timesSeen ?? '—')} />
         </dl>
       </div>
 
@@ -313,62 +334,38 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             </div>
           ) : null}
 
-          <Section
+          <HistorySection
             title="Name history"
-            meta={
-              <span className="font-mono text-[10px] text-zinc-600">{detail.names.length}</span>
-            }
-          >
-            {detail.names.length === 0 ? (
-              <p className="text-xs text-zinc-600">No authoritative name yet.</p>
-            ) : (
-              <HistoryTimeline
-                label="Name history"
-                items={[...detail.names].reverse().map((interval) => ({
-                  title: `${interval.name}#${interval.tag}`,
-                  subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
-                  current: interval.endedAt === null,
-                  at: interval.startedAt,
-                }))}
-              />
-            )}
-          </Section>
+            empty="No authoritative name yet."
+            items={[...detail.names].reverse().map((interval) => ({
+              title: `${interval.name}#${interval.tag}`,
+              subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
+              current: interval.endedAt === null,
+              at: interval.startedAt,
+            }))}
+          />
 
-          <Section
+          <HistorySection
             title="Region history"
-            meta={
-              <span className="font-mono text-[10px] text-zinc-600">{detail.regions.length}</span>
-            }
-          >
-            <HistoryTimeline
-              label="Region history"
-              items={[...detail.regions].reverse().map((interval) => ({
-                title: regionLabel(interval.region),
-                subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'} · ${regionShort(interval.region)} affinity`,
-                current: interval.endedAt === null,
-                at: interval.startedAt,
-              }))}
-            />
-          </Section>
+            empty="No region interval observed."
+            items={[...detail.regions].reverse().map((interval) => ({
+              title: regionLabel(interval.region),
+              subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'} · ${regionShort(interval.region)} affinity`,
+              current: interval.endedAt === null,
+              at: interval.startedAt,
+            }))}
+          />
 
-          <Section
+          <HistorySection
             title="Ban history"
-            meta={<span className="font-mono text-[10px] text-zinc-600">{detail.bans.length}</span>}
-          >
-            {detail.bans.length === 0 ? (
-              <p className="text-xs text-zinc-600">No ban interval observed.</p>
-            ) : (
-              <HistoryTimeline
-                label="Ban history"
-                items={[...detail.bans].reverse().map((interval) => ({
-                  title: interval.endedAt ? 'Banned, then unbanned' : 'Banned',
-                  subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
-                  current: interval.endedAt === null,
-                  at: interval.startedAt,
-                }))}
-              />
-            )}
-          </Section>
+            empty="No ban interval observed."
+            items={[...detail.bans].reverse().map((interval) => ({
+              title: interval.endedAt ? 'Banned, then unbanned' : 'Banned',
+              subtitle: `${formatDate(interval.startedAt)} → ${interval.endedAt ? formatDate(interval.endedAt) : 'present'}`,
+              current: interval.endedAt === null,
+              at: interval.startedAt,
+            }))}
+          />
 
           <Section title="Counters">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
@@ -394,7 +391,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             <Section
               title="Identity evidence"
               meta={
-                <span className="font-mono text-[10px] text-zinc-600">{detail.links.length}</span>
+                <span className="font-mono text-[10px] text-zinc-500">{detail.links.length}</span>
               }
             >
               <div className="space-y-2">
@@ -405,7 +402,7 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             </Section>
           ) : null}
 
-          <div className="border-t border-white/[0.06] px-5 py-4 font-mono text-[10px] text-zinc-600">
+          <div className="border-t border-white/[0.06] px-5 py-4 font-mono text-[10px] text-zinc-500">
             puuid {puuid} · last change {formatDateTime(detail.player.lastNameChangeAt)}
           </div>
         </>
