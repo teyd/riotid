@@ -294,19 +294,20 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
           </Section>
 
           <Section title="Counters">
-            <dl className="grid grid-cols-2 gap-2 font-mono text-[10px] sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
               {[
                 ['name changes', detail.player.nameChanges],
                 ['region changes', detail.player.regionChanges],
                 ['bans', detail.player.banCount],
                 ['unbans', detail.player.unbanCount],
               ].map(([label, value]) => (
-                <div
-                  key={String(label)}
-                  className="rounded border border-white/5 bg-white/[0.02] px-2 py-1.5"
-                >
-                  <dt className="text-zinc-600">{label}</dt>
-                  <dd className="mt-0.5 text-sm text-zinc-200">{value}</dd>
+                <div key={String(label)}>
+                  <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-2xl font-semibold text-zinc-100 tabular-nums">
+                    {value}
+                  </dd>
                 </div>
               ))}
             </dl>

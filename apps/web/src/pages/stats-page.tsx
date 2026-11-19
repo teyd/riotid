@@ -135,7 +135,9 @@ export function StatsPage() {
             <MeterLabel className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500">
               linked / observed
             </MeterLabel>
-            <MeterValue className="font-mono text-xs text-zinc-300" />
+            <span className="font-mono text-xs text-zinc-300 tabular-nums">
+              {(data.coverage.ratio * 100).toFixed(2)}%
+            </span>
           </div>
           <MeterTrack className="mt-2 h-1.5 overflow-hidden rounded bg-white/[0.06]">
             <MeterIndicator className="h-full rounded bg-accent" />
