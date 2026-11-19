@@ -1,4 +1,11 @@
-import { Select, SelectContent, SelectItem, SelectLabel, SelectTrigger } from '@ui-sdk/react/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@ui-sdk/react/select'
 import { Input } from '@ui-sdk/react/input'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
@@ -224,18 +231,24 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     {rows.length.toLocaleString()}
                   </span>
                   <Select
+                    items={sorts}
                     value={sort}
                     onValueChange={(value) => {
                       if (value) setSort(value as Sort)
                     }}
-                    items={sorts}
                   >
                     <SelectLabel className="sr-only">Sort players</SelectLabel>
                     <SelectTrigger
                       aria-label={`Sort players: ${sortOption?.label ?? sort}`}
                       className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200"
                     >
-                      <span>{sortOption?.trigger ?? sort}</span>
+                      <SelectValue>
+                        {(state) =>
+                          sorts.find((item) => item.value === state.value)?.trigger ??
+                          sortOption?.trigger ??
+                          sort
+                        }
+                      </SelectValue>
                       <span aria-hidden className="text-[11px] leading-none text-zinc-500">
                         ▼
                       </span>
