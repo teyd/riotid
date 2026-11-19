@@ -25,8 +25,8 @@ const Row = ({
   hint?: string | undefined
 }) => (
   <div className="grid grid-cols-[130px_1fr] gap-3 border-b border-white/[0.05] py-2.5 last:border-0">
-    <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-500">{label}</span>
-    <span className="font-mono text-[11px] text-zinc-200">
+    <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500">{label}</span>
+    <span className="font-mono text-[12px] text-zinc-200">
       {value}
       {hint ? <span className="mt-0.5 block break-all text-zinc-500">{hint}</span> : null}
     </span>
@@ -70,10 +70,10 @@ export function StatusPage() {
   return (
     <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-5 py-9 sm:px-6">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">Readiness</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-zinc-500">Readiness</p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-4xl font-semibold tracking-tight text-zinc-50">System status</h1>
-          <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-zinc-400">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wide text-zinc-400">
             <span className={`size-1.5 rounded-full ${data.ok ? 'bg-[#4ade80]' : 'bg-zinc-500'}`} />
             {data.ok ? 'operational' : 'degraded'}
           </span>
@@ -136,7 +136,7 @@ export function StatusPage() {
               </Waterfall>
             )}
           </div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-zinc-500">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-500">
             {[
               ['succeeded', statusColor.succeeded],
               ['failed', statusColor.failed],
@@ -168,7 +168,7 @@ export function StatusPage() {
               centerLabel="linked"
             />
           </div>
-          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[10px]">
+          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
             <StatRow label="observed rows" value={data.anonymous.total} />
             <StatRow label="unresolved" value={data.anonymous.unresolved} muted />
           </dl>
@@ -241,7 +241,7 @@ export function StatusPage() {
         </Panel>
       </div>
 
-      <p className="mt-6 font-mono text-[10px] leading-5 text-zinc-500">
+      <p className="mt-6 font-mono text-[11px] leading-5 text-zinc-500">
         Unofficial fan project · not affiliated with Riot Games. Status refreshes every 30 seconds.
       </p>
     </div>

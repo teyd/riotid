@@ -43,7 +43,7 @@ const RecentList = ({
           className="flex items-baseline justify-between gap-3 py-2.5 hover:text-zinc-100"
         >
           <span className="truncate text-sm text-zinc-300">{row.label}</span>
-          <span className="shrink-0 font-mono text-[10px] text-zinc-500">{row.meta}</span>
+          <span className="shrink-0 font-mono text-[11px] text-zinc-500">{row.meta}</span>
         </Link>
       ))
     )}
@@ -61,7 +61,7 @@ const RegionCard = ({ region, data }: { region: string; data: SiteStats['regions
     <div className="rounded-lg border border-white/[0.08] p-4">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="text-base font-medium text-zinc-100">{regionLabel(region)}</h3>
-        <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-500">
+        <span className="font-mono text-[11px] uppercase tracking-wide text-zinc-500">
           {data.players.toLocaleString()} players
         </span>
       </div>
@@ -84,7 +84,7 @@ const RegionCard = ({ region, data }: { region: string; data: SiteStats['regions
         </ResponsiveContainer>
       </div>
 
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[10px]">
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
         {(
           [
             ['avg rr', data.averageRating],
@@ -124,7 +124,7 @@ export function StatsPage() {
   return (
     <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-5 py-9 sm:px-6">
       <header className="max-w-3xl">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-zinc-500">
           Ladder aggregates
         </p>
         <h1 className="mt-2 text-4xl font-semibold tracking-tight text-zinc-50 text-balance">
@@ -222,7 +222,7 @@ export function StatsPage() {
               </ResponsiveContainer>
             )}
           </div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-zinc-500">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-zinc-500">
             {[
               ['players', chartColors.players],
               ['renames', chartColors.renames],
@@ -251,7 +251,7 @@ export function StatsPage() {
               centerLabel="linked"
             />
           </div>
-          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[10px]">
+          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
             <StatRow label="linked rows" value={data.coverage.linked} />
             <StatRow label="unresolved rows" value={data.coverage.unresolved} muted />
           </dl>
@@ -269,7 +269,7 @@ export function StatsPage() {
               include banned players; the public index excludes them.
             </p>
           </div>
-          <p className="font-mono text-[10px] text-zinc-500">
+          <p className="font-mono text-[11px] text-zinc-500">
             {data.totals.runs.toLocaleString()} {data.totals.runs === 1 ? 'scan' : 'scans'} observed
           </p>
         </div>

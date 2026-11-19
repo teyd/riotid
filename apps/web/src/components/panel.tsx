@@ -15,8 +15,8 @@ export const Panel = ({
 }) => (
   <section className={`rounded-lg border border-white/[0.08] p-5 ${className}`}>
     <div className="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">{title}</h2>
-      {meta ? <span className="font-mono text-[10px] text-zinc-500">{meta}</span> : null}
+      <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500">{title}</h2>
+      {meta ? <span className="font-mono text-[11px] text-zinc-500">{meta}</span> : null}
     </div>
     {description ? <p className="mt-1.5 text-xs leading-5 text-zinc-500">{description}</p> : null}
     {children}
@@ -25,7 +25,7 @@ export const Panel = ({
 
 export const Metric = ({ label, value }: { label: string; value: string | number }) => (
   <div className="bg-black px-4 py-4">
-    <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">{label}</p>
+    <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">{label}</p>
     <p className="mt-1.5 text-2xl font-semibold tracking-tight text-zinc-100 tabular-nums">
       {typeof value === 'number' ? value.toLocaleString() : value}
     </p>

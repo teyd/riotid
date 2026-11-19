@@ -20,13 +20,13 @@ export const chartTooltipStyle = {
   border: '1px solid rgba(255,255,255,0.12)',
   borderRadius: 6,
   fontFamily: 'Commit Mono, monospace',
-  fontSize: 11,
+  fontSize: 12,
   padding: '8px 10px',
 } as const
 
 export const chartAxisTick = {
   fill: '#71717a',
-  fontSize: 10,
+  fontSize: 11,
   fontFamily: 'Commit Mono, monospace',
 } as const
 
@@ -62,7 +62,7 @@ export const Donut = ({
       <span className="text-3xl font-semibold tracking-tight text-zinc-50 tabular-nums">
         {centerValue}
       </span>
-      <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-500">
+      <span className="mt-1 font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500">
         {centerLabel}
       </span>
     </div>

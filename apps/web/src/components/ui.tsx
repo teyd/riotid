@@ -15,7 +15,7 @@ export const Badge = ({
   }
 
   return (
-    <span className={`font-mono text-[10px] uppercase tracking-[0.18em] ${tones[tone]}`}>
+    <span className={`font-mono text-[11px] uppercase tracking-[0.18em] ${tones[tone]}`}>
       {children}
     </span>
   )
