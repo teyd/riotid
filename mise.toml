@@ -1,0 +1,30 @@
+[tools]
+node = "26.13.1"
+pnpm = "12.21.0"
+
+[tasks.install]
+run = "pnpm install"
+
+[tasks.dev]
+run = "pnpm exec varlock run -- pnpm exec vp run -r --parallel dev"
+
+[tasks.check]
+run = "pnpm exec effect-tsgo vp check && pnpm exec effect-tsgo tsc -p tsconfig.json"
+
+[tasks.lint]
+run = "pnpm exec effect-tsgo vp lint"
+
+[tasks.fmt]
+run = "pnpm exec vp fmt"
+
+[tasks.test]
+run = "pnpm exec vp run -r test"
+
+[tasks.build]
+run = "pnpm exec vp build apps/web"
+
+[tasks.serve]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts serve"
+
+[tasks.ci]
+run = "mise run check && mise run test && mise run build"

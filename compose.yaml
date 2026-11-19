@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    ports:
+      - '8787:3000'
+    environment:
+      PORT: 3000
+      PUBLIC_ORIGIN: http://localhost:8787
+    volumes:
+      - ./data:/app/data

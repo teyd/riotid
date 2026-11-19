@@ -1,0 +1,16 @@
+{
+  "name": "@riotid/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/cli.ts serve",
+    "start": "node src/cli.ts serve",
+    "test": "vp test"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.9",
+    "@riotid/contracts": "workspace:*",
+    "effect": "4.1.4",
+    "hono": "4.13.19"
+  }
+}

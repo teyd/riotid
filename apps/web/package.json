@@ -1,0 +1,30 @@
+{
+  "name": "@riotid/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "preview": "vp preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "5.3.0",
+    "@riotid/contracts": "workspace:*",
+    "@tanstack/query-db-collection": "1.5.2",
+    "@tanstack/react-db": "1.0.0-rc.1.5",
+    "@tanstack/react-query": "5.108.0",
+    "@tanstack/react-router": "1.170.46",
+    "@tanstack/react-virtual": "3.14.26",
+    "@ui-sdk/core": "0.1.0-beta.10",
+    "@ui-sdk/react": "0.1.0-beta.10",
+    "kubai-icons-react": "0.12.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.5",
+    "@tanstack/router-plugin": "1.169.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "tailwindcss": "4.3.5"
+  }
+}

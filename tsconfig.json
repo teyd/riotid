@@ -1,0 +1,49 @@
+{
+  "$schema": "./node_modules/@effect/tsgo/schema.json",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnostics": true,
+        "includeSuggestionsInTsc": true,
+        "diagnosticSeverity": {
+          "floatingEffect": "error",
+          "missingEffectContext": "error",
+          "missingEffectError": "error",
+          "missingLayerContext": "error",
+          "unstableApiUsage": "error",
+          "outdatedApi": "error",
+          "globalFetchInEffect": "error",
+          "globalConsoleInEffect": "error",
+          "processEnvInEffect": "error",
+          "runEffectInsideEffect": "error"
+        },
+        "overrides": [
+          {
+            "include": ["apps/**/src/**/*.ts", "packages/**/src/**/*.ts", "tools/**/src/**/*.ts"],
+            "options": {
+              "diagnosticSeverity": {
+                "floatingEffect": "error"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "include": [
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "tools/**/*.ts",
+    "*.ts"
+  ],
+  "exclude": ["node_modules", "dist", "coverage"]
+}

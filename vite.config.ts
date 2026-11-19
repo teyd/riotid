@@ -1,0 +1,31 @@
+import { defineConfig } from 'vite-plus'
+
+export default defineConfig({
+  lint: {
+    plugins: ['typescript'],
+    options: {
+      typeAware: true,
+      typeCheck: true,
+    },
+    overrides: [
+      {
+        files: ['apps/web/**'],
+        plugins: ['react'],
+        env: { browser: true },
+      },
+      {
+        files: ['apps/api/**', 'packages/**', 'tools/**'],
+        env: { node: true },
+      },
+    ],
+  },
+  fmt: {
+    singleQuote: true,
+    semi: false,
+    printWidth: 100,
+    trailingComma: 'all',
+  },
+  test: {
+    include: ['apps/**/*.test.ts', 'packages/**/*.test.ts'],
+  },
+})

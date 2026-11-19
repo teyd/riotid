@@ -1,0 +1,36 @@
+{
+  "name": "riotid",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp run -r --parallel dev",
+    "serve": "node apps/api/src/cli.ts serve",
+    "check": "effect-tsgo vp check && effect-tsgo tsc -p tsconfig.json",
+    "lint": "effect-tsgo vp lint",
+    "fmt": "vp fmt",
+    "test": "vp run -r test",
+    "build": "vp build apps/web",
+    "smoke": "node apps/api/src/cli.ts status",
+    "typecheck": "effect-tsgo tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@effect/tsgo": "0.70.0",
+    "@playwright/test": "1.65.1",
+    "@tailwindcss/vite": "4.3.5",
+    "@types/node": "26.6.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@varlock/infisical-plugin": "2.1.3",
+    "@varlock/vite-integration": "1.5.6",
+    "drizzle-kit": "1.0.0-rc.5",
+    "tailwindcss": "4.3.5",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "varlock": "1.25.0",
+    "vite-plus": "1.7.0"
+  },
+  "engines": {
+    "node": ">=26"
+  },
+  "packageManager": "pnpm@12.21.0"
+}
