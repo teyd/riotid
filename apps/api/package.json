@@ -15,6 +15,7 @@
     "@riotid/identity": "workspace:*",
     "@riotid/ingest": "workspace:*",
     "@riotid/riot": "workspace:*",
+    "drizzle-orm": "1.0.0-rc.5",
     "effect": "4.1.4",
     "hono": "4.13.19",
     "qrcode-terminal": "0.12.0"

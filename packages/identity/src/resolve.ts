@@ -502,6 +502,19 @@ export const resolveAnonymous = (
             .onConflictDoNothing()
         }
 
+        if (plans.length > 0) {
+          yield* tx
+            .insert(meta)
+            .values({ key: 'indexVersion', value: '1', updatedAt: nowDate })
+            .onConflictDoUpdate({
+              target: meta.key,
+              set: {
+                value: sql`cast(${meta.value} as integer) + 1`,
+                updatedAt: nowDate,
+              },
+            })
+        }
+
         const tried = unresolvedRows.map((row) => row.id)
         if (tried.length > 0) {
           yield* tx

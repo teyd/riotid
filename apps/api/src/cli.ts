@@ -6,11 +6,14 @@ import { fileURLToPath } from 'node:url'
 
 import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
 import {
+  anonymousRows,
   backupDatabase,
   checkDatabase,
   Database,
   databaseStats,
+  meta,
   migrateDatabase,
+  players,
   pruneRuns,
   readDatabase,
   seedDatabase,
@@ -36,10 +39,12 @@ import {
   saveCookieFile,
   type AuthSession,
 } from '@riotid/riot'
+import { sql } from 'drizzle-orm'
 import { Clock, Config, Effect, Layer } from 'effect'
 
 import { makeApp } from './app.ts'
 import { runProbe } from './probe.ts'
+import { loadPlayerDetail } from './site.ts'
 
 const require = createRequire(import.meta.url)
 const qrcode = require('qrcode-terminal') as {
@@ -348,6 +353,100 @@ const anonCache = Effect.gen(function* () {
   }
 })
 
+const bumpIndex = (now: Date) =>
+  Effect.gen(function* () {
+    const db = yield* Database
+    yield* db
+      .insert(meta)
+      .values({ key: 'indexVersion', value: '1', updatedAt: now })
+      .onConflictDoUpdate({
+        target: meta.key,
+        set: { value: sql`cast(${meta.value} as integer) + 1`, updatedAt: now },
+      })
+  })
+
+const indexRebuild = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const now = new Date()
+
+  yield* bumpIndex(now).pipe(Effect.provide(writeDatabase(config.databasePath)))
+  yield* Effect.logInfo('index version bumped; API will rebuild on the next request')
+})
+
+const playerShow = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const puuid = process.argv[3]
+
+  if (!puuid) {
+    process.stderr.write('usage: riotid player:show <puuid>\n')
+    process.exitCode = 2
+    return
+  }
+
+  const detail = yield* loadPlayerDetail(puuid).pipe(
+    Effect.provide(readDatabase(config.databasePath)),
+  )
+
+  if (!detail) {
+    process.stderr.write(`player not found: ${puuid}\n`)
+    process.exitCode = 1
+    return
+  }
+
+  if (jsonOutput) {
+    printJson(detail)
+  } else {
+    yield* Effect.logInfo(JSON.stringify(detail, null, 2))
+  }
+})
+
+const playerRemove = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const puuid = process.argv[3]
+
+  if (!puuid) {
+    process.stderr.write('usage: riotid player:remove <puuid> --yes\n')
+    process.exitCode = 2
+    return
+  }
+
+  if (!process.argv.includes('--yes')) {
+    process.stderr.write(`refusing to redact ${puuid} without --yes\n`)
+    process.exitCode = 1
+    return
+  }
+
+  const now = new Date()
+  const removed = yield* Effect.gen(function* () {
+    const db = yield* Database
+    return yield* db.transaction((tx) =>
+      Effect.gen(function* () {
+        yield* tx
+          .update(anonymousRows)
+          .set({ status: 'ignored', resolvedPuuid: null, updatedAt: now })
+          .where(sql`${anonymousRows.resolvedPuuid} = ${puuid}`)
+        const deleted = yield* tx
+          .delete(players)
+          .where(sql`${players.puuid} = ${puuid}`)
+          .returning({ puuid: players.puuid })
+        return deleted.length
+      }),
+    )
+  }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+  yield* bumpIndex(now).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+  if (jsonOutput) {
+    printJson({ puuid, removed: removed > 0 })
+  } else {
+    yield* Effect.logInfo(removed > 0 ? `redacted ${puuid}` : `player not found: ${puuid}`)
+  }
+
+  if (removed === 0) {
+    process.exitCode = 1
+  }
+})
+
 const dbCheck = Effect.gen(function* () {
   const config = yield* AppConfig
   const report = yield* checkDatabase.pipe(Effect.provide(readDatabase(config.databasePath)))
@@ -477,6 +576,21 @@ const main = Effect.gen(function* () {
     return
   }
 
+  if (command === 'index:rebuild') {
+    yield* indexRebuild
+    return
+  }
+
+  if (command === 'player:show') {
+    yield* playerShow
+    return
+  }
+
+  if (command === 'player:remove') {
+    yield* playerRemove
+    return
+  }
+
   if (command === 'db:prune') {
     yield* pruneCommand
     return
@@ -492,7 +606,7 @@ const main = Effect.gen(function* () {
 
   yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
 
-  const app = makeApp()
+  const app = makeApp({ databasePath: config.databasePath, cookieFile: config.cookieFile })
 
   yield* Effect.logInfo(`riotid api listening on http://localhost:${config.port}`)
   yield* Effect.logInfo(`public origin: ${config.publicOrigin}`)

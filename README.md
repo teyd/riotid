@@ -24,6 +24,9 @@ The approved implementation plan lives in
 - `mise run anon:list` — show anonymous rows and match-cache totals
 - `mise run anon:resolve` — run one budgeted identity-resolution pass
 - `mise run anon:cache` — inspect the match cache (`-- --prune` to trim it)
+- `mise run index:rebuild` — bump the API index version after manual changes
+- `mise run player:show -- <puuid>` — print a player's timelines and link evidence
+- `mise run player:remove -- <puuid> --yes` — redact a player for takedown
 
 The in-process scheduler runs in production (`NODE_ENV=production`); during local development use `mise run scan` when you want a real scan.
 

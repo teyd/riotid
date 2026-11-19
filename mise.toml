@@ -68,6 +68,15 @@ run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:resolve"
 [tasks."anon:cache"]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:cache"
 
+[tasks."index:rebuild"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts index:rebuild"
+
+[tasks."player:show"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts player:show"
+
+[tasks."player:remove"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts player:remove"
+
 [tasks."db:seed"]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:seed"
 

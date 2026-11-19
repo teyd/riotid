@@ -777,10 +777,16 @@ export const scan = (
 
         yield* tx
           .insert(meta)
-          .values({ key: 'latestSuccessfulRunId', value: String(runId), updatedAt: finishedAt })
+          .values([
+            { key: 'latestSuccessfulRunId', value: String(runId), updatedAt: finishedAt },
+            { key: 'indexVersion', value: '1', updatedAt: finishedAt },
+          ])
           .onConflictDoUpdate({
             target: meta.key,
-            set: { value: String(runId), updatedAt: finishedAt },
+            set: {
+              value: sql`case when ${meta.key} = 'indexVersion' then cast(${meta.value} as integer) + 1 else excluded.value end`,
+              updatedAt: finishedAt,
+            },
           })
       }),
     )

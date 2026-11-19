@@ -196,6 +196,7 @@ export const seedDatabase = Effect.gen(function* () {
     .insert(meta)
     .values([
       { key: 'seed', value: '1' },
+      { key: 'indexVersion', value: '1' },
       ...(runId === null ? [] : [{ key: 'latestSuccessfulRunId', value: String(runId) }]),
     ])
 
