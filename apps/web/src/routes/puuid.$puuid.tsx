@@ -1,41 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
 
-import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
-import { fetchIndex, P } from '../lib/api.ts'
+import { PlayersPage } from '../pages/players-page.tsx'
 
 export const Route = createFileRoute('/puuid/$puuid')({
-  component: PlayerPage,
+  component: PlayerRoute,
 })
 
-function PlayerPage() {
+function PlayerRoute() {
   const { puuid } = Route.useParams()
-  const navigate = useNavigate()
-  const index = useQuery({
-    queryKey: ['index'],
-    queryFn: fetchIndex,
-    staleTime: 60_000,
-  })
-
-  useEffect(() => {
-    if (index.isError) {
-      void navigate({ to: '/', search: { p: undefined }, replace: true })
-    }
-  }, [index.isError, navigate])
-
-  const row = index.data?.players.find((item) => item[P.puuid] === puuid) ?? null
-  const cardIndex = row?.[P.cardId]
-  const cardId = cardIndex == null ? null : (index.data?.cards[cardIndex] ?? null)
-
-  return (
-    <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col border-x border-white/[0.06]">
-      <PlayerDetailLoader
-        puuid={puuid}
-        row={row}
-        cardId={cardId}
-        onBack={() => void navigate({ to: '/', search: { p: undefined } })}
-      />
-    </div>
-  )
+  return <PlayersPage selected={puuid} />
 }

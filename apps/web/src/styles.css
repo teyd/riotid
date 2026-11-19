@@ -3,14 +3,16 @@
 @theme {
   --font-sans: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'Commit Mono', ui-monospace, monospace;
-  --color-ink: #09090b;
-  --color-panel: #121214;
+  --color-ink: #0b0c0f;
+  --color-panel: #15161b;
   --color-accent: #4ade80;
 }
 
 html {
   color-scheme: dark;
-  background: var(--color-ink);
+  background:
+    radial-gradient(1200px 700px at 82% -8%, rgba(74, 222, 128, 0.035), transparent 60%),
+    var(--color-ink);
 }
 
 body {

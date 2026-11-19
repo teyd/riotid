@@ -1,6 +1,12 @@
-import type { PlayerDetail, ServiceStatus, SiteIndex, SiteStats } from '@riotid/contracts'
+import type {
+  CrawlerSnapshot,
+  PlayerDetail,
+  ServiceStatus,
+  SiteIndex,
+  SiteStats,
+} from '@riotid/contracts'
 
-export type { PlayerDetail, ServiceStatus, SiteIndex, SiteStats }
+export type { CrawlerSnapshot, PlayerDetail, ServiceStatus, SiteIndex, SiteStats }
 
 export const P = {
   puuid: 0,
@@ -13,6 +19,7 @@ export const P = {
   firstSeenAt: 7,
   lastSeenAt: 8,
   cardId: 9,
+  lastNameChangeAt: 10,
 } as const
 
 export const FLAG = {
@@ -104,3 +111,4 @@ export const fetchPlayer = (puuid: string) =>
   fetchJson<PlayerDetail>(`/api/v1/players/${encodeURIComponent(puuid)}`)
 export const fetchStats = () => fetchJson<SiteStats>('/api/v1/stats')
 export const fetchStatus = () => fetchJson<ServiceStatus>('/api/v1/status')
+export const fetchCrawler = () => fetchJson<CrawlerSnapshot>('/api/v1/crawler')

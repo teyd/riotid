@@ -1,174 +1,115 @@
-import { useMemo, useState } from 'react'
-
 import { formatDate, type SiteStats } from '../lib/api.ts'
 
 type Metric = 'players' | 'nameChanges' | 'regionChanges' | 'anonymous'
 
-const metrics: Array<{ key: Metric; label: string }> = [
-  { key: 'players', label: 'Players' },
-  { key: 'nameChanges', label: 'Name changes' },
-  { key: 'regionChanges', label: 'Region moves' },
-  { key: 'anonymous', label: 'Anonymous' },
+const metrics: Array<{ key: Metric; label: string; description: string }> = [
+  { key: 'players', label: 'Players', description: 'tracked in the latest scan' },
+  { key: 'nameChanges', label: 'Name changes', description: 'renames observed in the scan' },
+  { key: 'regionChanges', label: 'Region moves', description: 'verified region transfers' },
+  { key: 'anonymous', label: 'Anonymous', description: 'unresolved leaderboard rows' },
 ]
 
-const width = 720
-const height = 220
-const padX = 4
-const padTop = 14
-const padBottom = 26
+const width = 220
+const height = 54
+const pad = 3
 
-export const TrendChart = ({ history }: { history: SiteStats['history'] }) => {
-  const [metric, setMetric] = useState<Metric>('players')
-
-  const { points, area, values, latest, change } = useMemo(() => {
-    const series = history.map((entry) => ({ at: entry.at, value: entry[metric] }))
-    const numbers = series.map((entry) => entry.value)
-    const max = Math.max(...numbers, 1)
-    const min = Math.min(...numbers, 0)
-    const spread = max - min || max || 1
-    const padding = spread * 0.18
-    const domainMin = Math.max(0, min - padding)
-    const domainMax = max + padding
-    const range = domainMax - domainMin || 1
-    const innerWidth = width - padX * 2
-    const innerHeight = height - padTop - padBottom
-
-    const mapped = series.map((entry, index) => {
-      const x =
-        padX + (series.length === 1 ? innerWidth / 2 : (index / (series.length - 1)) * innerWidth)
-      const y = padTop + innerHeight - ((entry.value - domainMin) / range) * innerHeight
-      return { ...entry, x, y }
-    })
-
-    const path = mapped.map((point) => `${point.x},${point.y}`).join(' ')
-    const first = mapped[0]
-    const last = mapped[mapped.length - 1]
-
-    return {
-      points: mapped,
-      area:
-        mapped.length > 1 && first && last
-          ? `${padX},${padTop + innerHeight} ${path} ${last.x},${padTop + innerHeight}`
-          : '',
-      values: numbers,
-      latest: last?.value ?? 0,
-      change: (last?.value ?? 0) - (first?.value ?? 0),
-    }
-  }, [history, metric])
-
-  if (history.length === 0) {
-    return (
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-6">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">Scan activity</p>
-        <p className="mt-3 text-sm text-zinc-500">No completed scans yet.</p>
-      </div>
-    )
-  }
+const Sparkline = ({ values }: { values: ReadonlyArray<number> }) => {
+  const max = Math.max(...values, 1)
+  const min = Math.min(...values, 0)
+  const range = max - min || 1
+  const last = values[values.length - 1] ?? 0
+  const first = values[0] ?? 0
+  const points = values.map((value, index) => {
+    const x =
+      values.length === 1 ? width / 2 : pad + (index / (values.length - 1)) * (width - pad * 2)
+    const y = pad + (1 - (value - min) / range) * (height - pad * 2)
+    return { x, y }
+  })
+  const path = points.map((point) => `${point.x},${point.y}`).join(' ')
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="font-mono text-xs uppercase tracking-[0.18em] text-zinc-500">
-            Scan activity
-          </p>
-          <div className="mt-2 flex items-baseline gap-3">
-            <span className="text-3xl font-semibold tracking-tight text-zinc-50">
-              {latest.toLocaleString()}
-            </span>
-            <span className="font-mono text-xs text-zinc-500">
-              {change === 0
-                ? 'flat'
-                : `${change > 0 ? '+' : ''}${change.toLocaleString()} across window`}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1 rounded-lg border border-white/[0.08] p-1">
-          {metrics.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => setMetric(item.key)}
-              data-active={metric === item.key}
-              className="rounded-md px-3 py-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 data-[active=true]:bg-white/10 data-[active=true]:text-zinc-100"
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-2xl font-semibold tracking-tight text-zinc-100 tabular-nums">
+          {last.toLocaleString()}
+        </span>
+        <span className="font-mono text-[10px] text-zinc-500 tabular-nums">
+          {first === last ? 'flat' : `${last > first ? '+' : ''}${(last - first).toLocaleString()}`}
+        </span>
       </div>
-
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="mt-5 h-56 w-full overflow-visible"
+        className="mt-2 h-14 w-full"
         role="img"
-        aria-label={`${metrics.find((item) => item.key === metric)?.label} over the last ${history.length} scans`}
+        aria-label={`${last.toLocaleString()} over ${values.length} scans`}
       >
-        <defs>
-          <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4ade80" stopOpacity="0.20" />
-            <stop offset="100%" stopColor="#4ade80" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-
-        {[0.25, 0.5, 0.75].map((fraction) => (
-          <line
-            key={fraction}
-            x1={padX}
-            x2={width - padX}
-            y1={padTop + (height - padTop - padBottom) * fraction}
-            y2={padTop + (height - padTop - padBottom) * fraction}
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth="1"
-          />
-        ))}
-
-        {area ? <polygon points={area} fill="url(#trend-fill)" /> : null}
+        <line
+          x1="0"
+          x2={width}
+          y1={height - pad}
+          y2={height - pad}
+          stroke="rgba(255,255,255,0.07)"
+        />
         {points.length > 1 ? (
           <polyline
-            points={points.map((point) => `${point.x},${point.y}`).join(' ')}
+            points={path}
             fill="none"
             stroke="#4ade80"
-            strokeWidth="2.5"
+            strokeWidth="2"
             strokeLinejoin="round"
             strokeLinecap="round"
           />
         ) : null}
-
-        {points.map((point) => (
-          <circle key={point.at} cx={point.x} cy={point.y} r="3.5" fill="#4ade80">
-            <title>
-              {formatDate(point.at)} · {point.value.toLocaleString()}
-            </title>
-          </circle>
+        {points.map((point, index) => (
+          <circle key={index} cx={point.x} cy={point.y} r="2.5" fill="#4ade80" />
         ))}
-
-        <text
-          x={padX}
-          y={height - 6}
-          fill="rgba(255,255,255,0.35)"
-          fontSize="11"
-          fontFamily="monospace"
-        >
-          {formatDate(history[0]?.at ?? null)}
-        </text>
-        <text
-          x={width - padX}
-          y={height - 6}
-          textAnchor="end"
-          fill="rgba(255,255,255,0.35)"
-          fontSize="11"
-          fontFamily="monospace"
-        >
-          {formatDate(history[history.length - 1]?.at ?? null)}
-        </text>
       </svg>
-
-      <p className="mt-1 font-mono text-[10px] text-zinc-600">
-        {values.length} scans · min {Math.min(...values).toLocaleString()} · max{' '}
-        {Math.max(...values).toLocaleString()}
-      </p>
     </div>
+  )
+}
+
+export const TrendChart = ({ history }: { history: SiteStats['history'] }) => {
+  if (history.length === 0) {
+    return (
+      <section className="border-y border-white/[0.08] py-8">
+        <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">
+          Scan activity
+        </h2>
+        <p className="mt-3 text-sm text-zinc-500">No completed scans yet.</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="border-y border-white/[0.08] py-7">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-zinc-400">
+            Scan activity
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+            One point per completed scan, oldest to newest. These are observed counts, not
+            extrapolations; a gap means the scheduler was paused.
+          </p>
+        </div>
+        <p className="font-mono text-[10px] text-zinc-600">
+          {history.length} {history.length === 1 ? 'scan' : 'scans'} ·{' '}
+          {formatDate(history[0]?.at ?? null)} →{' '}
+          {formatDate(history[history.length - 1]?.at ?? null)}
+        </p>
+      </div>
+
+      <div className="mt-6 grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+        {metrics.map((metric) => (
+          <div key={metric.key}>
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400">
+              {metric.label}
+            </p>
+            <Sparkline values={history.map((entry) => entry[metric.key])} />
+            <p className="mt-1 text-[11px] leading-5 text-zinc-600">{metric.description}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }

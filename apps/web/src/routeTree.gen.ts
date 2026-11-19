@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CrawlerRouteImport } from './routes/crawler'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as PlayersPuuidRouteImport } from './routes/players.$puuid'
@@ -18,6 +19,11 @@ import { Route as PuuidPuuidRouteImport } from './routes/puuid.$puuid'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrawlerRoute = CrawlerRouteImport.update({
+  id: '/crawler',
+  path: '/crawler',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StatsRoute = StatsRouteImport.update({
@@ -43,6 +49,7 @@ const PuuidPuuidRoute = PuuidPuuidRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/crawler': typeof CrawlerRoute
   '/stats': typeof StatsRoute
   '/status': typeof StatusRoute
   '/players/$puuid': typeof PlayersPuuidRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/crawler': typeof CrawlerRoute
   '/stats': typeof StatsRoute
   '/status': typeof StatusRoute
   '/players/$puuid': typeof PlayersPuuidRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/crawler': typeof CrawlerRoute
   '/stats': typeof StatsRoute
   '/status': typeof StatusRoute
   '/players/$puuid': typeof PlayersPuuidRoute
@@ -65,12 +74,25 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/stats' | '/status' | '/players/$puuid' | '/puuid/$puuid'
+  fullPaths:
+    | '/'
+    | '/crawler'
+    | '/stats'
+    | '/status'
+    | '/players/$puuid'
+    | '/puuid/$puuid'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/stats' | '/status' | '/players/$puuid' | '/puuid/$puuid'
+  to:
+    | '/'
+    | '/crawler'
+    | '/stats'
+    | '/status'
+    | '/players/$puuid'
+    | '/puuid/$puuid'
   id:
     | '__root__'
     | '/'
+    | '/crawler'
     | '/stats'
     | '/status'
     | '/players/$puuid'
@@ -79,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CrawlerRoute: typeof CrawlerRoute
   StatsRoute: typeof StatsRoute
   StatusRoute: typeof StatusRoute
   PlayersPuuidRoute: typeof PlayersPuuidRoute
@@ -92,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crawler': {
+      id: '/crawler'
+      path: '/crawler'
+      fullPath: '/crawler'
+      preLoaderRoute: typeof CrawlerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stats': {
@@ -127,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CrawlerRoute: CrawlerRoute,
   StatsRoute: StatsRoute,
   StatusRoute: StatusRoute,
   PlayersPuuidRoute: PlayersPuuidRoute,

@@ -8,30 +8,17 @@ export const Badge = ({
   tone?: 'neutral' | 'accent' | 'warn' | 'info'
 }) => {
   const tones = {
-    neutral: 'border-white/10 bg-white/[0.04] text-zinc-400',
-    accent: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-    warn: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
-    info: 'border-sky-400/30 bg-sky-400/10 text-sky-300',
+    neutral: 'text-zinc-400',
+    accent: 'text-emerald-300',
+    warn: 'text-amber-300',
+    info: 'text-sky-300',
   }
 
   return (
-    <span
-      className={`inline-flex items-center rounded border px-2 py-1 font-mono text-[11px] uppercase tracking-wide ${tones[tone]}`}
-    >
+    <span className={`font-mono text-[10px] uppercase tracking-[0.18em] ${tones[tone]}`}>
       {children}
     </span>
   )
-}
-
-export const Dot = ({ tone }: { tone: 'accent' | 'warn' | 'info' | 'muted' }) => {
-  const tones = {
-    accent: 'bg-emerald-400',
-    warn: 'bg-amber-400',
-    info: 'bg-sky-400',
-    muted: 'bg-zinc-600',
-  }
-
-  return <span className={`size-1.5 shrink-0 rounded-full ${tones[tone]}`} />
 }
 
 export const Section = ({
