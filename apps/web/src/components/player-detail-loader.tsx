@@ -9,6 +9,7 @@ const PlayerDetailPanel = lazy(() =>
 type Props = {
   readonly puuid: string
   readonly row: IndexRow | null
+  readonly cardId: string | null
   readonly onBack: () => void
 }
 
@@ -29,8 +30,8 @@ const Fallback = ({ onBack }: { onBack: () => void }) => (
   </div>
 )
 
-export const PlayerDetailLoader = ({ puuid, row, onBack }: Props) => (
+export const PlayerDetailLoader = ({ puuid, row, cardId, onBack }: Props) => (
   <Suspense fallback={<Fallback onBack={onBack} />}>
-    <PlayerDetailPanel puuid={puuid} row={row} onBack={onBack} />
+    <PlayerDetailPanel puuid={puuid} row={row} cardId={cardId} onBack={onBack} />
   </Suspense>
 )

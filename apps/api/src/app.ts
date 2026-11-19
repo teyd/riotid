@@ -48,7 +48,7 @@ type CachedJson = {
   readonly etag: string
 }
 
-const indexFormat = 2
+const indexFormat = 3
 
 let cachedIndex: CachedJson | null = null
 let cachedStats: CachedJson | null = null
