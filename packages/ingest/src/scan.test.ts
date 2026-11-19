@@ -1,8 +1,3 @@
-import { promises as fs } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import {
   anonymousRows,
   bannedPlayers,
@@ -15,26 +10,14 @@ import {
   runs,
   writeDatabase,
 } from '@riotid/db'
-import type { AuthSession, Leaderboard, LeaderboardPlayer } from '@riotid/riot'
+import { migrationsFolder, runDb, runWithRiot, session, withDatabase } from '@riotid/test-utils'
+import type { Leaderboard, LeaderboardPlayer } from '@riotid/riot'
 import { eq, isNull } from 'drizzle-orm'
-import { Effect, Layer } from 'effect'
+import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { scan, type ScanResult } from './scan.ts'
-import { RiotSource, type RiotSourceShape } from '@riotid/riot'
-
-const migrationsFolder = fileURLToPath(new URL('../../db/drizzle', import.meta.url))
-
-const session: AuthSession = {
-  cookies: {},
-  accessToken: 'test',
-  idToken: 'test',
-  entitlementsToken: 'test',
-  region: 'eu',
-  puuid: 'seed-account',
-  country: 'DE',
-  expiresAt: Date.now() + 3_600_000,
-}
+import type { RiotSourceShape } from '@riotid/riot'
 
 const act = {
   uuid: 'act-1',
@@ -112,28 +95,19 @@ const withScan = async (
     runScan: (options?: { trigger?: 'manual' | 'schedule' | 'boot' }) => Promise<ScanResult>,
   ) => Promise<void>,
 ): Promise<void> => {
-  const directory = await fs.mkdtemp(join(tmpdir(), 'riotid-scan-'))
-  const path = join(directory, 'test.db')
-
-  try {
-    const layer = Layer.mergeAll(writeDatabase(path), Layer.succeed(RiotSource, source))
-
+  await withDatabase('riotid-scan-', async (path) => {
     await Effect.runPromise(
       migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(path))),
     )
 
     await run(path, async (options) =>
-      Effect.runPromise(
-        scan({ session, trigger: options?.trigger ?? 'manual' }).pipe(Effect.provide(layer)),
-      ),
+      runWithRiot(path, source, scan({ session, trigger: options?.trigger ?? 'manual' })),
     )
-  } finally {
-    await fs.rm(directory, { recursive: true, force: true })
-  }
+  })
 }
 
-const readRows = async <A>(path: string, effect: Effect.Effect<A, unknown, Database>) =>
-  Effect.runPromise(effect.pipe(Effect.provide(writeDatabase(path))))
+const readRows = <A>(path: string, effect: Effect.Effect<A, unknown, Database>) =>
+  runDb(path, effect)
 
 describe('scan', () => {
   it('creates players, intervals, and anonymous rows on the first scan', async () => {

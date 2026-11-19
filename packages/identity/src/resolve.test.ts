@@ -1,8 +1,3 @@
-import { promises as fs } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import {
   anonymousRows,
   Database,
@@ -10,32 +5,18 @@ import {
   leaderboardSeeds,
   matchCandidates,
   meta as metadata,
-  migrateDatabase,
   playerNames,
   playerRegions,
   players,
-  writeDatabase,
 } from '@riotid/db'
-import { RiotSource, type AuthSession, type MatchDetails, type RiotSourceShape } from '@riotid/riot'
+import type { MatchDetails, RiotSourceShape } from '@riotid/riot'
+import { migrate, runWithRiot, session, withDatabase } from '@riotid/test-utils'
 import { eq } from 'drizzle-orm'
-import { Effect, Layer } from 'effect'
+import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { matchCacheStats, pruneMatchCache } from './cache.ts'
 import { resolveAnonymous } from './resolve.ts'
-
-const migrationsFolder = fileURLToPath(new URL('../../db/drizzle', import.meta.url))
-
-const session: AuthSession = {
-  cookies: {},
-  accessToken: 'test',
-  idToken: 'test',
-  entitlementsToken: 'test',
-  region: 'eu',
-  puuid: 'seed-account',
-  country: 'DE',
-  expiresAt: Date.now() + 3_600_000,
-}
 
 const act = {
   uuid: 'act-1',
@@ -136,30 +117,11 @@ const anonymousRow = (overrides: Partial<typeof anonymousRows.$inferInsert> = {}
   }
 }
 
-const withDatabase = async (run: (path: string) => Promise<void>): Promise<void> => {
-  const directory = await fs.mkdtemp(join(tmpdir(), 'riotid-identity-'))
-  const path = join(directory, 'test.db')
-
-  try {
-    await Effect.runPromise(
-      migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(path))),
-    )
+const withDb = async (run: (path: string) => Promise<void>) =>
+  withDatabase('riotid-identity-', async (path) => {
+    await migrate(path)
     await run(path)
-  } finally {
-    await fs.rm(directory, { recursive: true, force: true })
-  }
-}
-
-const run = <A>(
-  path: string,
-  source: RiotSourceShape,
-  effect: Effect.Effect<A, unknown, Database | import('@riotid/riot').RiotSource>,
-) =>
-  Effect.runPromise(
-    effect.pipe(
-      Effect.provide(Layer.mergeAll(writeDatabase(path), Layer.succeed(RiotSource, source))),
-    ),
-  )
+  })
 
 const config = {
   session,
@@ -175,12 +137,12 @@ const config = {
 
 describe('anonymous identity resolution', () => {
   it('links a direct puuid row without a match', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({
         names: new Map([['p-direct', { name: 'Direct', tag: '0001' }]]),
       })
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -192,7 +154,7 @@ describe('anonymous identity resolution', () => {
 
       expect(result.linked).toBe(1)
 
-      const rows = await run(
+      const rows = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -218,13 +180,13 @@ describe('anonymous identity resolution', () => {
   })
 
   it('links a cached match candidate whose MMR fingerprint matches', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({
         mmr: new Map([['p-cache', fingerprint()]]),
         names: new Map([['p-cache', { name: 'Cached', tag: '0002' }]]),
       })
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -246,7 +208,7 @@ describe('anonymous identity resolution', () => {
 
       expect(result.linked).toBe(1)
 
-      const link = await run(
+      const link = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -262,7 +224,7 @@ describe('anonymous identity resolution', () => {
   })
 
   it('refuses to link when several candidates match', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({
         mmr: new Map([
           ['p-one', fingerprint()],
@@ -270,7 +232,7 @@ describe('anonymous identity resolution', () => {
         ]),
       })
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -305,7 +267,7 @@ describe('anonymous identity resolution', () => {
       expect(result.linked).toBe(0)
       expect(result.ambiguous).toBe(1)
 
-      const anonymous = await run(
+      const anonymous = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -319,10 +281,10 @@ describe('anonymous identity resolution', () => {
   })
 
   it('ignores candidates whose card does not match the row', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({ mmr: new Map([['p-card', fingerprint()]]) })
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -348,7 +310,7 @@ describe('anonymous identity resolution', () => {
   })
 
   it('seeds the match cache from nearby known players', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({
         mmr: new Map([['p-fresh', fingerprint()]]),
         history: new Map([
@@ -364,7 +326,7 @@ describe('anonymous identity resolution', () => {
         ]),
       })
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -387,14 +349,14 @@ describe('anonymous identity resolution', () => {
       expect(result.matchesFetched).toBe(1)
       expect(result.linked).toBe(1)
 
-      const cache = await run(path, source, matchCacheStats)
+      const cache = await runWithRiot(path, source, matchCacheStats)
       expect(cache.matches).toBe(1)
       expect(cache.rows).toBe(1)
     })
   })
 
   it('prefers seed players near the anonymous rank', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({
         mmr: new Map([['p-near', fingerprint()]]),
         history: new Map([
@@ -405,7 +367,7 @@ describe('anonymous identity resolution', () => {
         ]),
       })
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -465,7 +427,7 @@ describe('anonymous identity resolution', () => {
   })
 
   it('respects the daily request budget', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({
         mmr: new Map([
           ['p-budget-one', fingerprint()],
@@ -473,7 +435,7 @@ describe('anonymous identity resolution', () => {
         ]),
       })
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -513,7 +475,7 @@ describe('anonymous identity resolution', () => {
   })
 
   it('reuses cached matches on a second pass', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({
         mmr: new Map([['p-fresh', fingerprint()]]),
         history: new Map([
@@ -527,7 +489,7 @@ describe('anonymous identity resolution', () => {
         ]),
       })
 
-      const first = await run(
+      const first = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -546,7 +508,7 @@ describe('anonymous identity resolution', () => {
         }),
       )
 
-      const second = await run(
+      const second = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -563,10 +525,10 @@ describe('anonymous identity resolution', () => {
   })
 
   it('grows the match cap after a week below the coverage target', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({})
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -599,11 +561,11 @@ describe('anonymous identity resolution', () => {
   })
 
   it('prunes stale and excess match candidates', async () => {
-    await withDatabase(async (path) => {
+    await withDb(async (path) => {
       const source = makeSource({})
       const now = Date.now()
 
-      const result = await run(
+      const result = await runWithRiot(
         path,
         source,
         Effect.gen(function* () {
@@ -647,7 +609,7 @@ describe('anonymous identity resolution', () => {
       )
 
       expect(result.deleted).toBe(2)
-      const stats = await run(path, source, matchCacheStats)
+      const stats = await runWithRiot(path, source, matchCacheStats)
       expect(stats.matches).toBe(1)
       expect(stats.perRegion.eu?.matches).toBe(1)
     })

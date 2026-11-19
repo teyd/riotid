@@ -1,10 +1,9 @@
 // @effect-diagnostics nodeBuiltinImport:off
 import { promises as fs } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { fileURLToPath } from 'node:url'
 
+import { migrationsFolder, withTempDirectory } from '@riotid/test-utils'
 import { eq } from 'drizzle-orm'
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
@@ -14,21 +13,6 @@ import { backupDatabase, databaseStats, pruneRuns } from './maintenance.ts'
 import { playerNames, runs } from './schema.ts'
 import { seedDatabase } from './seed.ts'
 
-const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url))
-
-const withDatabase = async (
-  run: (directory: string, path: string) => Promise<void>,
-): Promise<void> => {
-  const directory = await fs.mkdtemp(join(tmpdir(), 'riotid-maintenance-'))
-  const path = join(directory, 'test.db')
-
-  try {
-    await run(directory, path)
-  } finally {
-    await fs.rm(directory, { recursive: true, force: true })
-  }
-}
-
 const prepare = (path: string) =>
   Effect.gen(function* () {
     yield* migrateDatabase(migrationsFolder)
@@ -37,7 +21,7 @@ const prepare = (path: string) =>
 
 describe('maintenance', () => {
   it('backs up a consistent copy and prunes old snapshots', async () => {
-    await withDatabase(async (directory, path) => {
+    await withTempDirectory('riotid-maintenance-', async (directory, path) => {
       await Effect.runPromise(prepare(path))
 
       const backupDirectory = join(directory, 'backups')
@@ -74,7 +58,7 @@ describe('maintenance', () => {
   })
 
   it('prunes old runs and keeps interval history', async () => {
-    await withDatabase(async (_directory, path) => {
+    await withTempDirectory('riotid-maintenance-', async (_directory, path) => {
       await Effect.runPromise(prepare(path))
 
       const program = Effect.gen(function* () {
@@ -126,7 +110,7 @@ describe('maintenance', () => {
   })
 
   it('reports seeded statistics', async () => {
-    await withDatabase(async (_directory, path) => {
+    await withTempDirectory('riotid-maintenance-', async (_directory, path) => {
       await Effect.runPromise(prepare(path))
 
       const stats = await Effect.runPromise(databaseStats.pipe(Effect.provide(writeDatabase(path))))

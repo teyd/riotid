@@ -1,41 +1,19 @@
-import { promises as fs } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-import {
-  anonymousRows,
-  Database,
-  identityLinks,
-  migrateDatabase,
-  seedDatabase,
-  writeDatabase,
-} from '@riotid/db'
+import { anonymousRows, Database, identityLinks, seedDatabase } from '@riotid/db'
+import { migrate, runDb, withDatabase } from '@riotid/test-utils'
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { makeApp, type AppOptions } from './app.ts'
 
-const migrationsFolder = fileURLToPath(new URL('../../../packages/db/drizzle', import.meta.url))
-
 const withApp = async (
   run: (app: ReturnType<typeof makeApp>, path: string) => Promise<void>,
   options: Omit<AppOptions, 'databasePath'> = {},
 ): Promise<void> => {
-  const directory = await fs.mkdtemp(join(tmpdir(), 'riotid-api-'))
-  const path = join(directory, 'test.db')
-
-  try {
-    await Effect.runPromise(
-      Effect.gen(function* () {
-        yield* migrateDatabase(migrationsFolder)
-        yield* seedDatabase
-      }).pipe(Effect.provide(writeDatabase(path))),
-    )
+  await withDatabase('riotid-api-', async (path) => {
+    await migrate(path)
+    await runDb(path, seedDatabase)
     await run(makeApp({ databasePath: path, ...options }), path)
-  } finally {
-    await fs.rm(directory, { recursive: true, force: true })
-  }
+  })
 }
 
 const request = (app: ReturnType<typeof makeApp>, path: string, init?: RequestInit) =>
@@ -83,7 +61,8 @@ describe('api', () => {
 
   it('serves player timelines and link evidence', async () => {
     await withApp(async (app, path) => {
-      await Effect.runPromise(
+      await runDb(
+        path,
         Effect.gen(function* () {
           const db = yield* Database
           const anonymous = yield* db.select().from(anonymousRows)
@@ -97,7 +76,7 @@ describe('api', () => {
             confidence: 9995,
             evidence: { leaderboardRank: 17, rankedRating: 1090 },
           })
-        }).pipe(Effect.provide(writeDatabase(path))),
+        }),
       )
 
       const response = await request(app, '/api/v1/players/seed-player-1')

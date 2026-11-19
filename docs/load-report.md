@@ -11,11 +11,11 @@ consecutive, not interleaved with other load.
 
 Mix: 50% player detail, 25% stats, 25% status.
 
-| Run | Requests | Errors | p50 | p95 | p99 | RPS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | 13,739 | 0 | 35.5 ms | 58.7 ms | 69.6 ms | 1,374 |
-| 2 | 14,800 | 0 | 33.5 ms | 72.1 ms | 92.2 ms | 1,480 |
-| 3 | 14,771 | 0 | 33.5 ms | 55.4 ms | 63.0 ms | 1,477 |
+| Run | Requests | Errors |     p50 |     p95 |     p99 |   RPS |
+| --- | -------: | -----: | ------: | ------: | ------: | ----: |
+| 1   |   13,739 |      0 | 35.5 ms | 58.7 ms | 69.6 ms | 1,374 |
+| 2   |   14,800 |      0 | 33.5 ms | 72.1 ms | 92.2 ms | 1,480 |
+| 3   |   14,771 |      0 | 33.5 ms | 55.4 ms | 63.0 ms | 1,477 |
 
 RSS after the three runs: 272 MB.
 
@@ -32,11 +32,11 @@ version, so requests do not spend CPU on compression.
 
 Mix: 100% index, 50 concurrent, 10 s.
 
-| Run | Requests | Errors | p50 | p95 | RPS |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | 2,429 | 0 | 205.8 ms | 230.0 ms | 243 |
-| 2 | 2,310 | 0 | 211.4 ms | 256.1 ms | 231 |
-| 3 | 2,319 | 0 | 212.8 ms | 253.0 ms | 232 |
+| Run | Requests | Errors |      p50 |      p95 | RPS |
+| --- | -------: | -----: | -------: | -------: | --: |
+| 1   |    2,429 |      0 | 205.8 ms | 230.0 ms | 243 |
+| 2   |    2,310 |      0 | 211.4 ms | 256.1 ms | 231 |
+| 3   |    2,319 |      0 | 212.8 ms | 253.0 ms | 232 |
 
 RSS after the runs: 202 MB. At ~230 index responses/s the test transfers about
 300 MB/s over loopback; p95 here is bandwidth-bound, not application-bound.

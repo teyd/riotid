@@ -254,6 +254,9 @@ importers:
         specifier: 0.12.0
         version: 0.12.0
     devDependencies:
+      '@riotid/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@types/qrcode-terminal':
         specifier: 0.12.2
         version: 0.12.2
@@ -330,6 +333,10 @@ importers:
       effect:
         specifier: 4.1.4
         version: 4.1.4
+    devDependencies:
+      '@riotid/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
 
   packages/identity:
     dependencies:
@@ -345,6 +352,10 @@ importers:
       effect:
         specifier: 4.1.4
         version: 4.1.4
+    devDependencies:
+      '@riotid/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
 
   packages/ingest:
     dependencies:
@@ -360,9 +371,25 @@ importers:
       effect:
         specifier: 4.1.4
         version: 4.1.4
+    devDependencies:
+      '@riotid/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
 
   packages/riot:
     dependencies:
+      effect:
+        specifier: 4.1.4
+        version: 4.1.4
+
+  packages/test-utils:
+    dependencies:
+      '@riotid/db':
+        specifier: workspace:*
+        version: link:../db
+      '@riotid/riot':
+        specifier: workspace:*
+        version: link:../riot
       effect:
         specifier: 4.1.4
         version: 4.1.4

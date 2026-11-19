@@ -24,3 +24,4 @@ jobs:
       - run: pnpm exec vp run -r test
       - run: pnpm exec vp build apps/web
       - run: pnpm --dir packages/db exec drizzle-kit check
+      - run: docker build -t riotid:ci .

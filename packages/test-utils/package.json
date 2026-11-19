@@ -1,0 +1,13 @@
+{
+  "name": "@riotid/test-utils",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@riotid/db": "workspace:*",
+    "@riotid/riot": "workspace:*",
+    "effect": "4.1.4"
+  }
+}
