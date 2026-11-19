@@ -4,13 +4,15 @@
   "type": "module",
   "scripts": {
     "dev": "vp run -r --parallel dev",
-    "serve": "node apps/api/src/cli.ts serve",
+    "serve": "node apps/cli/src/main.ts db:migrate && node apps/api/src/index.ts",
+    "scheduler": "node apps/scheduler/src/main.ts",
+    "cli": "node apps/cli/src/main.ts",
     "check": "effect-tsgo vp check && effect-tsgo tsc -p tsconfig.json",
     "lint": "effect-tsgo vp lint",
     "fmt": "vp fmt",
     "test": "vp run -r test",
     "build": "vp build apps/web",
-    "smoke": "node apps/api/src/cli.ts status",
+    "smoke": "node apps/cli/src/main.ts status",
     "typecheck": "effect-tsgo tsc -p tsconfig.json"
   },
   "devDependencies": {
@@ -24,7 +26,6 @@
     "@varlock/vite-integration": "1.5.6",
     "drizzle-kit": "1.0.0-rc.5",
     "tailwindcss": "4.3.5",
-    "tsx": "4.23.15",
     "typescript": "7.0.2",
     "varlock": "1.25.0",
     "vite-plus": "1.7.0"
