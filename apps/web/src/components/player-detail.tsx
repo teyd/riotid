@@ -2,6 +2,7 @@ import { Toolbar, ToolbarButton, ToolbarLink } from '@ui-sdk/react/toolbar'
 import {
   Timeline,
   TimelineConnector,
+  TimelineDescription,
   TimelineItem,
   TimelineMarker,
   TimelineTime,
@@ -27,6 +28,7 @@ import {
   vtlProfileUrl,
 } from '../lib/api.ts'
 import { copyText } from '../lib/clipboard.ts'
+import { banHistoryItems, intervalRange, type HistoryItem } from '../lib/history.ts'
 import { CardArt } from './card-art.tsx'
 import { Badge, LoadingState, Section } from './ui.tsx'
 
@@ -44,41 +46,51 @@ const HistoryTimeline = ({
   items,
 }: {
   label: string
-  items: ReadonlyArray<{ title: string; subtitle: string; current: boolean; at: number }>
+  items: ReadonlyArray<HistoryItem>
 }) => (
-  <Timeline aria-label={label} className="space-y-0">
+  <Timeline aria-label={label}>
     {items.map((item, index) => (
       <TimelineItem
-        key={`${item.at}-${item.title}-${item.subtitle}`}
+        key={`${item.at}-${item.title}-${item.detail ?? ''}`}
         status={item.current ? 'current' : 'complete'}
-        className="relative grid grid-cols-[10px_1fr] gap-x-4 pb-5 last:pb-0"
+        className="relative grid grid-cols-[12px_1fr] gap-x-4 pb-6 last:pb-0"
       >
         <div className="relative flex justify-center">
-          <TimelineMarker className="relative z-[1] mt-1.5 size-2 rounded-full bg-zinc-600 data-[current]:bg-accent" />
+          <TimelineMarker className="relative z-[1] mt-1.5 size-2 rounded-full bg-zinc-700 ring-4 ring-ink data-[current]:size-2.5 data-[current]:bg-accent data-[current]:ring-white/15" />
         </div>
         {index < items.length - 1 ? (
-          <TimelineConnector className="absolute top-3.5 -bottom-[5px] left-1 w-px bg-white/[0.09]" />
+          <TimelineConnector className="absolute top-3.5 -bottom-1.5 left-1.5 w-px bg-white/[0.09]" />
         ) : null}
         <div className="min-w-0">
-          <TimelineTitle className="truncate text-sm font-medium text-zinc-100">
-            {item.title}
-          </TimelineTitle>
+          <div className="flex min-w-0 items-center gap-2">
+            <TimelineTitle className="truncate text-sm text-zinc-400 data-[current]:font-semibold data-[current]:text-zinc-50">
+              {item.title}
+            </TimelineTitle>
+            {item.current ? (
+              <span
+                aria-hidden="true"
+                className="shrink-0 rounded-full border border-white/20 px-1.5 font-mono text-[10px] uppercase leading-4 tracking-[0.16em] text-zinc-300"
+              >
+                current
+              </span>
+            ) : null}
+          </div>
           <TimelineTime
             dateTime={new Date(item.at).toISOString()}
-            className="mt-1 block font-mono text-[12px] text-zinc-400"
+            className="mt-1 block font-mono text-[12px] text-zinc-400 data-[current]:text-zinc-300"
           >
             {item.subtitle}
           </TimelineTime>
+          {item.detail ? (
+            <TimelineDescription className="mt-1 text-[12px] leading-5 text-zinc-400">
+              {item.detail}
+            </TimelineDescription>
+          ) : null}
         </div>
       </TimelineItem>
     ))}
   </Timeline>
 )
-
-type HistoryItem = { title: string; subtitle: string; current: boolean; at: number }
-
-const intervalRange = (startedAt: number, endedAt: number | null): string =>
-  `${formatDate(startedAt)} → ${endedAt ? formatDate(endedAt) : 'present'}`
 
 const HistorySection = ({
   title,
@@ -419,12 +431,7 @@ export const PlayerDetailPanel = ({
           <HistorySection
             title="Ban history"
             empty="No ban interval observed."
-            items={[...detail.bans].reverse().map((interval) => ({
-              title: interval.endedAt ? 'Banned, then unbanned' : 'Banned',
-              subtitle: intervalRange(interval.startedAt, interval.endedAt),
-              current: interval.endedAt === null,
-              at: interval.startedAt,
-            }))}
+            items={banHistoryItems(detail.bans)}
           />
 
           <Section title="Counters">
