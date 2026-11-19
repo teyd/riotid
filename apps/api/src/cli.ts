@@ -11,6 +11,7 @@ import {
   qrLogin,
   reauth,
   refreshSession,
+  refreshSessionIfStale,
   RiotAuthError,
   saveCookieFile,
   type AuthSession,
@@ -31,7 +32,7 @@ const AppConfig = Config.all({
   cookieFile: Config.String('COOKIE_FILE').pipe(Config.withDefault('./data/cookies.json')),
   countryCode: Config.String('RIOT_COUNTRY_CODE').pipe(Config.withDefault('US')),
   qrTimeoutSeconds: Config.Int('RIOT_QR_TIMEOUT_SECONDS').pipe(Config.withDefault(300)),
-  authKeepaliveHours: Config.Int('AUTH_KEEPALIVE_HOURS').pipe(Config.withDefault(6)),
+  authRefreshMinutes: Config.Int('AUTH_REFRESH_MINUTES').pipe(Config.withDefault(45)),
 })
 
 const help = `riotid
@@ -160,13 +161,26 @@ const main = Effect.gen(function* () {
 
   yield* Effect.forkDetach(
     Effect.gen(function* () {
+      const refreshed = yield* refreshSessionIfStale(
+        config.cookieFile,
+        config.authRefreshMinutes * 60_000,
+      ).pipe(
+        Effect.catch((error) =>
+          Effect.logWarning(`auth boot refresh skipped: ${error.message}`).pipe(Effect.as(null)),
+        ),
+      )
+
+      if (refreshed) {
+        yield* Effect.logInfo(`auth boot refresh: region ${refreshed.region}; tokens refreshed`)
+      }
+
       while (true) {
-        yield* Effect.sleep(`${config.authKeepaliveHours} hours`)
+        yield* Effect.sleep(`${config.authRefreshMinutes} minutes`)
         yield* refreshSession(config.cookieFile).pipe(
           Effect.tap((session) =>
-            Effect.logInfo(`auth keepalive: region ${session.region}; tokens refreshed`),
+            Effect.logInfo(`auth refresh: region ${session.region}; tokens refreshed`),
           ),
-          Effect.catch((error) => Effect.logWarning(`auth keepalive failed: ${error.message}`)),
+          Effect.catch((error) => Effect.logWarning(`auth refresh failed: ${error.message}`)),
         )
       }
     }),

@@ -33,7 +33,7 @@ node apps/api/src/cli.ts auth:login
 
 If QR is not available, `mise run auth:save` accepts a pasted browser cookie
 header, a Playwright/EditThisCookie JSON export, or a Netscape `cookies.txt`
-file. `mise run auth:refresh` refreshes the access/entitlements tokens and writes the rotated cookie jar; `mise run auth:check` does the same and prints only the account region/expiry. The running server also refreshes every 6h (`AUTH_KEEPALIVE_HOURS`), and every scan starts with a refresh. `mise run probe` exercises the live leaderboard, name-service, MMR, match-history and match-details endpoints.
+file. `mise run auth:refresh` refreshes the access/entitlements tokens and writes the rotated cookie jar; `mise run auth:check` does the same and prints only the account region/expiry. The dev/prod server refreshes on boot when the jar is older than 45 minutes and every 45 minutes while running (`AUTH_REFRESH_MINUTES`), and every scan/probe starts with a refresh. `mise run probe` exercises the live leaderboard, name-service, MMR, match-history and match-details endpoints.
 
 ## Configuration
 

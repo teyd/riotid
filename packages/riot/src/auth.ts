@@ -189,3 +189,28 @@ export const refreshSession = (
     yield* saveCookieFile(cookieFile, session.cookies, file.source)
     return session
   })
+
+export const refreshSessionIfStale = (
+  cookieFile: string,
+  maxAgeMs: number,
+): Effect.Effect<AuthSession | null, RiotAuthError | CookieFileError> =>
+  Effect.gen(function* () {
+    const file = yield* loadCookieFile(cookieFile)
+
+    if (!file) {
+      return yield* new RiotAuthError({
+        message: `No cookie jar at ${cookieFile}. Run \`riotid auth:login\`.`,
+      })
+    }
+
+    const now = yield* Clock.currentTimeMillis
+    const updatedAt = Date.parse(file.updatedAt)
+
+    if (Number.isFinite(updatedAt) && now - updatedAt < maxAgeMs) {
+      return null
+    }
+
+    const session = yield* reauth(file.cookies)
+    yield* saveCookieFile(cookieFile, session.cookies, file.source)
+    return session
+  })

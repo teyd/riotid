@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
-import { parseReauthLocation } from './auth.ts'
+import { parseReauthLocation, refreshSessionIfStale } from './auth.ts'
 import {
   cookieHeader,
   loadCookieFile,
@@ -94,6 +94,7 @@ describe('cookie file', () => {
       expect(loaded?.cookies).toEqual({ ssid: 'one' })
       expect(loaded?.source).toBe('paste')
       expect(stat.mode & 0o777).toBe(0o600)
+      expect(await Effect.runPromise(refreshSessionIfStale(path, 60_000))).toBeNull()
     } finally {
       await fs.rm(directory, { recursive: true, force: true })
     }
