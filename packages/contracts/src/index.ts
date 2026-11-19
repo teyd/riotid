@@ -100,6 +100,8 @@ export const IdentityEvidence = Schema.Struct({
     rankedRating: Schema.Finite,
     numberOfWins: Schema.Finite,
     competitiveTier: Schema.Finite,
+    seasonId: Schema.String,
+    seasonName: Schema.NullOr(Schema.String),
     cardId: Schema.String,
     titleId: Schema.String,
   }),

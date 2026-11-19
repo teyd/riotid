@@ -208,7 +208,7 @@ export const seedDatabase = Effect.gen(function* () {
 
 const demoRegions = ['na', 'eu', 'ap', 'kr'] as const
 const demoNames = [
-  'Nova Drift',
+  'goombastomper28',
   'Ascent Main',
   'Vex Orbit',
   'Sage Line',
@@ -324,9 +324,12 @@ export const seedDemoDatabase = Effect.gen(function* () {
       index % 9 === 0 ? 2 : index % 4 === 0 ? 1 : 0,
       tagChange ? 1 : 0,
     )
-    const finalTag = tagChange
-      ? `D${String(index + 1).padStart(3, '0')}`
-      : `N${String(index + 1).padStart(3, '0')}`
+    const finalTag =
+      index === 0
+        ? 'teyd'
+        : tagChange
+          ? `D${String(index + 1).padStart(3, '0')}`
+          : `N${String(index + 1).padStart(3, '0')}`
     const oldTag = tagChange ? `X${String(index + 1).padStart(3, '0')}` : finalTag
     const regionMove = index % 7 === 0
     const oldRegion = demoRegions[(index + 1) % demoRegions.length] ?? 'eu'

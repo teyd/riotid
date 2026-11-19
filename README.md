@@ -142,4 +142,6 @@ Single instance only: the run lock and SQLite writer assume one process. Deploy 
 
 ## Tests
 
+Manual smoke data uses `goombastomper28#teyd`; the demo seed includes it as the first player.
+
 `mise run ci` runs static checks, all package tests, the web build, and Drizzle migration verification. The ingest and identity suites use temporary databases and fake Riot sources; they never call Riot.

@@ -1,13 +1,5 @@
-import {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverTitle,
-  PopoverTrigger,
-} from '@ui-sdk/react/popover'
 import { useQuery } from '@tanstack/react-query'
 import ArrowLeftIcon from 'kubai-icons-react/icons/arrow-left'
-import ExternalLinkIcon from 'kubai-icons-react/icons/external-link'
 import { useState } from 'react'
 
 import {
@@ -22,8 +14,10 @@ import {
   P,
   regionLabel,
   regionShort,
+  trackerProfileUrl,
   type IndexRow,
   type PlayerDetail,
+  vtlProfileUrl,
 } from '../lib/api.ts'
 import { Badge, EmptyState, LoadingState, Section } from './ui.tsx'
 
@@ -52,62 +46,91 @@ const TimelineRow = ({
   </div>
 )
 
-const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => (
-  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <Badge tone="info">linked via match</Badge>
-        <span className="font-mono text-[10px] text-zinc-500">
+const EvidenceDetail = ({ label, value }: { label: string; value: string | number }) => (
+  <div>
+    <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</dt>
+    <dd className="mt-1 break-all font-mono text-[11px] text-zinc-200">{value}</dd>
+  </div>
+)
+
+const Evidence = ({ link }: { link: PlayerDetail['links'][number] }) => {
+  const a = link.anonymous
+  const matchUrl = link.matchId ? `https://vtl.lol/match/${link.matchId}` : null
+
+  return (
+    <div className="border-t border-white/[0.07] py-5 first:border-t-0 first:pt-0">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-zinc-200">
+            {link.method === 'match_graph'
+              ? 'Exact MMR fingerprint in a shared match'
+              : 'Direct puuid from the leaderboard row'}
+          </p>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-zinc-500">
+            {link.method === 'match_graph'
+              ? 'Leaderboard rank is unique per region. Rank, rating, wins, and tier matched exactly; the match supplies the identity.'
+              : 'The anonymized leaderboard row still carried a puuid, so no match graph was needed.'}
+          </p>
+        </div>
+        <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
           {(link.confidence / 100).toFixed(2)}% confidence
         </span>
       </div>
-      {link.matchId ? (
-        <a
-          href={`https://vtl.lol/match/${link.matchId}`}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="inline-flex items-center gap-1 font-mono text-[10px] text-accent hover:underline"
-        >
-          {link.matchId.slice(0, 8)}… <ExternalLinkIcon className="size-3" />
-        </a>
-      ) : (
-        <span className="font-mono text-[10px] text-zinc-500">direct puuid</span>
-      )}
-    </div>
 
-    <div className="mt-2 flex items-center justify-between gap-2">
-      <p className="font-mono text-[10px] text-zinc-500">
-        {link.method === 'direct_puuid' ? 'leaderboard carried the puuid' : 'exact MMR fingerprint'}
-      </p>
-      <Popover>
-        <PopoverTrigger className="rounded border border-white/10 px-2 py-0.5 font-mono text-[10px] text-zinc-400 hover:border-white/25 hover:text-zinc-200">
-          why?
-        </PopoverTrigger>
-        <PopoverContent className="z-50 w-80 rounded-xl border border-white/10 bg-panel p-4 text-sm shadow-2xl">
-          <PopoverTitle className="font-medium text-zinc-100">Link evidence</PopoverTitle>
-          <PopoverDescription className="mt-1 text-xs leading-5 text-zinc-500">
-            Leaderboard rank is unique per region. Rank, rating, wins, and tier all matched exactly.
-          </PopoverDescription>
-          <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-[10px]">
-            {[
-              ['rank', link.anonymous.leaderboardRank],
-              ['rating', link.anonymous.rankedRating],
-              ['wins', link.anonymous.numberOfWins],
-              ['tier', link.anonymous.competitiveTier],
-              ['card', link.anonymous.cardId.slice(0, 8)],
-              ['title', link.anonymous.titleId.slice(0, 8)],
-            ].map(([label, value]) => (
-              <div key={String(label)} className="contents">
-                <dt className="text-zinc-600">{label}</dt>
-                <dd className="text-zinc-300">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </PopoverContent>
-      </Popover>
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
+        <EvidenceDetail label="rank" value={a.leaderboardRank} />
+        <EvidenceDetail label="rating" value={a.rankedRating} />
+        <EvidenceDetail label="wins" value={a.numberOfWins} />
+        <EvidenceDetail label="tier" value={a.competitiveTier} />
+        <EvidenceDetail label="region" value={regionLabel(a.region)} />
+        <EvidenceDetail label="season" value={a.seasonName ?? 'unknown act'} />
+        <div>
+          <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500">card</dt>
+          <dd className="mt-1 flex items-center gap-2">
+            <a
+              href={`https://media.valorant-api.com/playercards/${a.cardId}/smallart.png`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="block h-9 w-7 overflow-hidden rounded-sm bg-white/[0.06]"
+            >
+              <img
+                src={`https://media.valorant-api.com/playercards/${a.cardId}/smallart.png`}
+                alt=""
+                width={28}
+                height={36}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover"
+                onError={(event) => {
+                  event.currentTarget.style.display = 'none'
+                }}
+              />
+            </a>
+          </dd>
+        </div>
+      </dl>
+
+      <div className="mt-4 space-y-1.5 font-mono text-[11px]">
+        {matchUrl ? (
+          <p className="break-all">
+            <span className="text-zinc-500">match </span>
+            <a
+              href={matchUrl}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-accent hover:underline"
+            >
+              {matchUrl}
+            </a>
+          </p>
+        ) : (
+          <p className="text-zinc-500">no match lookup required</p>
+        )}
+        <p className="text-zinc-500">linked {formatDateTime(link.createdAt)}</p>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
   const query = useQuery({
@@ -180,24 +203,36 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <Badge>{regionLabel(region)}</Badge>
                 {flags & FLAG.anonymized ? <Badge tone="info">linked anonymously</Badge> : null}
-                {detail?.player.isBanned || row === null ? (
-                  detail?.player.isBanned ? (
-                    <Badge tone="warn">banned</Badge>
-                  ) : null
-                ) : null}
+                {detail?.player.isBanned ? <Badge tone="warn">banned</Badge> : null}
                 {flags & FLAG.nameChange ? <Badge tone="neutral">renamed</Badge> : null}
                 {flags & FLAG.regionChange ? <Badge tone="accent">moved</Badge> : null}
               </div>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={copy}
-            className="shrink-0 rounded border border-white/10 px-2 py-1 font-mono text-[10px] text-zinc-400 hover:border-white/25 hover:text-zinc-200"
-          >
-            {copied ? 'copied' : 'copy link'}
-          </button>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wide">
+            {name && tag ? (
+              <a
+                href={trackerProfileUrl(name, tag)}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-zinc-400 hover:text-zinc-100"
+              >
+                tracker.gg ↗
+              </a>
+            ) : null}
+            <a
+              href={vtlProfileUrl(puuid)}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-zinc-400 hover:text-zinc-100"
+            >
+              vtl.lol ↗
+            </a>
+            <button type="button" onClick={copy} className="text-zinc-400 hover:text-zinc-100">
+              {copied ? 'copied' : 'copy link'}
+            </button>
+          </div>
         </div>
 
         <dl className="mt-5 grid grid-cols-3 gap-3 font-mono text-[11px]">
