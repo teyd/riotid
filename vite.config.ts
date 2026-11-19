@@ -15,7 +15,7 @@ export default defineConfig({
         env: { browser: true },
       },
       {
-        files: ['apps/api/**', 'packages/**', 'tools/**'],
+        files: ['apps/api/**', 'apps/cli/**', 'apps/scheduler/**', 'packages/**', 'tools/**'],
         env: { node: true },
       },
     ],

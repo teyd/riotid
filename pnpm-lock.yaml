@@ -205,9 +205,6 @@ importers:
       tailwindcss:
         specifier: 4.3.5
         version: 4.3.5
-      tsx:
-        specifier: 4.23.15
-        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -220,15 +217,40 @@ importers:
 
   apps/api:
     dependencies:
-      '@effect/platform-node':
-        specifier: 4.1.4
-        version: 4.1.4(effect@4.1.4)(redis@6.3.1)
       '@hono/node-server':
         specifier: 2.1.9
         version: 2.1.9(hono@4.13.19)
+      '@riotid/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@riotid/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@riotid/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      drizzle-orm:
+        specifier: 1.0.0-rc.5
+        version: 1.0.0-rc.5(@effect/sql-sqlite-node@4.1.4(effect@4.1.4))(effect@4.1.4)(zod@4.6.7)
+      effect:
+        specifier: 4.1.4
+        version: 4.1.4
+      hono:
+        specifier: 4.13.19
+        version: 4.13.19
+    devDependencies:
+      '@riotid/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
+
+  apps/cli:
+    dependencies:
+      '@effect/platform-node':
+        specifier: 4.1.4
+        version: 4.1.4(effect@4.1.4)(redis@6.3.1)
+      '@riotid/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@riotid/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -247,9 +269,6 @@ importers:
       effect:
         specifier: 4.1.4
         version: 4.1.4
-      hono:
-        specifier: 4.13.19
-        version: 4.13.19
       qrcode-terminal:
         specifier: 0.12.0
         version: 0.12.0
@@ -260,6 +279,15 @@ importers:
       '@types/qrcode-terminal':
         specifier: 0.12.2
         version: 0.12.2
+
+  apps/scheduler:
+    dependencies:
+      '@riotid/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      effect:
+        specifier: 4.1.4
+        version: 4.1.4
 
   apps/web:
     dependencies:
@@ -316,6 +344,12 @@ importers:
         specifier: 4.3.5
         version: 4.3.5
 
+  packages/config:
+    dependencies:
+      effect:
+        specifier: 4.1.4
+        version: 4.1.4
+
   packages/contracts:
     dependencies:
       effect:
@@ -327,6 +361,9 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 4.1.4
         version: 4.1.4(effect@4.1.4)
+      '@riotid/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       drizzle-orm:
         specifier: 1.0.0-rc.5
         version: 1.0.0-rc.5(@effect/sql-sqlite-node@4.1.4(effect@4.1.4))(effect@4.1.4)(zod@4.6.7)
@@ -3719,6 +3756,7 @@ snapshots:
       '@esbuild/win32-arm64': 0.28.2
       '@esbuild/win32-ia32': 0.28.2
       '@esbuild/win32-x64': 0.28.2
+    optional: true
 
   escalade@3.2.0: {}
 
@@ -4008,6 +4046,7 @@ snapshots:
       esbuild: 0.28.2
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   typescript@7.0.2:
     optionalDependencies:
