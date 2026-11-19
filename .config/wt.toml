@@ -1,4 +1,5 @@
-# Worktree setup: copy ignored env/deps, then seed per-worktree runtime state.
+# Copy local env files, then seed env.worktree, data, and dependencies.
+# The setup hook prints this worktree's web and API URLs when it finishes.
 
 [[pre-start]]
 copy = "wt step copy-ignored --require-include"
