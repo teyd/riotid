@@ -28,7 +28,7 @@ export const PlayerList = ({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 56,
-    overscan: 14,
+    overscan: 8,
   })
 
   const selectedIndex = selected ? rows.findIndex((row) => row[P.puuid] === selected) : -1

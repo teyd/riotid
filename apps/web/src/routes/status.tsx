@@ -43,7 +43,7 @@ function StatusPage() {
   const data = status.data
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-6">
+    <div className="mx-auto h-full w-full max-w-3xl overflow-y-auto px-5 py-8 sm:px-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">readiness</p>

@@ -83,7 +83,7 @@ function StatsPage() {
   const data = stats.data
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-5 py-8 sm:px-6">
+    <div className="mx-auto h-full w-full max-w-6xl overflow-y-auto px-5 py-8 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent">aggregates</p>
