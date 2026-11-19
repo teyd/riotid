@@ -1,12 +1,10 @@
 node_modules/
 .deslop/
-.env
-.env.*
-!.env.schema
 data/
 dist/
 coverage/
 .vite/
+.tanstack/
 test-results/
 playwright-report/
 *.db
@@ -14,4 +12,5 @@ playwright-report/
 *.db-shm
 .DS_Store
 
-.tanstack/
+.env*
+!.env.schema
