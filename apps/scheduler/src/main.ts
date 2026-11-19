@@ -242,6 +242,7 @@ const main = Effect.gen(function* () {
     yield* Effect.forkScoped(maintenanceLoop(runner, config, lock))
   }
 
+  // SCHEDULER_JOBS=false keeps the API supervised without spawning any job.
   if (config.jobsEnabled) {
     yield* Effect.forkScoped(authLoop(runner, config))
   }
