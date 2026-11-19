@@ -1,7 +1,8 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import type { ServiceStatus } from '@riotid/contracts'
 import { anonymousRows, Database, identityLinks, seedDatabase } from '@riotid/db'
 import { migrate, runDb, withDatabase } from '@riotid/test-utils'
 import { Effect } from 'effect'
@@ -30,6 +31,46 @@ describe('api', () => {
       expect(response.status).toBe(200)
       await expect(response.json()).resolves.toEqual({ ok: true, service: 'riotid-api' })
     })
+  })
+
+  it('reports cookie freshness without exposing the jar', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'riotid-cookie-'))
+    const cookieFile = join(directory, 'cookies.json')
+    const refreshedAt = Date.UTC(2026, 10, 19, 22, 33, 0)
+
+    try {
+      await writeFile(cookieFile, '{"version":1,"cookies":{"ssid":"secret"}}')
+      await utimes(cookieFile, refreshedAt / 1000, refreshedAt / 1000)
+
+      await withApp(
+        async (app) => {
+          const response = await request(app, '/api/v1/status')
+          expect(response.status).toBe(200)
+          expect(response.headers.get('cache-control')).toBe('no-store')
+
+          const body = (await response.json()) as ServiceStatus
+          expect(body.auth.updatedAt).not.toBeNull()
+          expect(Math.abs((body.auth.updatedAt ?? 0) - refreshedAt)).toBeLessThan(1_000)
+          expect(body.auth.staleAfterMs).toBe(90 * 60_000)
+          expect(JSON.stringify(body)).not.toContain('secret')
+        },
+        { cookieFile, authRefreshMinutes: 45 },
+      )
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  it('reports a missing cookie jar as null', async () => {
+    await withApp(
+      async (app) => {
+        const response = await request(app, '/api/v1/status')
+        expect(response.status).toBe(200)
+        const body = (await response.json()) as ServiceStatus
+        expect(body.auth.updatedAt).toBeNull()
+      },
+      { cookieFile: join(tmpdir(), 'riotid-no-cookie.json') },
+    )
   })
 
   it('serves a cacheable index filtered to public players', async () => {
@@ -142,12 +183,7 @@ describe('api', () => {
 
   it('does not expose removed operational endpoints', async () => {
     await withApp(async (app) => {
-      for (const path of [
-        '/api/v1/stats',
-        '/api/v1/status',
-        '/api/v1/crawler',
-        '/api/v1/crawler/stream',
-      ]) {
+      for (const path of ['/api/v1/stats', '/api/v1/crawler', '/api/v1/crawler/stream']) {
         const response = await request(app, path)
         expect(response.status).toBe(404)
       }

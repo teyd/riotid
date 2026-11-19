@@ -1,6 +1,6 @@
-import type { PlayerDetail, SiteIndex } from '@riotid/contracts'
+import type { PlayerDetail, ServiceStatus, SiteIndex } from '@riotid/contracts'
 
-export type { PlayerDetail, SiteIndex }
+export type { PlayerDetail, ServiceStatus, SiteIndex }
 
 export const P = {
   puuid: 0,
@@ -114,5 +114,6 @@ const fetchJson = async <A>(path: string): Promise<A> => {
 }
 
 export const fetchIndex = () => fetchJson<SiteIndex>('/api/v1/index')
+export const fetchStatus = () => fetchJson<ServiceStatus>('/api/v1/status')
 export const fetchPlayer = (puuid: string) =>
   fetchJson<PlayerDetail>(`/api/v1/players/${encodeURIComponent(puuid)}`)

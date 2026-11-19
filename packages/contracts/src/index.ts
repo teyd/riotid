@@ -7,6 +7,19 @@ export const Health = Schema.Struct({
 
 export type Health = typeof Health.Type
 
+export const AuthStatus = Schema.Struct({
+  updatedAt: Schema.NullOr(Schema.Finite),
+  staleAfterMs: Schema.Finite,
+})
+
+export type AuthStatus = typeof AuthStatus.Type
+
+export const ServiceStatus = Schema.Struct({
+  auth: AuthStatus,
+})
+
+export type ServiceStatus = typeof ServiceStatus.Type
+
 export const Region = Schema.Literals(['na', 'eu', 'ap', 'kr'])
 export type Region = typeof Region.Type
 
