@@ -798,7 +798,52 @@ const main = Effect.gen(function* () {
       `)
     }).pipe(Effect.provide(writeDatabase(config.databasePath)))
 
+  const appendCrawlerLog = (
+    level: 'debug' | 'info' | 'warn' | 'error',
+    msg: string,
+    fields: Record<string, unknown> | null = null,
+  ) =>
+    Effect.gen(function* () {
+      const db = yield* Database
+      const now = new Date()
+      const row = yield* db.get<{ value: string }>(
+        sql`select value from meta where key = 'anon:log'`,
+      )
+      let entries: Array<{
+        at: number
+        level: string
+        msg: string
+        fields: Record<string, unknown> | null
+      }> = []
+
+      if (row?.value) {
+        try {
+          const parsed = JSON.parse(row.value)
+          if (Array.isArray(parsed)) entries = parsed
+        } catch {
+          entries = []
+        }
+      }
+
+      const previous = entries.at(-1)
+
+      if (previous && previous.msg === msg && now.getTime() - previous.at < 5 * 60_000) {
+        return
+      }
+
+      entries.push({ at: now.getTime(), level, msg, fields })
+      yield* db.run(sql`
+        insert into meta (key, value, updated_at)
+        values ('anon:log', ${JSON.stringify(entries.slice(-40))}, ${now.getTime()})
+        on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at
+      `)
+    }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
   const crawlerLoop = Effect.gen(function* () {
+    yield* appendCrawlerLog('info', 'crawler loop started', {
+      batchMinutes: 15,
+      budget: config.anonBudget,
+    })
     yield* Effect.sleep('1 minute')
 
     while (true) {
@@ -817,6 +862,9 @@ const main = Effect.gen(function* () {
 
       if (state.scanning) {
         yield* setCrawlerSchedule('Leaderboard scan running; crawler paused', now + 60_000)
+        yield* appendCrawlerLog('warn', 'leaderboard scan running; paused', {
+          retryAt: now + 60_000,
+        })
         yield* Effect.sleep('1 minute')
         continue
       }
@@ -824,26 +872,46 @@ const main = Effect.gen(function* () {
       if (state.used >= config.anonBudget) {
         const next = nextUtcMidnight(now)
         yield* setCrawlerSchedule('Daily Riot budget reached; resuming at 00:00 UTC', next)
+        yield* appendCrawlerLog('warn', 'daily Riot budget reached', {
+          used: state.used,
+          budget: config.anonBudget,
+          resumeAt: next,
+        })
         yield* Effect.sleep(`${Math.max(60_000, next - now)} millis`)
         continue
       }
 
       yield* setCrawlerSchedule('Crawler batch running', 0)
-      const result = yield* resolvePass({ ...config, limit: 8 }).pipe(
-        Effect.tap((value) => Effect.logInfo(`crawler batch: ${JSON.stringify(value)}`)),
-        Effect.catch((error) =>
-          Effect.logWarning(`crawler batch failed: ${String(error)}`).pipe(Effect.as(null)),
-        ),
-      )
-      const failed = result === null
-      const worked = result !== null && result.tried > 0
+      yield* appendCrawlerLog('info', 'crawler batch started', {
+        limit: 8,
+        budget: config.anonBudget,
+      })
+      const outcome = yield* Effect.match(resolvePass({ ...config, limit: 8 }), {
+        onFailure: (error) => ({ ok: false as const, error: String(error) }),
+        onSuccess: (value) => ({ ok: true as const, value }),
+      })
+
+      if (!outcome.ok) {
+        yield* Effect.logWarning(`crawler batch failed: ${outcome.error}`)
+        yield* appendCrawlerLog('error', 'crawler batch failed', { error: outcome.error })
+        yield* setCrawlerSchedule('Crawler batch failed; retrying in 30 minutes', now + 30 * 60_000)
+        yield* Effect.sleep('30 minutes')
+        continue
+      }
+
+      const result = outcome.value
+      const worked = result.tried > 0
       const pauseMs = worked ? 15 * 60_000 : 30 * 60_000
+      yield* Effect.logInfo(`crawler batch: ${JSON.stringify(result)}`)
+      yield* appendCrawlerLog('info', worked ? 'crawler batch complete' : 'no candidates', {
+        tried: result.tried,
+        matchesFetched: result.matchesFetched,
+        requests: result.requests,
+        linked: result.linked,
+        ambiguous: result.ambiguous,
+      })
       yield* setCrawlerSchedule(
-        failed
-          ? 'Crawler batch failed; retrying in 30 minutes'
-          : worked
-            ? 'Next crawler batch in 15 minutes'
-            : 'No candidates; next check in 30 minutes',
+        worked ? 'Next crawler batch in 15 minutes' : 'No candidates; next check in 30 minutes',
         now + pauseMs,
       )
       yield* Effect.sleep(`${pauseMs} millis`)

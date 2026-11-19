@@ -2,6 +2,7 @@ import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
   lint: {
+    ignorePatterns: ['.agents/skills/**'],
     plugins: ['typescript'],
     options: {
       typeAware: true,

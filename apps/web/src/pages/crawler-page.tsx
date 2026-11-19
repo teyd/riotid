@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { chartAxisTick, chartTooltipStyle, regionColors } from '../components/charts.tsx'
+import { CrawlerLog } from '../components/crawler-log.tsx'
 import { MetricGrid, Panel } from '../components/panel.tsx'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui.tsx'
 import {
@@ -95,125 +96,130 @@ export function CrawlerPage() {
       />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <Panel
-          title={snapshot.running ? 'current activity' : 'last activity'}
-          meta={activity ? `${activity.phase} · ${formatRelative(activity.updatedAt)}` : 'waiting'}
-        >
-          {activity ? (
-            <>
-              <p className="mt-2 text-lg font-medium text-zinc-100">{activity.message}</p>
-              {snapshot.schedule.message ? (
-                <p className="mt-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
-                  {snapshot.schedule.message}
-                  {snapshot.schedule.nextRunAt
-                    ? ` · ${formatUntil(snapshot.schedule.nextRunAt)}`
-                    : ''}
+        <CrawlerLog entries={snapshot.log} running={snapshot.running} />
+
+        <div className="grid content-start gap-4">
+          <Panel
+            title={snapshot.running ? 'current batch' : 'last batch'}
+            meta={
+              activity ? `${activity.phase} · ${formatRelative(activity.updatedAt)}` : 'waiting'
+            }
+          >
+            {activity ? (
+              <>
+                <p className="mt-2 text-lg font-medium text-zinc-100">{activity.message}</p>
+                {snapshot.schedule.message ? (
+                  <p className="mt-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-500">
+                    {snapshot.schedule.message}
+                    {snapshot.schedule.nextRunAt
+                      ? ` · ${formatUntil(snapshot.schedule.nextRunAt)}`
+                      : ''}
+                  </p>
+                ) : null}
+
+                <div className="mt-5">
+                  <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-wide text-zinc-500">
+                    <span>riot requests</span>
+                    <span className="tabular-nums">
+                      {used} / {budget}
+                    </span>
+                  </div>
+                  <Progress value={usedPct} aria-label="Riot request budget">
+                    <ProgressTrack className="mt-2 h-1 overflow-hidden rounded bg-white/[0.07]">
+                      <ProgressIndicator className="h-full rounded bg-[#4ade80]" />
+                    </ProgressTrack>
+                  </Progress>
+                </div>
+
+                <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-white/[0.06] pt-4 font-mono text-[11px]">
+                  <div>
+                    <dt className="uppercase tracking-wide text-zinc-500">matches</dt>
+                    <dd className="mt-1 text-lg text-zinc-100 tabular-nums">
+                      {activity.matchesFetched.toLocaleString()}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="uppercase tracking-wide text-zinc-500">links</dt>
+                    <dd className="mt-1 text-lg text-zinc-100 tabular-nums">{activity.linked}</dd>
+                  </div>
+                  <div>
+                    <dt className="uppercase tracking-wide text-zinc-500">ambiguous</dt>
+                    <dd className="mt-1 text-lg text-zinc-100 tabular-nums">
+                      {activity.ambiguous}
+                    </dd>
+                  </div>
+                </dl>
+
+                {activity.currentMatchId ? (
+                  <p className="mt-4 truncate font-mono text-[11px] text-zinc-500">
+                    current match{' '}
+                    <a
+                      href={`https://vtl.lol/match/${activity.currentMatchId}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-[#4ade80] hover:underline"
+                    >
+                      {activity.currentMatchId}
+                    </a>
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-lg font-medium text-zinc-100">Waiting for the next batch</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-500">
+                  The resolver last ran {formatRelative(snapshot.lastRunAt)}. Batches seed the graph
+                  from nearby players, check exact MMR fingerprints, and write only confirmed links.
                 </p>
-              ) : null}
+              </>
+            )}
+          </Panel>
 
-              <div className="mt-5">
-                <div className="flex items-baseline justify-between font-mono text-[11px] uppercase tracking-wide text-zinc-500">
-                  <span>riot requests</span>
-                  <span className="tabular-nums">
-                    {used} / {budget}
-                  </span>
+          <Panel
+            title="cache by region"
+            meta={`${snapshot.cache.matches.toLocaleString()} matches`}
+          >
+            <div className="mt-4 h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={byRegion}
+                  layout="vertical"
+                  margin={{ top: 0, right: 8, bottom: 0, left: 0 }}
+                  barSize={18}
+                >
+                  <XAxis type="number" hide />
+                  <YAxis
+                    type="category"
+                    dataKey="region"
+                    tick={chartAxisTick}
+                    axisLine={false}
+                    tickLine={false}
+                    width={30}
+                  />
+                  <Tooltip
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={{ color: '#a1a1aa' }}
+                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    formatter={(value) => [Number(value).toLocaleString(), 'matches']}
+                  />
+                  <Bar dataKey="matches" radius={[2, 2, 2, 2]}>
+                    {byRegion.map((entry) => (
+                      <Cell key={entry.region} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
+              {byRegion.map((entry) => (
+                <div key={entry.region} className="flex justify-between">
+                  <dt className="text-zinc-500">{entry.label}</dt>
+                  <dd className="text-zinc-300 tabular-nums">{entry.matches.toLocaleString()}</dd>
                 </div>
-                <Progress value={usedPct} aria-label="Riot request budget">
-                  <ProgressTrack className="mt-2 h-1 overflow-hidden rounded bg-white/[0.07]">
-                    <ProgressIndicator className="h-full rounded bg-[#4ade80]" />
-                  </ProgressTrack>
-                </Progress>
-              </div>
-
-              <dl className="mt-5 grid grid-cols-3 gap-4 border-t border-white/[0.06] pt-4 font-mono text-[11px]">
-                <div>
-                  <dt className="uppercase tracking-wide text-zinc-500">matches fetched</dt>
-                  <dd className="mt-1 text-lg text-zinc-100 tabular-nums">
-                    {activity.matchesFetched.toLocaleString()}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="uppercase tracking-wide text-zinc-500">links</dt>
-                  <dd className="mt-1 text-lg text-zinc-100 tabular-nums">{activity.linked}</dd>
-                </div>
-                <div>
-                  <dt className="uppercase tracking-wide text-zinc-500">ambiguous</dt>
-                  <dd className="mt-1 text-lg text-zinc-100 tabular-nums">{activity.ambiguous}</dd>
-                </div>
-              </dl>
-
-              {activity.currentMatchId ? (
-                <p className="mt-4 truncate font-mono text-[11px] text-zinc-500">
-                  current match{' '}
-                  <a
-                    href={`https://vtl.lol/match/${activity.currentMatchId}`}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="text-[#4ade80] hover:underline"
-                  >
-                    {activity.currentMatchId}
-                  </a>
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <p className="mt-2 text-lg font-medium text-zinc-100">Waiting for the next batch</p>
-              <p className="mt-2 text-xs leading-5 text-zinc-500">
-                The resolver last ran {formatRelative(snapshot.lastRunAt)}. Batches seed the graph
-                from nearby players, check exact MMR fingerprints, and write only confirmed links.
-              </p>
-            </>
-          )}
-
-          <p className="mt-4 border-t border-white/[0.06] pt-4 text-xs leading-5 text-zinc-500">
-            Leaderboard scans take priority: the crawler pauses while a scan runs, yields if one
-            begins mid-batch, and spreads small batches across the day until the Riot budget is
-            spent. It is not a continuous match archive.
-          </p>
-        </Panel>
-
-        <Panel title="cache by region" meta={`${snapshot.cache.matches.toLocaleString()} matches`}>
-          <div className="mt-4 h-52">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={byRegion}
-                layout="vertical"
-                margin={{ top: 0, right: 8, bottom: 0, left: 0 }}
-                barSize={18}
-              >
-                <XAxis type="number" hide />
-                <YAxis
-                  type="category"
-                  dataKey="region"
-                  tick={chartAxisTick}
-                  axisLine={false}
-                  tickLine={false}
-                  width={30}
-                />
-                <Tooltip
-                  contentStyle={chartTooltipStyle}
-                  labelStyle={{ color: '#a1a1aa' }}
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                  formatter={(value) => [Number(value).toLocaleString(), 'matches']}
-                />
-                <Bar dataKey="matches" radius={[2, 2, 2, 2]}>
-                  {byRegion.map((entry) => (
-                    <Cell key={entry.region} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <dl className="mt-2 space-y-1.5 border-t border-white/[0.06] pt-3 font-mono text-[11px]">
-            {byRegion.map((entry) => (
-              <div key={entry.region} className="flex justify-between">
-                <dt className="text-zinc-500">{entry.label}</dt>
-                <dd className="text-zinc-300 tabular-nums">{entry.matches.toLocaleString()}</dd>
-              </div>
-            ))}
-          </dl>
-        </Panel>
+              ))}
+            </dl>
+          </Panel>
+        </div>
       </div>
 
       <section className="mt-4 rounded-lg border border-white/[0.08]">
