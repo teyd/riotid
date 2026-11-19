@@ -1,36 +1,17 @@
 // @effect-diagnostics globalJsonInEffect:off
-import { Database } from '@riotid/db'
-import type { IndexPlayer, PlayerDetail, Region, SiteIndex } from '@riotid/contracts'
-import { Schema } from 'effect'
-
-const NameIntervalType = Schema.Struct({
-  name: Schema.String,
-  tag: Schema.String,
-  startedAt: Schema.Finite,
-  endedAt: Schema.NullOr(Schema.Finite),
-  startedRunId: Schema.NullOr(Schema.Finite),
-  endedRunId: Schema.NullOr(Schema.Finite),
-})
-const RegionIntervalType = Schema.Struct({
-  region: Schema.Literals(['na', 'eu', 'ap', 'kr']),
-  startedAt: Schema.Finite,
-  endedAt: Schema.NullOr(Schema.Finite),
-  startedRunId: Schema.NullOr(Schema.Finite),
-  endedRunId: Schema.NullOr(Schema.Finite),
-})
-const BanIntervalType = Schema.Struct({
-  startedAt: Schema.Finite,
-  endedAt: Schema.NullOr(Schema.Finite),
-  lastSeenAt: Schema.Finite,
-  startedRunId: Schema.NullOr(Schema.Finite),
-  endedRunId: Schema.NullOr(Schema.Finite),
-})
-type NameIntervalType = typeof NameIntervalType.Type
-type RegionIntervalType = typeof RegionIntervalType.Type
-type BanIntervalType = typeof BanIntervalType.Type
-
+import type {
+  BanInterval,
+  IndexPlayer,
+  NameInterval,
+  PlayerDetail,
+  Region,
+  RegionInterval,
+  SiteIndex,
+} from '@riotid/contracts'
 import { sql } from 'drizzle-orm'
 import { Effect } from 'effect'
+
+import { Database } from './client.ts'
 
 const dayMs = 86_400_000
 
@@ -257,7 +238,7 @@ export const loadPlayerDetail = (
       order by l.created_at asc, l.id asc
     `)
 
-    const nameTimeline: NameIntervalType[] = names.map((row) => ({
+    const nameTimeline: NameInterval[] = names.map((row) => ({
       name: row.name,
       tag: row.tag,
       startedAt: row.started_at,
@@ -265,14 +246,14 @@ export const loadPlayerDetail = (
       startedRunId: row.started_run_id,
       endedRunId: row.ended_run_id,
     }))
-    const regionTimeline: RegionIntervalType[] = regions.map((row) => ({
+    const regionTimeline: RegionInterval[] = regions.map((row) => ({
       region: row.region,
       startedAt: row.started_at,
       endedAt: row.ended_at,
       startedRunId: row.started_run_id,
       endedRunId: row.ended_run_id,
     }))
-    const banTimeline: BanIntervalType[] = bans.map((row) => ({
+    const banTimeline: BanInterval[] = bans.map((row) => ({
       startedAt: row.started_at,
       endedAt: row.ended_at,
       lastSeenAt: row.last_seen_at,

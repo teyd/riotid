@@ -3,16 +3,20 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 
-import { Database, readDatabase } from '@riotid/db'
 import type { ApiError, Health } from '@riotid/contracts'
+import {
+  buildSiteIndex,
+  Database,
+  loadPlayerDetail,
+  readDatabase,
+  readIndexVersion,
+} from '@riotid/db'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { sql } from 'drizzle-orm'
 import { Effect, ManagedRuntime } from 'effect'
 import { Hono, type Context } from 'hono'
 import { compress } from 'hono/compress'
-
-import { buildSiteIndex, loadPlayerDetail, readIndexVersion } from './site.ts'
 
 export type AppOptions = {
   readonly databasePath: string
@@ -48,50 +52,7 @@ const encodeCached = (key: string, value: unknown, etag: string): CachedJson => 
 
 const indexFormat = 4
 
-let cachedIndex: CachedJson | null = null
-
-const getIndex = (databasePath: string, indexWindowDays: number) =>
-  Effect.gen(function* () {
-    const version = yield* readIndexVersion
-    const key = `${databasePath}:${version}`
-
-    if (cachedIndex?.key === key) {
-      return cachedIndex
-    }
-
-    const value = yield* buildSiteIndex(Date.now(), indexWindowDays)
-    const cached = encodeCached(
-      key,
-      value,
-      `"${indexFormat}-${value.version}-${value.players.length}"`,
-    )
-    cachedIndex = cached
-    return cached
-  })
-
 type Bucket = { count: number; resetAt: number }
-
-const buckets = new Map<string, Bucket>()
-
-const hitLimit = (key: string, limit: number, windowMs = 60_000): boolean => {
-  const now = Date.now()
-  const bucket = buckets.get(key)
-
-  if (!bucket || bucket.resetAt <= now) {
-    buckets.set(key, { count: 1, resetAt: now + windowMs })
-    return false
-  }
-
-  bucket.count += 1
-
-  if (buckets.size > 10_000) {
-    for (const [entry, value] of buckets) {
-      if (value.resetAt <= now) buckets.delete(entry)
-    }
-  }
-
-  return bucket.count > limit
-}
 
 const clientIp = async (c: Context): Promise<string> => {
   const forwarded = c.req.header('cf-connecting-ip') ?? c.req.header('x-real-ip')
@@ -132,6 +93,47 @@ export const makeApp = (options: AppOptions) => {
     players: options.rateLimits?.players ?? 120,
   }
   const webRoot = options.webRoot ?? './apps/web/dist'
+  const indexWindowDays = options.indexWindowDays ?? 30
+  const buckets = new Map<string, Bucket>()
+  let cachedIndex: CachedJson | null = null
+
+  const hitLimit = (key: string, limit: number, windowMs = 60_000): boolean => {
+    const now = Date.now()
+    const bucket = buckets.get(key)
+
+    if (!bucket || bucket.resetAt <= now) {
+      buckets.set(key, { count: 1, resetAt: now + windowMs })
+      return false
+    }
+
+    bucket.count += 1
+
+    if (buckets.size > 10_000) {
+      for (const [entry, value] of buckets) {
+        if (value.resetAt <= now) buckets.delete(entry)
+      }
+    }
+
+    return bucket.count > limit
+  }
+
+  const getIndex = Effect.gen(function* () {
+    const version = yield* readIndexVersion
+    const key = `${options.databasePath}:${indexWindowDays}:${version}`
+
+    if (cachedIndex?.key === key) {
+      return cachedIndex
+    }
+
+    const value = yield* buildSiteIndex(Date.now(), indexWindowDays)
+    const cached = encodeCached(
+      key,
+      value,
+      `"${indexFormat}-${value.version}-${value.players.length}"`,
+    )
+    cachedIndex = cached
+    return cached
+  })
 
   app.use('*', async (c, next) => {
     const requestId = crypto.randomUUID()
@@ -188,7 +190,7 @@ export const makeApp = (options: AppOptions) => {
   app.get('/api/v1/index', async (c) => {
     if (await rateLimit(c, 'index', limits.index)) return rateLimited(c)
 
-    const index = await runDb(getIndex(options.databasePath, options.indexWindowDays ?? 30))
+    const index = await runDb(getIndex)
 
     c.header('ETag', index.etag)
     c.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
