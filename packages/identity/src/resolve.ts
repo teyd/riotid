@@ -418,6 +418,7 @@ export const resolveAnonymous = (
       .where(
         and(eq(players.isAnonymized, true), sql`(${players.name} is null or ${players.name} = '')`),
       )
+      .orderBy(desc(players.lastSeenAt))
       .limit(500)
     const unnamedByRegion = new Map<Region, string[]>()
 
