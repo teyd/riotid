@@ -15,34 +15,40 @@ template that drifts from the contract is worse than none.
 
 ## Variables
 
-| Variable                             | Default                 | Purpose                                                                     |
-| ------------------------------------ | ----------------------- | --------------------------------------------------------------------------- |
-| `NODE_ENV`                           | `development`           | Runtime mode; production disables dev seeding and enables prod behavior     |
-| `PORT`                               | `8787`                  | API listen port                                                             |
-| `WEB_PORT`                           | `5173`                  | Vite dev server port                                                        |
-| `PUBLIC_ORIGIN`                      | `http://localhost:5173` | Public web origin printed by status and startup logs                        |
-| `DATABASE_PATH`                      | `./data/riotid.db`      | SQLite file for all app and CLI processes                                   |
-| `COOKIE_FILE`                        | `./data/cookies.json`   | Riot cookie jar written by auth commands                                    |
-| `RIOT_COUNTRY_CODE`                  | `US`                    | Country sent during Riot QR login                                           |
-| `RIOT_QR_TIMEOUT_SECONDS`            | `300`                   | How long `auth:login` waits for a QR scan                                   |
-| `AUTH_REFRESH_MINUTES`               | `45`                    | Token refresh interval for running processes and stale checks               |
-| `SCAN_INTERVAL_HOURS`                | `6`                     | Scheduled leaderboard scan interval                                         |
-| `SCHEDULER_JOBS`                     | `true`                  | Set `false` to start the API under the scheduler without spawning Riot jobs |
-| `ANON_RESOLVE_BUDGET`                | `5000`                  | Daily cap on Riot requests spent on identity resolution                     |
-| `ANON_SEEDS`                         | `20`                    | Nearby leaderboard seeds used per identity pass                             |
-| `ANON_COVERAGE_TARGET`               | `0.9`                   | Coverage target that lets the match cache grow                              |
-| `MATCH_CACHE_ENABLED`                | `true`                  | Reuse stored match candidates before fetching new matches                   |
-| `MATCH_CACHE_MATCHES_PER_REGION`     | `1000`                  | Initial match-candidate cap per region                                      |
-| `MATCH_CACHE_MAX_MATCHES_PER_REGION` | `10000`                 | Hard cap when autotune grows the cache                                      |
-| `MATCH_CACHE_AUTOTUNE`               | `true`                  | Grow the cache while coverage stays under the target                        |
-| `MATCH_CACHE_DAYS`                   | `30`                    | Age after which cached match candidates are pruned                          |
-| `INDEX_RETENTION_DAYS`               | `30`                    | Players seen within this window stay in the public index                    |
-| `BACKUP_DIRECTORY`                   | `./data/backups`        | Destination for rotated SQLite backups                                      |
-| `BACKUP_KEEP_DAYS`                   | `7`                     | Backup retention window                                                     |
-| `RUN_RETENTION_DAYS`                 | `180`                   | Run evidence retention before `db:prune`                                    |
-| `INFISICAL_PROJECT_ID`               | unset                   | Optional Infisical project for the Varlock plugin                           |
-| `INFISICAL_CLIENT_ID`                | unset                   | Sensitive Infisical machine identity                                        |
-| `INFISICAL_CLIENT_SECRET`            | unset                   | Sensitive Infisical machine secret                                          |
+| Variable                               | Default                 | Purpose                                                                     |
+| -------------------------------------- | ----------------------- | --------------------------------------------------------------------------- |
+| `NODE_ENV`                             | `development`           | Runtime mode; production disables dev seeding and enables prod behavior     |
+| `PORT`                                 | `8787`                  | API listen port                                                             |
+| `WEB_PORT`                             | `5173`                  | Vite dev server port                                                        |
+| `PUBLIC_ORIGIN`                        | `http://localhost:5173` | Public web origin printed by status and startup logs                        |
+| `DATABASE_PATH`                        | `./data/riotid.db`      | SQLite file for all app and CLI processes                                   |
+| `COOKIE_FILE`                          | `./data/cookies.json`   | Riot cookie jar written by auth commands                                    |
+| `RIOT_COUNTRY_CODE`                    | `US`                    | Country sent during Riot QR login                                           |
+| `RIOT_QR_TIMEOUT_SECONDS`              | `300`                   | How long `auth:login` waits for a QR scan                                   |
+| `AUTH_REFRESH_MINUTES`                 | `45`                    | Token refresh interval for running processes and stale checks               |
+| `SCAN_INTERVAL_HOURS`                  | `6`                     | Scheduled leaderboard scan interval                                         |
+| `SCHEDULER_JOBS`                       | `true`                  | Set `false` to start the API under the scheduler without spawning Riot jobs |
+| `SCHEDULER_DRY_RUN`                    | `false`                 | Log jobs instead of spawning them; safe for smoke tests                     |
+| `SCHEDULER_IDENTITY_LIMIT`             | `8`                     | Rows attempted per identity pass                                            |
+| `SCHEDULER_IDENTITY_ACTIVE_MINUTES`    | `15`                    | Delay after an identity pass that tried work                                |
+| `SCHEDULER_IDENTITY_IDLE_MINUTES`      | `30`                    | Delay after an identity pass with no work or a failure                      |
+| `SCHEDULER_MAINTENANCE_DELAY_MINUTES`  | `10`                    | Boot delay before the first backup and prune                                |
+| `SCHEDULER_MAINTENANCE_INTERVAL_HOURS` | `24`                    | Backup and prune interval                                                   |
+| `ANON_RESOLVE_BUDGET`                  | `5000`                  | Daily cap on Riot requests spent on identity resolution                     |
+| `ANON_SEEDS`                           | `20`                    | Nearby leaderboard seeds used per identity pass                             |
+| `ANON_COVERAGE_TARGET`                 | `0.9`                   | Coverage target that lets the match cache grow                              |
+| `MATCH_CACHE_ENABLED`                  | `true`                  | Reuse stored match candidates before fetching new matches                   |
+| `MATCH_CACHE_MATCHES_PER_REGION`       | `1000`                  | Initial match-candidate cap per region                                      |
+| `MATCH_CACHE_MAX_MATCHES_PER_REGION`   | `10000`                 | Hard cap when autotune grows the cache                                      |
+| `MATCH_CACHE_AUTOTUNE`                 | `true`                  | Grow the cache while coverage stays under the target                        |
+| `MATCH_CACHE_DAYS`                     | `30`                    | Age after which cached match candidates are pruned                          |
+| `INDEX_RETENTION_DAYS`                 | `30`                    | Players seen within this window stay in the public index                    |
+| `BACKUP_DIRECTORY`                     | `./data/backups`        | Destination for rotated SQLite backups                                      |
+| `BACKUP_KEEP_DAYS`                     | `7`                     | Backup retention window                                                     |
+| `RUN_RETENTION_DAYS`                   | `180`                   | Run evidence retention before `db:prune`                                    |
+| `INFISICAL_PROJECT_ID`                 | unset                   | Optional Infisical project for the Varlock plugin                           |
+| `INFISICAL_CLIENT_ID`                  | unset                   | Sensitive Infisical machine identity                                        |
+| `INFISICAL_CLIENT_SECRET`              | unset                   | Sensitive Infisical machine secret                                          |
 
 Relative paths resolve from the repository root, not from the current
 directory, so CLI commands behave the same from any folder.

@@ -132,7 +132,8 @@ child process and spawns CLI jobs instead of running Riot work inside the API.
 
 The scheduler and API share the same volume and environment. Do not run a second
 scheduler, and do not run CLI write commands against production while it is
-active.
+active. `SCHEDULER_DRY_RUN=true` logs jobs instead of spawning them;
+`SCHEDULER_JOBS=false` keeps the API supervised with no scheduled work.
 
 ## Contracts
 
