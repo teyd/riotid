@@ -375,6 +375,21 @@ const resolvePass = (config: {
     ),
   )
 
+const adminJobs = new Set<string>()
+
+const startAdminJob = (name: string, run: () => Promise<unknown>) => {
+  if (adminJobs.has(name)) {
+    return { started: false, running: true }
+  }
+
+  adminJobs.add(name)
+  void run()
+    .catch((error: unknown) => process.stderr.write(`admin ${name} failed: ${String(error)}\n`))
+    .finally(() => adminJobs.delete(name))
+
+  return { started: true }
+}
+
 const scanNow = (config: Parameters<typeof scanOnce>[0]) =>
   Effect.runPromise(scanOnce(config, 'manual'))
 
@@ -731,8 +746,9 @@ const main = Effect.gen(function* () {
       ? {
           admin: {
             token: adminToken,
-            scan: () => scanNow(config),
-            resolve: () => resolveNow({ ...config, limit: 500 }),
+            startScan: () => startAdminJob('scan', () => scanNow(config)),
+            startResolve: () =>
+              startAdminJob('resolve', () => resolveNow({ ...config, limit: 500 })),
           },
         }
       : {}),

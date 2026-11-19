@@ -198,10 +198,10 @@ describe('api', () => {
       {
         admin: {
           token: 'secret',
-          scan: async () => ({ ok: true }),
-          resolve: async () => {
+          startScan: () => ({ started: true }),
+          startResolve: () => {
             resolved += 1
-            return { ok: true }
+            return { started: true }
           },
         },
       },

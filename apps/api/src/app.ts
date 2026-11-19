@@ -34,8 +34,8 @@ export type AppOptions = {
   }
   readonly admin?: {
     readonly token: string
-    readonly scan: () => Promise<unknown>
-    readonly resolve: () => Promise<unknown>
+    readonly startScan: () => { readonly started: boolean; readonly running?: boolean }
+    readonly startResolve: () => { readonly started: boolean; readonly running?: boolean }
   }
 }
 
@@ -290,9 +290,9 @@ export const makeApp = (options: AppOptions) => {
 
     if (await rateLimit(c, `admin:${action}`, 2)) return rateLimited(c)
 
-    const result = action === 'scan' ? await options.admin.scan() : await options.admin.resolve()
+    const result = action === 'scan' ? options.admin.startScan() : options.admin.startResolve()
 
-    return c.json({ ok: true, result } as const, 200, { 'Cache-Control': 'no-store' })
+    return c.json({ ok: true, ...result } as const, 200, { 'Cache-Control': 'no-store' })
   })
 
   app.get('/api/v1/status', async (c) => {
