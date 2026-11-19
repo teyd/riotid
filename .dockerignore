@@ -9,6 +9,12 @@ tools
 data
 coverage
 **/dist
+**/.deslop
+.vite
+.tanstack
+*.db
+*.db-wal
+*.db-shm
 test-results
 playwright-report
 *.md
