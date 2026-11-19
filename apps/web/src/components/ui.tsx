@@ -47,15 +47,11 @@ export const EmptyState = ({ title, hint }: { title: string; hint?: string }) =>
 )
 
 export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
-  <div className="flex items-center gap-3 px-6 py-6 font-mono text-xs uppercase tracking-wide text-zinc-500">
-    <span className="size-1.5 animate-pulse rounded-full bg-accent" />
+  <div
+    role="status"
+    className="flex items-center gap-3 px-6 py-6 font-mono text-xs uppercase tracking-wide text-zinc-400"
+  >
+    <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-accent" />
     {label}
-  </div>
-)
-
-export const ErrorState = ({ error }: { error: Error }) => (
-  <div className="flex flex-col items-start gap-2 p-6">
-    <p className="text-base text-zinc-300">Could not load data.</p>
-    <p className="font-mono text-xs text-zinc-500">{error.message}</p>
   </div>
 )
