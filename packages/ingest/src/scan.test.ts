@@ -366,6 +366,33 @@ describe('scan', () => {
     })
   })
 
+  it('keeps anonymous observation ids across scans', async () => {
+    const source = makeSource({ regions: { eu: [anonymousPlayer()] }, names: new Map() })
+
+    await withScan(source, async (path, runScan) => {
+      await runScan()
+      const first = await readRows(
+        path,
+        Effect.gen(function* () {
+          const db = yield* Database
+          return yield* db.select().from(anonymousRows)
+        }),
+      )
+      await runScan()
+      const second = await readRows(
+        path,
+        Effect.gen(function* () {
+          const db = yield* Database
+          return yield* db.select().from(anonymousRows)
+        }),
+      )
+
+      expect(first).toHaveLength(1)
+      expect(second).toHaveLength(1)
+      expect(second[0]?.id).toBe(first[0]?.id)
+    })
+  })
+
   it('prunes anonymous rows that left the leaderboard', async () => {
     const source = makeSource({
       regions: { eu: [anonymousPlayer()] },

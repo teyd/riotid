@@ -677,17 +677,6 @@ export const scan = (
           yield* tx.insert(bannedPlayers).values(batch)
         }
 
-        yield* tx.delete(anonymousRows).where(
-          and(
-            eq(anonymousRows.seasonId, act.uuid),
-            inArray(
-              anonymousRows.region,
-              crawled.map((region) => region.region),
-            ),
-            lt(anonymousRows.lastSeenAt, observedAt),
-          ),
-        )
-
         for (const batch of chunks(anonymousByRegion, 100)) {
           yield* tx
             .insert(anonymousRows)
@@ -705,6 +694,37 @@ export const scan = (
               },
             })
         }
+
+        const linkedRows = yield* tx
+          .select({ puuid: anonymousRows.resolvedPuuid })
+          .from(anonymousRows)
+          .where(and(eq(anonymousRows.status, 'linked'), eq(anonymousRows.lastSeenAt, observedAt)))
+        const linkedPuuids = [
+          ...new Set(linkedRows.flatMap((row) => (row.puuid ? [row.puuid] : []))),
+        ]
+
+        for (const batch of chunks(linkedPuuids, 200)) {
+          yield* tx
+            .update(players)
+            .set({
+              lastSeenAt: observedAt,
+              timesSeen: sql`${players.timesSeen} + 1`,
+              updatedAt: observedAt,
+            })
+            .where(inArray(players.puuid, batch))
+        }
+
+        yield* tx.delete(anonymousRows).where(
+          and(
+            eq(anonymousRows.status, 'unresolved'),
+            eq(anonymousRows.seasonId, act.uuid),
+            inArray(
+              anonymousRows.region,
+              crawled.map((region) => region.region),
+            ),
+            lt(anonymousRows.lastSeenAt, observedAt),
+          ),
+        )
 
         for (const region of crawled) {
           yield* tx

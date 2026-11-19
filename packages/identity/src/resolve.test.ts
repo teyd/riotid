@@ -9,6 +9,7 @@ import {
   identityLinks,
   leaderboardSeeds,
   matchCandidates,
+  meta as metadata,
   migrateDatabase,
   playerNames,
   playerRegions,
@@ -508,6 +509,92 @@ describe('anonymous identity resolution', () => {
 
       expect(result.requests).toBe(1)
       expect(result.linked).toBeLessThanOrEqual(1)
+    })
+  })
+
+  it('reuses cached matches on a second pass', async () => {
+    await withDatabase(async (path) => {
+      const source = makeSource({
+        mmr: new Map([['p-fresh', fingerprint()]]),
+        history: new Map([
+          ['seed-player', [{ matchId: 'm-fresh', gameStartTime: 1_700_000_000_000 }]],
+        ]),
+        matches: new Map([
+          [
+            'm-fresh',
+            { players: [participant('p-fresh', { gameName: 'Fresh', tagLine: '0003' })] },
+          ],
+        ]),
+      })
+
+      const first = await run(
+        path,
+        source,
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.insert(anonymousRows).values(anonymousRow())
+          yield* db.insert(players).values({
+            puuid: 'seed-player',
+            name: 'Seed',
+            tag: '0009',
+            region: 'eu',
+            firstSeenAt: new Date(),
+            lastSeenAt: new Date(),
+            updatedAt: new Date(),
+          })
+          return yield* resolveAnonymous({ ...config, seeds: 1 })
+        }),
+      )
+
+      const second = await run(
+        path,
+        source,
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.insert(anonymousRows).values(anonymousRow({ leaderboardRank: 101 }))
+          return yield* resolveAnonymous({ ...config, seeds: 1 })
+        }),
+      )
+
+      expect(first.matchesFetched).toBe(1)
+      expect(second.matchesFetched).toBe(0)
+      expect(second.linked).toBe(0)
+    })
+  })
+
+  it('grows the match cap after a week below the coverage target', async () => {
+    await withDatabase(async (path) => {
+      const source = makeSource({})
+
+      const result = await run(
+        path,
+        source,
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.insert(anonymousRows).values(anonymousRow())
+          yield* db.insert(metadata).values([
+            { key: 'anon:matchCap', value: '1000', updatedAt: new Date() },
+            {
+              key: 'anon:coverageHistory',
+              value: JSON.stringify(
+                Array.from({ length: 7 }, (_, index) => ({
+                  date: `2026-11-0${index + 1}`,
+                  coverage: 0.1,
+                })),
+              ),
+              updatedAt: new Date(),
+            },
+          ])
+          return yield* resolveAnonymous({
+            ...config,
+            seeds: 0,
+            autotune: true,
+            coverageTarget: 0.9,
+          })
+        }),
+      )
+
+      expect(result.matchCap).toBe(2000)
     })
   })
 
