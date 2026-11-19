@@ -12,6 +12,7 @@ The approved implementation plan lives in
 - `mise run check` — effect-tsgo + Vite+ static checks
 - `mise run test` — Vitest
 - `mise run build` — production web build
+- `mise run perf` — Playwright speed check against production
 - `mise run serve` — run the API from TypeScript
 - `mise run db:migrate` — apply committed migrations
 - `mise run db:seed` — seed synthetic development data
@@ -87,23 +88,19 @@ Cloudflare. The production scheduler runs a scan every 6 hours, catches up on
 boot, resolves anonymous rows daily, and writes a rotated backup after ten
 minutes and then every 24 hours.
 
-Deploy the current repository branch with `mise run deploy` (it reads the Dokploy key from `~/.config/opencode/secrets/dokploy-api-key`). Manual operations use the token-protected admin endpoints (token lives in
-`ADMIN_TOKEN`):
+Deploy the current repository branch with `mise run deploy` (it reads the Dokploy key from `~/.config/opencode/secrets/dokploy-api-key`). Scans, identity passes, backups, and the schema check run from the container terminal:
 
 ```bash
-curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://riotid.teyd.dev/api/v1/admin/scan
-curl -X POST -H "x-admin-token: $ADMIN_TOKEN" https://riotid.teyd.dev/api/v1/admin/anon
+cd /app
+node apps/api/src/cli.ts scan
+node apps/api/src/cli.ts anon:resolve
+node apps/api/src/cli.ts db:check
+node apps/api/src/cli.ts backup
 ```
 
-Both return immediately; poll `/api/v1/status` or `/api/v1/stats` for progress.
-The same token is stored locally at `~/.config/opencode/secrets/riotid-admin-token`.
-A backup can be verified without restoring it:
-
-```bash
-curl -X POST -H "x-admin-token: $ADMIN_TOKEN" -H 'content-type: application/json' \
-  -d '{"file":"/app/data/backups/riotid-....db"}' \
-  https://riotid.teyd.dev/api/v1/admin/check
-```
+The crawler page streams the live match-candidate cache at `/crawler` via
+`GET /api/v1/crawler/stream` (SSE); `GET /api/v1/crawler` returns the same
+snapshot for first paint.
 
 ## Deploy (Dokploy)
 

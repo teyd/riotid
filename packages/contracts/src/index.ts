@@ -29,6 +29,7 @@ export const IndexPlayer = Schema.Tuple([
   Schema.Finite,
   Schema.Finite,
   Schema.NullOr(Schema.Finite),
+  Schema.NullOr(Schema.Finite),
 ])
 
 export type IndexPlayer = typeof IndexPlayer.Type
@@ -255,6 +256,8 @@ export const ServiceStatus = Schema.Struct({
     unresolved: Schema.Finite,
     linked: Schema.Finite,
   }),
+  lastBackupAt: Schema.NullOr(Schema.Finite),
+  lastAnonRunAt: Schema.NullOr(Schema.Finite),
 })
 
 export type ServiceStatus = typeof ServiceStatus.Type
@@ -268,3 +271,26 @@ export const ApiError = Schema.Struct({
 })
 
 export type ApiError = typeof ApiError.Type
+
+export const CrawlerMatch = Schema.Struct({
+  matchId: Schema.String,
+  region: Region,
+  participants: Schema.Finite,
+  gameStartAt: Schema.Finite,
+  discoveredAt: Schema.Finite,
+})
+
+export type CrawlerMatch = typeof CrawlerMatch.Type
+
+export const CrawlerSnapshot = Schema.Struct({
+  running: Schema.Boolean,
+  lastRunAt: Schema.NullOr(Schema.Finite),
+  requestsToday: Schema.Finite,
+  cache: Schema.Struct({
+    matches: Schema.Finite,
+    rows: Schema.Finite,
+  }),
+  matches: Schema.Array(CrawlerMatch),
+})
+
+export type CrawlerSnapshot = typeof CrawlerSnapshot.Type

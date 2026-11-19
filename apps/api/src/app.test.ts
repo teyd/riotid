@@ -174,41 +174,6 @@ describe('api', () => {
     )
   })
 
-  it('protects admin actions with a token', async () => {
-    let resolved = 0
-
-    await withApp(
-      async (app) => {
-        const unauthorized = await request(app, '/api/v1/admin/anon', { method: 'POST' })
-        expect(unauthorized.status).toBe(401)
-
-        const resolvedResponse = await request(app, '/api/v1/admin/anon', {
-          method: 'POST',
-          headers: { 'x-admin-token': 'secret' },
-        })
-        expect(resolvedResponse.status).toBe(200)
-        expect(resolved).toBe(1)
-
-        const unknown = await request(app, '/api/v1/admin/other', {
-          method: 'POST',
-          headers: { 'x-admin-token': 'secret' },
-        })
-        expect(unknown.status).toBe(404)
-      },
-      {
-        admin: {
-          token: 'secret',
-          startScan: () => ({ started: true }),
-          startResolve: () => {
-            resolved += 1
-            return { started: true }
-          },
-          checkBackup: async () => ({ ok: true }),
-        },
-      },
-    )
-  })
-
   it('rejects malformed queries at the database boundary', async () => {
     await withApp(async (app) => {
       const response = await request(app, '/api/v1/players/%3Cscript%3E')

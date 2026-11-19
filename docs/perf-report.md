@@ -62,7 +62,7 @@ reports `cf-cache-status: DYNAMIC` because no Cache Rule is configured for
 Re-run with:
 
 ```bash
-CHROMIUM_PATH=/path/to/chrome PERF_URL=https://riotid.teyd.dev/ node scripts/perf-check.mjs
+CHROMIUM_PATH=/path/to/chrome PERF_URL=https://riotid.teyd.dev/ node apps/web/perf-check.mjs
 ```
 
 or `mise run perf` after installing Playwright's Chromium.

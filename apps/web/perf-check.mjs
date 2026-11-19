@@ -80,7 +80,6 @@ const searchMs = await page.evaluate(
     new Promise((resolve) => {
       const input = document.querySelector('input[placeholder^="Search name"]')
       if (!input) return resolve(-1)
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
       const start = performance.now()
       let previous = document.querySelectorAll('button[data-selected]').length
       const observer = new MutationObserver(() => {
@@ -92,7 +91,7 @@ const searchMs = await page.evaluate(
         previous = current
       })
       observer.observe(document.body, { subtree: true, childList: true })
-      setter.call(input, 'zzzz-not-found')
+      input.value = 'zzzz-not-found'
       input.dispatchEvent(new Event('input', { bubbles: true }))
       setTimeout(() => {
         observer.disconnect()
