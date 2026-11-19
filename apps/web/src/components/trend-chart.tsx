@@ -25,14 +25,18 @@ export const TrendChart = ({ history }: { history: SiteStats['history'] }) => {
     const numbers = series.map((entry) => entry.value)
     const max = Math.max(...numbers, 1)
     const min = Math.min(...numbers, 0)
-    const range = max - min || 1
+    const spread = max - min || max || 1
+    const padding = spread * 0.18
+    const domainMin = Math.max(0, min - padding)
+    const domainMax = max + padding
+    const range = domainMax - domainMin || 1
     const innerWidth = width - padX * 2
     const innerHeight = height - padTop - padBottom
 
     const mapped = series.map((entry, index) => {
       const x =
         padX + (series.length === 1 ? innerWidth / 2 : (index / (series.length - 1)) * innerWidth)
-      const y = padTop + innerHeight - ((entry.value - min) / range) * innerHeight
+      const y = padTop + innerHeight - ((entry.value - domainMin) / range) * innerHeight
       return { ...entry, x, y }
     })
 

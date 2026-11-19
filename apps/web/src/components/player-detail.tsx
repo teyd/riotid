@@ -137,7 +137,7 @@ export const PlayerDetailPanel = ({ puuid, row, onBack }: Props) => {
         style={
           wideArt
             ? {
-                backgroundImage: `linear-gradient(90deg, rgba(9,9,11,0.96) 0%, rgba(9,9,11,0.82) 55%, rgba(9,9,11,0.55) 100%), url(${wideArt})`,
+                backgroundImage: `linear-gradient(90deg, rgba(9,9,11,0.97) 0%, rgba(9,9,11,0.9) 60%, rgba(9,9,11,0.78) 100%), url(${wideArt})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }
