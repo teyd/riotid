@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from '@ui-sdk/react/select'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
 import { Toggle, ToggleGroup } from '@ui-sdk/react/toggle'
 import { Link, useNavigate } from '@tanstack/react-router'
 import SearchIcon from 'kubai-icons-react/icons/search'
@@ -53,17 +54,13 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const [query, setQuery] = useState('')
   const [region, setRegion] = useState<'all' | Region>('all')
   const [sort, setSort] = useState<Sort>('recentChanges')
-  const [split, setSplit] = useState(() => {
+  const [initialLayout] = useState<number[] | undefined>(() => {
     const stored = Number(window.localStorage.getItem('riotid:split'))
-    return Number.isFinite(stored) && stored >= 360 ? stored : 460
+    return Number.isFinite(stored) && stored > 15 && stored < 85
+      ? [stored, 100 - stored]
+      : undefined
   })
-  const [dragging, setDragging] = useState(false)
-  const splitRef = useRef(split)
   const deferredQuery = useDeferredValue(query)
-
-  useEffect(() => {
-    splitRef.current = split
-  }, [split])
 
   useEffect(() => {
     const preload = () => {
@@ -72,26 +69,6 @@ export function PlayersPage({ selected }: { selected?: string }) {
     const idle = window.requestIdleCallback(preload, { timeout: 2500 })
     return () => window.cancelIdleCallback(idle)
   }, [])
-
-  useEffect(() => {
-    if (!dragging) return
-
-    const move = (event: PointerEvent) => {
-      setSplit(Math.max(360, Math.min(760, event.clientX)))
-    }
-    const stop = () => {
-      setDragging(false)
-      window.localStorage.setItem('riotid:split', String(splitRef.current))
-    }
-
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', stop, { once: true })
-
-    return () => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', stop)
-    }
-  }, [dragging])
 
   const index = useQuery({
     queryKey: ['index'],
@@ -170,143 +147,139 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div
-        className="grid min-h-0 flex-1 lg:grid-cols-[var(--split)_minmax(0,1fr)]"
-        style={{ ['--split' as string]: `${split}px` }}
+      <Resizable
+        {...(initialLayout ? { defaultLayout: initialLayout } : {})}
+        onLayoutCommit={(layout) => {
+          window.localStorage.setItem('riotid:split', String(layout[0]))
+        }}
+        className="flex min-h-0 flex-1"
       >
-        <section
-          className={`relative min-h-0 flex-col border-r border-white/[0.07] ${p ? 'hidden lg:flex' : 'flex'}`}
+        <ResizablePanel
+          id="player-list"
+          defaultSize={32}
+          minSize={25}
+          maxSize={55}
+          className={`min-h-0 max-lg:!w-full ${p ? 'hidden lg:flex' : 'flex'}`}
         >
-          <button
-            type="button"
-            aria-label="Resize player list"
-            onPointerDown={(event) => {
-              event.preventDefault()
-              setDragging(true)
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-              event.preventDefault()
-              const next = Math.max(
-                360,
-                Math.min(760, split + (event.key === 'ArrowRight' ? 20 : -20)),
-              )
-              setSplit(next)
-              window.localStorage.setItem('riotid:split', String(next))
-            }}
-            className="absolute top-0 right-0 z-20 hidden h-full w-2 translate-x-1/2 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none lg:flex"
-          >
-            <span
-              className={`h-12 w-0.5 rounded-full transition-colors ${dragging ? 'bg-accent' : 'bg-white/10 hover:bg-white/25'}`}
-            />
-          </button>
+          <section className="relative flex h-full min-h-0 flex-col border-r border-white/[0.07]">
+            <div className="border-b border-white/[0.07] px-4 py-4">
+              <label className="flex h-11 min-w-0 items-center gap-2.5 rounded-lg border border-white/10 bg-black/25 px-3 focus-within:border-accent/50">
+                <SearchIcon className="size-4 shrink-0 text-zinc-500" />
+                <input
+                  ref={searchRef}
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search name, tag, puuid…"
+                  aria-label="Search players"
+                  spellCheck={false}
+                  autoComplete="off"
+                  className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
+                />
+                <kbd className="hidden rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 sm:block">
+                  /
+                </kbd>
+              </label>
 
-          <div className="border-b border-white/[0.07] px-4 py-4">
-            <label className="flex h-11 min-w-0 items-center gap-2.5 rounded-lg border border-white/10 bg-black/25 px-3 focus-within:border-accent/50">
-              <SearchIcon className="size-4 shrink-0 text-zinc-500" />
-              <input
-                ref={searchRef}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search name, tag, puuid…"
-                aria-label="Search players"
-                spellCheck={false}
-                autoComplete="off"
-                className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
-              />
-              <kbd className="hidden rounded border border-white/10 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 sm:block">
-                /
-              </kbd>
-            </label>
-
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <ToggleGroup
-                value={[region]}
-                onValueChange={(values) => {
-                  const next = values[0]
-                  if (
-                    next === 'all' ||
-                    next === 'na' ||
-                    next === 'eu' ||
-                    next === 'ap' ||
-                    next === 'kr'
-                  ) {
-                    setRegion(next)
-                  }
-                }}
-                deselectable={false}
-                aria-label="Region"
-                className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] p-1"
-              >
-                {regions.map((item) => (
-                  <Toggle
-                    key={item.value}
-                    value={item.value}
-                    className="rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 data-[pressed]:bg-white/10 data-[pressed]:text-zinc-100"
-                  >
-                    {item.label}
-                  </Toggle>
-                ))}
-              </ToggleGroup>
-
-              <div className="flex items-center gap-2.5">
-                <span className="font-mono text-[11px] text-zinc-500">
-                  {rows.length.toLocaleString()}
-                </span>
-                <Select
-                  value={sort}
-                  onValueChange={(value) => {
-                    if (value) setSort(value as Sort)
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <ToggleGroup
+                  value={[region]}
+                  onValueChange={(values) => {
+                    const next = values[0]
+                    if (
+                      next === 'all' ||
+                      next === 'na' ||
+                      next === 'eu' ||
+                      next === 'ap' ||
+                      next === 'kr'
+                    ) {
+                      setRegion(next)
+                    }
                   }}
-                  items={sorts}
+                  deselectable={false}
+                  aria-label="Region"
+                  className="flex items-center gap-0.5 rounded-lg border border-white/[0.08] p-1"
                 >
-                  <SelectLabel className="sr-only">Sort players</SelectLabel>
-                  <SelectTrigger className="flex h-8 items-center gap-1.5 rounded-md border border-white/10 px-2.5 font-mono text-[10px] uppercase tracking-wide text-zinc-400 hover:border-white/25">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 rounded-lg border border-white/10 bg-panel p-1.5 text-sm shadow-2xl">
-                    {sorts.map((item) => (
-                      <SelectItem
-                        key={item.value}
-                        value={item.value}
-                        className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/10 data-[highlighted]:text-zinc-50"
-                      >
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {regions.map((item) => (
+                    <Toggle
+                      key={item.value}
+                      value={item.value}
+                      className="rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wide text-zinc-500 hover:text-zinc-200 data-[pressed]:bg-white/10 data-[pressed]:text-zinc-100"
+                    >
+                      {item.label}
+                    </Toggle>
+                  ))}
+                </ToggleGroup>
+
+                <div className="flex items-center gap-2.5">
+                  <span className="font-mono text-[11px] text-zinc-500">
+                    {rows.length.toLocaleString()}
+                  </span>
+                  <Select
+                    value={sort}
+                    onValueChange={(value) => {
+                      if (value) setSort(value as Sort)
+                    }}
+                    items={sorts}
+                  >
+                    <SelectLabel className="sr-only">Sort players</SelectLabel>
+                    <SelectTrigger className="flex h-8 items-center gap-1.5 rounded-md border border-white/10 px-2.5 font-mono text-[10px] uppercase tracking-wide text-zinc-400 hover:border-white/25">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-50 rounded-lg border border-white/10 bg-panel p-1.5 text-sm shadow-2xl">
+                      {sorts.map((item) => (
+                        <SelectItem
+                          key={item.value}
+                          value={item.value}
+                          className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/10 data-[highlighted]:text-zinc-50"
+                        >
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="min-h-0 flex-1">
-            <PlayerList
-              rows={rows}
-              cards={index.data?.cards ?? []}
-              selected={p ?? null}
-              loading={index.isPending}
-              searchRef={searchRef}
-              onSelect={select}
-              onPrefetch={prefetch}
-              onEscape={escape}
-            />
-          </div>
+            <div className="min-h-0 flex-1">
+              <PlayerList
+                rows={rows}
+                cards={index.data?.cards ?? []}
+                selected={p ?? null}
+                loading={index.isPending}
+                searchRef={searchRef}
+                onSelect={select}
+                onPrefetch={prefetch}
+                onEscape={escape}
+              />
+            </div>
 
-          <div className="border-t border-white/[0.06] px-4 py-3 font-mono text-[10px] text-zinc-500">
-            {index.isError ? (
-              <span className="text-amber-400">API offline — retrying</span>
-            ) : (
-              <span>
-                {index.data?.players.length.toLocaleString() ?? '—'} public players ·{' '}
-                {index.data?.stats.nameChanges.toLocaleString() ?? '—'} name changes ·{' '}
-                {formatRelative(index.data?.stats.lastRunAt ?? null)}
-              </span>
-            )}
-          </div>
-        </section>
+            <div className="border-t border-white/[0.06] px-4 py-3 font-mono text-[10px] text-zinc-500">
+              {index.isError ? (
+                <span className="text-amber-400">API offline — retrying</span>
+              ) : (
+                <span>
+                  {index.data?.players.length.toLocaleString() ?? '—'} public players ·{' '}
+                  {index.data?.stats.nameChanges.toLocaleString() ?? '—'} name changes ·{' '}
+                  {formatRelative(index.data?.stats.lastRunAt ?? null)}
+                </span>
+              )}
+            </div>
+          </section>
+        </ResizablePanel>
 
-        <section className={`min-h-0 flex-col ${p ? 'flex' : 'hidden lg:flex'}`}>
+        <ResizableHandle
+          aria-label="Resize player list"
+          className="hidden w-2 cursor-col-resize items-center justify-center focus-visible:outline-none data-[dragging]:bg-accent/40 lg:flex"
+        >
+          <span className="h-12 w-px bg-white/10" />
+        </ResizableHandle>
+
+        <ResizablePanel
+          id="player-detail"
+          minSize="360px"
+          className={`min-h-0 max-lg:!w-full ${p ? 'flex' : 'hidden lg:flex'}`}
+        >
           {p ? (
             <PlayerDetailLoader
               puuid={p}
@@ -368,8 +341,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
               hint="Run a scan to populate the index. Banned and unresolved anonymous rows are hidden."
             />
           ) : null}
-        </section>
-      </div>
+        </ResizablePanel>
+      </Resizable>
     </div>
   )
 }

@@ -752,6 +752,20 @@ const main = Effect.gen(function* () {
 
   serve({ fetch: app.fetch, port: config.port })
 
+  const runIdentityIfDue = Effect.gen(function* () {
+    const lastRun = yield* Effect.gen(function* () {
+      const db = yield* Database
+      return yield* db.get<{ value: string }>(`select value from meta where key = 'anon:lastRunAt'`)
+    }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+    const lastRunAt = lastRun ? Date.parse(lastRun.value) : 0
+    const now = yield* Clock.currentTimeMillis
+
+    if (now - lastRunAt >= 86_400_000) {
+      yield* Effect.sleep('1 minute')
+      yield* logRun('identity pass', resolvePass({ ...config, limit: 500 }))
+    }
+  })
+
   if (config.nodeEnv === 'production') {
     yield* Effect.forkDetach(
       Effect.gen(function* () {
@@ -769,9 +783,12 @@ const main = Effect.gen(function* () {
           yield* logRun('boot scan', scanOnce(config, 'boot'))
         }
 
+        yield* runIdentityIfDue
+
         while (true) {
           yield* Effect.sleep(`${config.scanIntervalHours} hours`)
           yield* logRun('scheduled scan', scanOnce(config, 'schedule'))
+          yield* runIdentityIfDue
         }
       }),
     )
@@ -802,28 +819,6 @@ const main = Effect.gen(function* () {
           }
 
           yield* Effect.sleep('6 hours')
-        }
-      }),
-    )
-
-    yield* Effect.forkDetach(
-      Effect.gen(function* () {
-        const lastRun = yield* Effect.gen(function* () {
-          const db = yield* Database
-          return yield* db.get<{ value: string }>(
-            `select value from meta where key = 'anon:lastRunAt'`,
-          )
-        }).pipe(Effect.provide(writeDatabase(config.databasePath)))
-        const lastRunAt = lastRun ? Date.parse(lastRun.value) : 0
-        const now = yield* Clock.currentTimeMillis
-
-        if (now - lastRunAt >= 86_400_000) {
-          yield* logRun('identity boot pass', resolvePass({ ...config, limit: 500 }))
-        }
-
-        while (true) {
-          yield* Effect.sleep('24 hours')
-          yield* logRun('identity daily pass', resolvePass({ ...config, limit: 500 }))
         }
       }),
     )
