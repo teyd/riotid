@@ -211,7 +211,9 @@ export const PlayerList = ({
                       {name || 'Anonymous'}
                     </span>
                     {tag ? (
-                      <span className="shrink-0 font-mono text-xs text-zinc-400">#{tag}</span>
+                      <span className="shrink-0 font-mono text-xs font-medium text-zinc-300">
+                        #{tag}
+                      </span>
                     ) : null}
                   </div>
                   <div className="mt-1 flex items-center gap-2 font-mono text-[12px] text-zinc-400">
