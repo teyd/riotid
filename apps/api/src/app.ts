@@ -180,7 +180,7 @@ export const makeApp = (options: AppOptions) => {
     c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
     c.header(
       'Content-Security-Policy',
-      "default-src 'self'; img-src 'self' data: https://media.valorant-api.com; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'self'; img-src 'self' data: https://media.valorant-api.com https://umami.teyd.dev; style-src 'self' 'unsafe-inline'; script-src 'self' https://umami.teyd.dev; connect-src 'self' https://umami.teyd.dev; font-src 'self'; frame-ancestors 'none'; base-uri 'none'",
     )
   })
 
