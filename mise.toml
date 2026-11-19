@@ -10,7 +10,7 @@ _.file = ".env.worktree"
 run = "pnpm install"
 
 [tasks.dev]
-run = "pnpm exec varlock run -- pnpm exec vp run -r --parallel dev"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:migrate && pnpm exec varlock run -- node apps/cli/src/main.ts db:seed && pnpm exec varlock run -- pnpm exec vp run -r --parallel dev"
 
 [tasks.check]
 run = "pnpm exec effect-tsgo vp check && pnpm exec effect-tsgo tsc -p tsconfig.json"
@@ -28,25 +28,28 @@ run = "pnpm exec vp run -r test"
 run = "pnpm exec vp build apps/web"
 
 [tasks.serve]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts serve"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:migrate && pnpm exec varlock run -- node apps/api/src/index.ts"
+
+[tasks.scheduler]
+run = "pnpm exec varlock run -- node apps/scheduler/src/main.ts"
 
 [tasks."auth:login"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:login"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts auth:login"
 
 [tasks."auth:save"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:save"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts auth:save"
 
 [tasks."auth:check"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:check"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts auth:check"
 
 [tasks."auth:refresh"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts auth:refresh"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts auth:refresh"
 
 [tasks.probe]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts probe"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts probe"
 
 [tasks."db:migrate"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:migrate"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:migrate"
 
 [tasks."db:generate"]
 run = "pnpm --dir packages/db exec drizzle-kit generate"
@@ -69,43 +72,46 @@ echo 'Deployment queued'
 run = "node apps/web/perf-check.mjs"
 
 [tasks.scan]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts scan"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts scan"
 
 [tasks.stats]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts stats"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts stats"
 
 [tasks.backup]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts backup"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts backup"
 
 [tasks."backup:restore"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts backup:restore"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts backup:restore"
 
 [tasks."db:prune"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:prune"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:prune"
 
 [tasks."anon:list"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:list"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts anon:list"
 
 [tasks."anon:resolve"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:resolve"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts anon:resolve"
 
 [tasks."anon:cache"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:cache"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts anon:cache"
 
 [tasks."index:rebuild"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts index:rebuild"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts index:rebuild"
 
 [tasks."player:show"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts player:show"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts player:show"
 
 [tasks."player:remove"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts player:remove"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts player:remove"
 
 [tasks."db:seed"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:seed"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:seed"
 
 [tasks."db:check"]
-run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:check"
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:check"
+
+[tasks."db:recover"]
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:recover"
 
 [tasks."db:verify"]
 run = "pnpm --dir packages/db exec drizzle-kit check"
