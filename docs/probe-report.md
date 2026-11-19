@@ -1,5 +1,10 @@
 # Live Riot probe — 2026-11-19
 
+> [!NOTE]
+> Historical report. Riot endpoints, client versions, and this codebase change;
+> treat the findings as evidence from that date. Current auth and probe commands
+> are in the [runbook](runbook.md).
+
 Run with the QR-authenticated EU account and the stored `./data/cookies.json`.
 Tokens, PUUIDs, Riot IDs, and cookie values are intentionally omitted.
 
