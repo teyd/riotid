@@ -135,7 +135,11 @@ export const PlayerList = ({
                   <img
                     src={art}
                     alt=""
+                    width={32}
+                    height={40}
                     loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
                     className="h-full w-full object-cover"
                     onError={(event) => {
                       event.currentTarget.style.display = 'none'
@@ -160,7 +164,7 @@ export const PlayerList = ({
                 </div>
               </div>
 
-              <div className="shrink-0 font-mono text-[11px] text-zinc-600">
+              <div className="shrink-0 font-mono text-[11px] text-zinc-600 tabular-nums">
                 {formatRelative(row[P.lastSeenAt])}
               </div>
             </button>

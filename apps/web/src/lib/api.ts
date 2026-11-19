@@ -12,9 +12,7 @@ export const P = {
   regionChanges: 6,
   firstSeenAt: 7,
   lastSeenAt: 8,
-  lastNameChangeAt: 9,
-  lastRegionChangeAt: 10,
-  cardId: 11,
+  cardId: 9,
 } as const
 
 export const FLAG = {

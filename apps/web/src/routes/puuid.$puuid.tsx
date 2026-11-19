@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
-import { PlayerDetailPanel } from '../components/player-detail.tsx'
+import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { fetchIndex, P } from '../lib/api.ts'
 
 export const Route = createFileRoute('/puuid/$puuid')({
@@ -28,7 +28,7 @@ function PlayerPage() {
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col border-x border-white/[0.06]">
-      <PlayerDetailPanel
+      <PlayerDetailLoader
         puuid={puuid}
         row={row}
         onBack={() => void navigate({ to: '/', search: { p: undefined } })}

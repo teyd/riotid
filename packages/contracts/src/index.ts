@@ -28,8 +28,6 @@ export const IndexPlayer = Schema.Tuple([
   Schema.Finite,
   Schema.Finite,
   Schema.Finite,
-  Schema.NullOr(Schema.Finite),
-  Schema.NullOr(Schema.Finite),
   Schema.NullOr(Schema.String),
 ])
 

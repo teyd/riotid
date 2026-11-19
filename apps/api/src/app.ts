@@ -1,7 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off
 import { existsSync, promises as fs } from 'node:fs'
 import { join } from 'node:path'
-import { gzipSync } from 'node:zlib'
+import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 
 import { Database, readDatabase } from '@riotid/db'
 import type { ApiError, Health } from '@riotid/contracts'
@@ -44,8 +44,11 @@ type CachedJson = {
   readonly key: string
   readonly json: string
   readonly gzip: ArrayBuffer
+  readonly br: ArrayBuffer
   readonly etag: string
 }
+
+const indexFormat = 2
 
 let cachedIndex: CachedJson | null = null
 let cachedStats: CachedJson | null = null
@@ -71,7 +74,16 @@ const getIndex = (databasePath: string, indexWindowDays: number) =>
           buffer.byteOffset + buffer.byteLength,
         ) as ArrayBuffer
       })(),
-      etag: `"${value.version}-${value.players.length}"`,
+      br: (() => {
+        const buffer = brotliCompressSync(json, {
+          params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 },
+        })
+        return buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength,
+        ) as ArrayBuffer
+      })(),
+      etag: `"${indexFormat}-${value.version}-${value.players.length}"`,
     }
     cachedIndex = cached
     return cached
@@ -96,6 +108,15 @@ const getStats = (databasePath: string) =>
         buffer.byteOffset,
         buffer.byteOffset + buffer.byteLength,
       ) as ArrayBuffer,
+      br: (() => {
+        const buffer = brotliCompressSync(json, {
+          params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 5 },
+        })
+        return buffer.buffer.slice(
+          buffer.byteOffset,
+          buffer.byteOffset + buffer.byteLength,
+        ) as ArrayBuffer
+      })(),
       etag: `"${version}"`,
     }
     cachedStats = cached
@@ -233,7 +254,17 @@ export const makeApp = (options: AppOptions) => {
       return c.body(null, 304)
     }
 
-    if (c.req.header('accept-encoding')?.includes('gzip')) {
+    const accepts = c.req.header('accept-encoding') ?? ''
+
+    if (accepts.includes('br')) {
+      return c.body(index.br, 200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Content-Encoding': 'br',
+        Vary: 'Accept-Encoding',
+      })
+    }
+
+    if (accepts.includes('gzip')) {
       return c.body(index.gzip, 200, {
         'Content-Type': 'application/json; charset=utf-8',
         'Content-Encoding': 'gzip',

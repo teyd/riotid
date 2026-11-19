@@ -11,7 +11,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import SearchIcon from 'kubai-icons-react/icons/search'
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 
-import { PlayerDetailPanel } from '../components/player-detail.tsx'
+import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
 import { EmptyState, LoadingState } from '../components/ui.tsx'
 import {
@@ -69,6 +69,14 @@ function Home() {
   useEffect(() => {
     splitRef.current = split
   }, [split])
+
+  useEffect(() => {
+    const preload = () => {
+      void import('../components/player-detail.tsx')
+    }
+    const idle = window.requestIdleCallback(preload, { timeout: 2500 })
+    return () => window.cancelIdleCallback(idle)
+  }, [])
 
   useEffect(() => {
     if (!dragging) return
@@ -170,7 +178,17 @@ function Home() {
               event.preventDefault()
               setDragging(true)
             }}
-            className="absolute top-0 right-0 z-20 hidden h-full w-2 translate-x-1/2 cursor-col-resize touch-none items-center justify-center lg:flex"
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+              event.preventDefault()
+              const next = Math.max(
+                360,
+                Math.min(760, split + (event.key === 'ArrowRight' ? 20 : -20)),
+              )
+              setSplit(next)
+              window.localStorage.setItem('riotid:split', String(next))
+            }}
+            className="absolute top-0 right-0 z-20 hidden h-full w-2 translate-x-1/2 cursor-col-resize touch-none items-center justify-center focus-visible:outline-none lg:flex"
           >
             <span
               className={`h-12 w-0.5 rounded-full transition-colors ${dragging ? 'bg-accent' : 'bg-white/10 hover:bg-white/25'}`}
@@ -184,7 +202,8 @@ function Home() {
                 ref={searchRef}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search name, tag, puuid"
+                placeholder="Search name, tag, puuid…"
+                aria-label="Search players"
                 spellCheck={false}
                 autoComplete="off"
                 className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
@@ -267,7 +286,7 @@ function Home() {
 
         <section className={`min-h-0 flex-col ${p ? 'flex' : 'hidden lg:flex'}`}>
           {p ? (
-            <PlayerDetailPanel puuid={p} row={selectedRow} onBack={() => select(null)} />
+            <PlayerDetailLoader puuid={p} row={selectedRow} onBack={() => select(null)} />
           ) : index.isPending ? (
             <LoadingState label="Loading index" />
           ) : (
