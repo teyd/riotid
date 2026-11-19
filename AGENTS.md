@@ -21,7 +21,7 @@ mise run install             # dependencies
 mise run dev                 # API + web dev servers
 mise run check               # effect-tsgo vp check + tsc
 mise run test                # all workspace tests
-mise run ci                  # check + test + web build
+mise run ci                  # check + test + web build + migration check
 mise run build               # web production build
 mise run db:generate         # Drizzle migration from schema changes
 mise run db:migrate          # apply committed migrations
