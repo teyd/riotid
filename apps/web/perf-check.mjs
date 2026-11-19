@@ -2,9 +2,10 @@ import { chromium } from '@playwright/test'
 
 const url = process.env.PERF_URL ?? 'https://riotid.teyd.dev/'
 const executablePath = process.env.CHROMIUM_PATH || undefined
-const browser = await chromium.launch(executablePath ? { executablePath } : {})
+let browser
 
 try {
+  browser = await chromium.launch(executablePath ? { executablePath } : {})
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 
   await page.addInitScript(() => {
@@ -105,5 +106,5 @@ try {
 
   console.log(JSON.stringify({ ready, ...navigation, keyMs, searchMs }, null, 2))
 } finally {
-  await browser.close()
+  await browser?.close()
 }

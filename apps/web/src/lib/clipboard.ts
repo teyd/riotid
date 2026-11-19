@@ -6,12 +6,14 @@ const legacyCopy = (text: string): boolean => {
   area.setAttribute('readonly', '')
   area.style.position = 'fixed'
   area.style.opacity = '0'
-  document.body.append(area)
-  area.select()
 
-  const copied = document.execCommand('copy')
-  area.remove()
-  return copied
+  try {
+    document.body.append(area)
+    area.select()
+    return document.execCommand('copy')
+  } finally {
+    area.remove()
+  }
 }
 
 export const copyText = async (text: string): Promise<boolean> => {
