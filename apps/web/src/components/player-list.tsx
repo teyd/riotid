@@ -2,6 +2,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useRef, type RefObject } from 'react'
 
 import { cardArt, formatRelative, P, regionShort, type IndexRow } from '../lib/api.ts'
+import { CardArt } from './card-art.tsx'
 import { EmptyState } from './ui.tsx'
 import { PlayerListSkeleton } from './skeleton.tsx'
 
@@ -131,24 +132,14 @@ export const PlayerList = ({
                 boxShadow: active ? 'inset 2px 0 0 #fafafa' : undefined,
               }}
             >
-              <span className="relative flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-white/[0.06] bg-white/[0.03] font-mono text-[12px] text-zinc-500">
-                <span aria-hidden>{(name || '?').slice(0, 1).toUpperCase()}</span>
-                {art ? (
-                  <img
-                    src={art}
-                    alt=""
-                    width={36}
-                    height={36}
-                    loading="lazy"
-                    decoding="async"
-                    fetchPriority="low"
-                    className="absolute inset-0 h-full w-full object-cover"
-                    onError={(event) => {
-                      event.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ) : null}
-              </span>
+              <CardArt
+                art={art}
+                name={name}
+                width={36}
+                height={36}
+                fetchPriority="low"
+                className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-white/[0.06] bg-white/[0.03] font-mono text-[12px] text-zinc-500"
+              />
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-1.5">
