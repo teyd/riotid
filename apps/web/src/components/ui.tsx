@@ -51,7 +51,7 @@ export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
     role="status"
     className="flex items-center gap-3 px-6 py-6 font-mono text-xs uppercase tracking-wide text-zinc-400"
   >
-    <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-accent" />
+    <span aria-hidden className="size-1.5 rounded-full bg-accent motion-safe:animate-pulse" />
     {label}
   </div>
 )
