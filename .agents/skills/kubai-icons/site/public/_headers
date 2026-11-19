@@ -1,0 +1,14 @@
+https://:project.pages.dev/*
+	X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
+	X-Robots-Tag: noindex
+
+/_next/static/*
+	Cache-Control: public, max-age=31536000, immutable
+
+/data/icons/*
+	Cache-Control: public, max-age=31536000, immutable
+
+/icons/:name/preview.svg
+	Cache-Control: public, max-age=86400, stale-while-revalidate=604800

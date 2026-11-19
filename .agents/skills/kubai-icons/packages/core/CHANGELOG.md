@@ -1,0 +1,109 @@
+# kubai-icons
+
+## 0.12.0
+
+### Minor Changes
+
+- [#92](https://github.com/kubai087/kubai-icons/pull/92) [`81ad847`](https://github.com/kubai087/kubai-icons/commit/81ad847446b4b1f688c4a5f7a81200c9eb249748) Thanks [@kubai087](https://github.com/kubai087)! - Add six candy and sweets icons: `candy-cane`, `chocolate-bar`, `gumball-machine`, `candy-jar`, `pudding` and `cotton-candy`.
+
+## 0.11.0
+
+### Minor Changes
+
+- [#89](https://github.com/kubai087/kubai-icons/pull/89) [`7a016bf`](https://github.com/kubai087/kubai-icons/commit/7a016bf3445a5621ab36e8ff52aac66f384df0b4) Thanks [@kubai087](https://github.com/kubai087)! - Add nine retro and retro-futurist icons: `flip-phone`, `digital-pet`, `cassette-player`, `jukebox`, `toy-robot`, `monorail`, `claw-machine`, `jetpack` and `plasma-ball`.
+
+## 0.10.0
+
+### Minor Changes
+
+- [#87](https://github.com/kubai087/kubai-icons/pull/87) [`170a97c`](https://github.com/kubai087/kubai-icons/commit/170a97c16113744d98eb3ccca1c57ecae3665c05) Thanks [@kubai087](https://github.com/kubai087)! - Add six pet icons: `pet-bowl`, `yarn-ball`, `bird-cage`, `litter-box`, `pet-food-bag` and `cat-tree`.
+
+## 0.9.0
+
+### Minor Changes
+
+- [#83](https://github.com/kubai087/kubai-icons/pull/83) [`5d7393b`](https://github.com/kubai087/kubai-icons/commit/5d7393b0c83724965d6c2246e3225d11e7ac7a77) Thanks [@kubai087](https://github.com/kubai087)! - Add six office icons: `filing-cabinet`, `paper-shredder`, `coffee-machine`, `water-cooler`, `office-chair` and `standing-desk`.
+
+### Patch Changes
+
+- [#83](https://github.com/kubai087/kubai-icons/pull/83) [`40709fd`](https://github.com/kubai087/kubai-icons/commit/40709fd08648cb38af2ff77f40b54efa1f9486d0) Thanks [@kubai087](https://github.com/kubai087)! - Smoother hover motion. Pulses and swings now slow to a stop instead of ending at full speed (every icon that uses `bump`, the arrows, and `barcode`, `scan-qr`, `dial-pad`, `spell-check`, `battery-backup`, `battery-empty`, `rotary-phone`, `pancake`, `modem`, `smart-bulb`, `stacking-rings`, `mars-rover`, `ufo`, `sewing-machine`, `compass` and `mushroom`). `retro-computer` switches on more gently. The chevrons, `columns`, `rows`, `code`, `file-code` and `pi` move further on hover, so the change is easier to see.
+  
+  Cleaner details: marks either meet the edges they sit near or keep well clear of them in `smart-lock` (four keys pressed in turn), `parking-meter`, `ev-charger`, `turtle`, `sewing-machine`, `log-in`, `log-out`, `fingerprint`, `ring`, `pants`, `screw`, `fireplace`, `locker`, `music-player`, `battery-backup`, `atom`, `safe`, `battery-charging`, `currency-dollar`, `image`, `file-image`, `sundial`, `history`, `drone`, `turntable`, `spirit-level`, `barn`, `candy`, `protractor`, `roller-skate`, `piano`, `presentation`, `signature`, `clipboard-paste`, `dishwasher`, `flask`, `game-console`, `library`, `filter`, `lightbulb`, `mirror`, `radio`, `split`, `whiteboard`, `blood-bag`, `book`, `smart-bulb`, `baseball-cap`, `blood-pressure`, `briefcase`, `cutting-board`, `dog`, `egg`, `fan`, `game-cartridge`, `razor`, `stopwatch`, `thumbs-up`, `thumbs-down`, `vote` and `wristwatch`. `scan-face`, `ear` and `curtains` use the standard line widths.
+  
+  Clean joints: where parts meet there is now one outline, with no spike, notch or stray outline poking out, in `ointment`, `cookie`, `ladybug`, `corn` (now with a stalk), `cheese`, `croissant`, `pyramid`, `pencil`, `highlighter` and `tractor`. Parts that stick out of the shape behind them keep their outline instead of losing it, notably the fuselage of `plane`, the slice of `chart-pie` and `pizza`, the arms of `armchair` and `sofa`, and the bars of `dumbbell`, `binoculars` and `crib`; the card rising from `trash` is outlined too, and the inside of the bin no longer shows a bare sliver above it.
+  
+  Better centred: `nail`, `spatula`, `tag`, `tree-palm`, `banana`, `broom`, `carrot`, `mic-vocal`, `ointment`, `ear`, `spray-can`, `axe`, `barcode-scanner`, `chisel`, `crutch`, `dental-chair`, `drill`, `flashlight`, `hammer`, `kettle`, `tags`, `tape-roll`, `toothbrush`, `badminton`, `matchbox`, `smart-lock`, `sled`, `croissant`, `blood-bag`, `yoga-mat`, `cursor`, `rain-barrel`, `watering-can` and `ambulance` sit in the middle of the canvas; `mop`, `hearing-aid` and `whisk` are a little shorter, so they no longer run past the keyline.
+
+## 0.8.0
+
+### Minor Changes
+
+- [#80](https://github.com/kubai087/kubai-icons/pull/80) [`cf0f6b3`](https://github.com/kubai087/kubai-icons/commit/cf0f6b3fe82aa19a81bd811be6369bbd93ece0f8) Thanks [@kubai087](https://github.com/kubai087)! - Add nine garden and backyard icons: `fence`, `birdhouse`, `greenhouse`, `beehive`, `seed-packet`, `rain-barrel`, `rake`, `grill` and `wind-chime`.
+
+## 0.7.0
+
+### Minor Changes
+
+- [#67](https://github.com/kubai087/kubai-icons/pull/67) [`acbbc06`](https://github.com/kubai087/kubai-icons/commit/acbbc06048971f2ff778a69ffdd5bd7575101390) Thanks [@kubai087](https://github.com/kubai087)! - Add nine camping icons: `lantern`, `thermos`, `cooler`, `matchbox`, `camp-stove`, `sleeping-bag`, `picnic-basket`, `hammock` and `carabiner`.
+
+## 0.6.0
+
+### Minor Changes
+
+- [#62](https://github.com/kubai087/kubai-icons/pull/62) [`930654d`](https://github.com/kubai087/kubai-icons/commit/930654dd714f6782b42ca52997ec264e04cd0418) Thanks [@kubai087](https://github.com/kubai087), [@LukiPrince](https://github.com/LukiPrince)! - Add five icons: `shipping-label`, `cars`, `car-crash`, `control-unit` and `crash-sensor`.
+
+## 0.5.1
+
+### Patch Changes
+
+- [#56](https://github.com/kubai087/kubai-icons/pull/56) [`aec4494`](https://github.com/kubai087/kubai-icons/commit/aec4494bcdaecb8882e9e5610cb4ec7b582beb6c) Thanks [@kubai087](https://github.com/kubai087)! - Education icons: keep marks clear of the edges. The pencil case's zip sits lower and its pencils come out of the opened zip; the locker's latch and vents stand clear of the door's edges; the book spines are a little taller around their labels; the school bus drops the roof lamps that crowded its roof and windows.
+
+## 0.5.0
+
+### Minor Changes
+
+- [#53](https://github.com/kubai087/kubai-icons/pull/53) [`4c29ded`](https://github.com/kubai087/kubai-icons/commit/4c29dedc09cf19104ffa1a8ee42853e7f6d54080) Thanks [@kubai087](https://github.com/kubai087)! - Add eight icons for school and early learning: `alphabet-blocks`, `book-stack`, `locker`, `pencil-case`, `pencil-cup`, `school-bus`, `seesaw` and `stacking-rings`. `book-stack`, `locker` and `pencil-case` also come with badges.
+
+## 0.4.1
+
+### Patch Changes
+
+- [#50](https://github.com/kubai087/kubai-icons/pull/50) [`8eecbe4`](https://github.com/kubai087/kubai-icons/commit/8eecbe4842d7ec922ee687d82361602705c8675b) Thanks [@kubai087](https://github.com/kubai087)! - Keep keyholes still on hover. The padlock (`lock`) now only lifts and swings its shackle, and `lock-keyhole` only presses its cylinder in; neither turns its keyhole.
+
+## 0.4.0
+
+### Minor Changes
+
+- [#48](https://github.com/kubai087/kubai-icons/pull/48) [`c896da3`](https://github.com/kubai087/kubai-icons/commit/c896da37b8ec57ca3cef46a1d89ca601af45844e) Thanks [@kubai087](https://github.com/kubai087)! - Add nine icons for Apple devices, macOS and the classic Mac: `item-tracker`, `wireless-charger`, `dock`, `option`, `usb-c-port`, `eject`, `retro-computer`, `bomb` and `wristwatch`.
+  
+  Each icon's metadata in `icons.json` now carries `since`, the version it was first released in.
+
+## 0.3.1
+
+### Patch Changes
+
+- [#42](https://github.com/kubai087/kubai-icons/pull/42) [`734feff`](https://github.com/kubai087/kubai-icons/commit/734feffd7715ed1445b6787f2d3f97e971e67fa8) Thanks [@kubai087](https://github.com/kubai087)! - Close the faint gap between an icon's fill and its outline at small sizes on low-density screens.
+
+## 0.3.0
+
+### Minor Changes
+
+- [#38](https://github.com/kubai087/kubai-icons/pull/38) [`86ea985`](https://github.com/kubai087/kubai-icons/commit/86ea985d892333bd1c7936f3ab2e7765447bdab6) Thanks [@kubai087](https://github.com/kubai087)! - Add a merged build for `<script>` tags on a CDN at `dist/cdn/element.js`. The shared code is one file and each icon is one more, so the first icon on a page needs two sequential downloads instead of six or more.
+
+## 0.2.2
+
+### Patch Changes
+
+- [#36](https://github.com/kubai087/kubai-icons/pull/36) [`73bf7d2`](https://github.com/kubai087/kubai-icons/commit/73bf7d2bde17eacbde0a8b7e5957e2912b8c05ad) Thanks [@kubai087](https://github.com/kubai087)! - Correct the lock icons so the keyhole stays upright once open, and draw the DNA helix with its strands crossing as a right-handed helix does.
+
+## 0.2.1
+
+### Patch Changes
+
+- [#29](https://github.com/kubai087/kubai-icons/pull/29) [`9332b22`](https://github.com/kubai087/kubai-icons/commit/9332b22ad6202de6e5e24e96bc831d90ade1feca) Thanks [@kubai087](https://github.com/kubai087)! - Ship one type declaration for all icon modules instead of one per icon, which removes about 2,900 files from each package.
+
+## 0.2.0
+
+### Minor Changes
+
+- [#8](https://github.com/kubai087/kubai-icons/pull/8) [`a55890a`](https://github.com/kubai087/kubai-icons/commit/a55890a505207fecbd010874d16111c935691010) Thanks [@kubai087](https://github.com/kubai087)! - First release of the icon library: per-icon ES modules, React and Vue components, a web component and standalone SVG files.
