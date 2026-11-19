@@ -768,7 +768,6 @@ const main = Effect.gen(function* () {
 
   const app = makeApp({
     databasePath: config.databasePath,
-    cookieFile: config.cookieFile,
     indexWindowDays: config.indexRetentionDays,
   })
 

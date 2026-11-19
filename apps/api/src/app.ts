@@ -1,5 +1,5 @@
 // @effect-diagnostics nodeBuiltinImport:off globalDate:off globalDateInEffect:off
-import { existsSync, promises as fs } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 
@@ -11,28 +11,16 @@ import { sql } from 'drizzle-orm'
 import { Effect, ManagedRuntime } from 'effect'
 import { Hono, type Context } from 'hono'
 import { compress } from 'hono/compress'
-import { streamSSE } from 'hono/streaming'
 
-import {
-  buildServiceStatus,
-  crawlerSnapshot,
-  buildSiteIndex,
-  buildSiteStats,
-  loadPlayerDetail,
-  readIndexVersion,
-} from './site.ts'
+import { buildSiteIndex, loadPlayerDetail, readIndexVersion } from './site.ts'
 
 export type AppOptions = {
   readonly databasePath: string
-  readonly cookieFile?: string
-  readonly startedAt?: number
   readonly webRoot?: string
   readonly indexWindowDays?: number
   readonly rateLimits?: {
     readonly index?: number
     readonly players?: number
-    readonly stats?: number
-    readonly status?: number
   }
 }
 
@@ -61,7 +49,6 @@ const encodeCached = (key: string, value: unknown, etag: string): CachedJson => 
 const indexFormat = 4
 
 let cachedIndex: CachedJson | null = null
-let cachedStats: CachedJson | null = null
 
 const getIndex = (databasePath: string, indexWindowDays: number) =>
   Effect.gen(function* () {
@@ -79,21 +66,6 @@ const getIndex = (databasePath: string, indexWindowDays: number) =>
       `"${indexFormat}-${value.version}-${value.players.length}"`,
     )
     cachedIndex = cached
-    return cached
-  })
-
-const getStats = (databasePath: string) =>
-  Effect.gen(function* () {
-    const version = yield* readIndexVersion
-    const key = `${databasePath}:${version}`
-
-    if (cachedStats?.key === key) {
-      return cachedStats
-    }
-
-    const value = yield* buildSiteStats
-    const cached = encodeCached(key, value, `"${version}"`)
-    cachedStats = cached
     return cached
   })
 
@@ -155,12 +127,9 @@ export const makeApp = (options: AppOptions) => {
   const app = new Hono<{ Variables: { requestId: string } }>()
   const runtime = ManagedRuntime.make(readDatabase(options.databasePath))
   const runDb = <A, E>(effect: Effect.Effect<A, E, Database>) => runtime.runPromise(effect)
-  const startedAt = options.startedAt ?? Date.now()
   const limits = {
     index: options.rateLimits?.index ?? 30,
     players: options.rateLimits?.players ?? 120,
-    stats: options.rateLimits?.stats ?? 60,
-    status: options.rateLimits?.status ?? 60,
   }
   const webRoot = options.webRoot ?? './apps/web/dist'
 
@@ -270,55 +239,9 @@ export const makeApp = (options: AppOptions) => {
     return c.json(detail)
   })
 
-  app.get('/api/v1/stats', async (c) => {
-    if (await rateLimit(c, 'stats', limits.stats)) return rateLimited(c)
-
-    const stats = await runDb(getStats(options.databasePath))
-    c.header('Cache-Control', 'public, max-age=300, s-maxage=600')
-    c.header('ETag', stats.etag)
-    return c.body(stats.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
-  })
-
-  app.get('/api/v1/crawler', async (c) => {
-    if (await rateLimit(c, 'crawler', limits.stats)) return rateLimited(c)
-
-    const snapshot = await runDb(crawlerSnapshot())
-    return c.json(snapshot, 200, { 'Cache-Control': 'no-store' })
-  })
-
-  app.get('/api/v1/crawler/stream', async (c) => {
-    if (await rateLimit(c, 'crawler-stream', 10)) return rateLimited(c)
-
-    c.header('Cache-Control', 'no-store, no-transform')
-    c.header('X-Accel-Buffering', 'no')
-
-    return streamSSE(c, async (stream) => {
-      while (!stream.aborted) {
-        const snapshot = await runDb(crawlerSnapshot())
-        await stream.writeSSE({ event: 'snapshot', data: JSON.stringify(snapshot) })
-        await stream.sleep(3000)
-      }
-    })
-  })
-
-  app.get('/api/v1/status', async (c) => {
-    if (await rateLimit(c, 'status', limits.status)) return rateLimited(c)
-
-    const cookieUpdatedAt = await fs
-      .stat(options.cookieFile ?? './data/cookies.json')
-      .then((stat) => stat.mtimeMs)
-      .catch(() => null)
-    const status = await runDb(
-      buildServiceStatus({
-        databasePath: options.databasePath,
-        cookieFile: options.cookieFile ?? './data/cookies.json',
-        cookieUpdatedAt,
-        uptimeSeconds: Math.round((Date.now() - startedAt) / 1000),
-      }),
-    )
-
-    return c.json(status, 200, { 'Cache-Control': 'no-store' })
-  })
+  app.all('/api/*', (c) =>
+    c.json(errorBody(c, 'not_found', 'Route not found.'), 404, { 'Cache-Control': 'no-store' }),
+  )
 
   if (existsSync(join(webRoot, 'index.html'))) {
     app.use('*', serveStatic({ root: webRoot }))
