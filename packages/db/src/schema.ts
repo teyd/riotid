@@ -232,6 +232,27 @@ export const bannedPlayers = sqliteTable(
   ],
 )
 
+export const leaderboardSeeds = sqliteTable(
+  'leaderboard_seeds',
+  {
+    puuid: text('puuid')
+      .primaryKey()
+      .references(() => players.puuid, { onDelete: 'cascade' }),
+    region: text('region', { enum: regions }).notNull(),
+    seasonId: text('season_id').notNull(),
+    leaderboardRank: integer('leaderboard_rank').notNull(),
+    rankedRating: integer('ranked_rating').notNull(),
+    numberOfWins: integer('number_of_wins').notNull(),
+    competitiveTier: integer('competitive_tier').notNull(),
+    lastSeenAt: integer('last_seen_at', { mode: 'timestamp_ms' }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    check('leaderboard_seeds_region_check', sql`${table.region} IN ('na', 'eu', 'ap', 'kr')`),
+    index('leaderboard_seeds_lookup_idx').on(table.region, table.seasonId, table.leaderboardRank),
+  ],
+)
+
 export const anonymousRows = sqliteTable(
   'anonymous_rows',
   {
@@ -262,6 +283,7 @@ export const anonymousRows = sqliteTable(
     ),
     uniqueIndex('anonymous_rows_row_idx').on(table.region, table.seasonId, table.leaderboardRank),
     index('anonymous_rows_status_idx').on(table.status, table.region),
+    index('anonymous_rows_queue_idx').on(table.status, table.lastTriedAt),
   ],
 )
 
@@ -277,7 +299,7 @@ export const identityLinks = sqliteTable(
       .references(() => players.puuid, { onDelete: 'cascade' }),
     region: text('region', { enum: regions }).notNull(),
     seasonId: text('season_id').notNull(),
-    matchId: text('match_id').notNull(),
+    matchId: text('match_id'),
     method: text('method', { enum: identityMethods }).notNull(),
     confidence: integer('confidence').notNull(),
     evidence: text('evidence', { mode: 'json' })
@@ -340,6 +362,7 @@ export type PlayerName = typeof playerNames.$inferSelect
 export type PlayerRegion = typeof playerRegions.$inferSelect
 export type BannedPlayer = typeof bannedPlayers.$inferSelect
 export type AnonymousRow = typeof anonymousRows.$inferSelect
+export type LeaderboardSeed = typeof leaderboardSeeds.$inferSelect
 export type IdentityLink = typeof identityLinks.$inferSelect
 export type MatchCandidate = typeof matchCandidates.$inferSelect
 export type Run = typeof runs.$inferSelect

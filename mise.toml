@@ -59,6 +59,15 @@ run = "pnpm exec varlock run -- node apps/api/src/cli.ts backup"
 [tasks."db:prune"]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:prune"
 
+[tasks."anon:list"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:list"
+
+[tasks."anon:resolve"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:resolve"
+
+[tasks."anon:cache"]
+run = "pnpm exec varlock run -- node apps/api/src/cli.ts anon:cache"
+
 [tasks."db:seed"]
 run = "pnpm exec varlock run -- node apps/api/src/cli.ts db:seed"
 

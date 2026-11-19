@@ -16,7 +16,13 @@ import {
   seedDatabase,
   writeDatabase,
 } from '@riotid/db'
-import { RiotSourceLive, scan } from '@riotid/ingest'
+import {
+  anonymousStats,
+  matchCacheStats,
+  pruneMatchCache,
+  resolveAnonymous,
+} from '@riotid/identity'
+import { scan } from '@riotid/ingest'
 import { serve } from '@hono/node-server'
 import {
   loadCookieFile,
@@ -26,6 +32,7 @@ import {
   refreshSession,
   refreshSessionIfStale,
   RiotAuthError,
+  RiotSourceLive,
   saveCookieFile,
   type AuthSession,
 } from '@riotid/riot'
@@ -52,6 +59,18 @@ const AppConfig = Config.all({
   backupDirectory: Config.String('BACKUP_DIRECTORY').pipe(Config.withDefault('./data/backups')),
   backupKeepDays: Config.Int('BACKUP_KEEP_DAYS').pipe(Config.withDefault(7)),
   runRetentionDays: Config.Int('RUN_RETENTION_DAYS').pipe(Config.withDefault(180)),
+  anonBudget: Config.Int('ANON_RESOLVE_BUDGET').pipe(Config.withDefault(1000)),
+  anonSeeds: Config.Int('ANON_SEEDS').pipe(Config.withDefault(100)),
+  anonCoverageTarget: Config.Number('ANON_COVERAGE_TARGET').pipe(Config.withDefault(0.9)),
+  matchCacheEnabled: Config.Boolean('MATCH_CACHE_ENABLED').pipe(Config.withDefault(true)),
+  matchCacheMatchesPerRegion: Config.Int('MATCH_CACHE_MATCHES_PER_REGION').pipe(
+    Config.withDefault(1000),
+  ),
+  matchCacheMaxMatchesPerRegion: Config.Int('MATCH_CACHE_MAX_MATCHES_PER_REGION').pipe(
+    Config.withDefault(10_000),
+  ),
+  matchCacheAutotune: Config.Boolean('MATCH_CACHE_AUTOTUNE').pipe(Config.withDefault(true)),
+  matchCacheDays: Config.Int('MATCH_CACHE_DAYS').pipe(Config.withDefault(30)),
 })
 
 const help = `riotid
@@ -125,6 +144,11 @@ const authCheck = Effect.gen(function* () {
 const migrationsFolder = fileURLToPath(new URL('../../../packages/db/drizzle', import.meta.url))
 const jsonOutput = process.argv.includes('--json')
 const printJson = (value: unknown) => process.stdout.write(`${JSON.stringify(value)}\n`)
+const numericFlag = (name: string, fallback: number) => {
+  const index = process.argv.indexOf(name)
+  const value = index >= 0 ? Number(process.argv[index + 1]) : Number.NaN
+  return Number.isFinite(value) ? value : fallback
+}
 
 const dbMigrate = Effect.gen(function* () {
   const config = yield* AppConfig
@@ -217,6 +241,110 @@ const pruneCommand = Effect.gen(function* () {
     printJson(result)
   } else {
     yield* Effect.logInfo(`pruned ${result.deleted} runs older than ${result.cutoff}`)
+  }
+})
+
+const resolvePass = (config: {
+  cookieFile: string
+  databasePath: string
+  anonBudget: number
+  anonSeeds: number
+  anonCoverageTarget: number
+  matchCacheEnabled: boolean
+  matchCacheMatchesPerRegion: number
+  matchCacheMaxMatchesPerRegion: number
+  matchCacheAutotune: boolean
+  matchCacheDays: number
+  limit: number
+}) =>
+  Effect.gen(function* () {
+    const session = yield* refreshSession(config.cookieFile)
+    const result = yield* resolveAnonymous({
+      session,
+      budget: config.anonBudget,
+      seeds: config.anonSeeds,
+      coverageTarget: config.anonCoverageTarget,
+      cacheEnabled: config.matchCacheEnabled,
+      cacheMatchesPerRegion: config.matchCacheMatchesPerRegion,
+      cacheMaxMatchesPerRegion: config.matchCacheMaxMatchesPerRegion,
+      autotune: config.matchCacheAutotune,
+      limit: config.limit,
+    })
+    const pruned = yield* pruneMatchCache({
+      olderThanDays: config.matchCacheDays,
+      matchesPerRegion: result.matchCap,
+    })
+
+    return { ...result, cachePruned: pruned.deleted }
+  }).pipe(
+    Effect.provide(
+      Layer.mergeAll(
+        writeDatabase(config.databasePath),
+        RiotSourceLive.pipe(Layer.provide(NodeHttpClient.layerNodeHttp)),
+      ),
+    ),
+  )
+
+const anonResolve = Effect.gen(function* () {
+  const config = yield* AppConfig
+
+  yield* migrateDatabase(migrationsFolder).pipe(Effect.provide(writeDatabase(config.databasePath)))
+  const result = yield* resolvePass({ ...config, limit: numericFlag('--limit', 500) })
+
+  if (jsonOutput) {
+    printJson(result)
+  } else {
+    yield* Effect.logInfo(`identity resolve: ${JSON.stringify(result)}`)
+  }
+})
+
+const anonList = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const [anonymous, cache] = yield* Effect.all([
+    anonymousStats.pipe(Effect.provide(readDatabase(config.databasePath))),
+    matchCacheStats.pipe(Effect.provide(readDatabase(config.databasePath))),
+  ])
+
+  if (jsonOutput) {
+    printJson({ anonymous, cache })
+    return
+  }
+
+  yield* Effect.logInfo(
+    `anonymous: ${anonymous.total} rows · ${anonymous.unresolved} unresolved · ${anonymous.linked} linked`,
+  )
+
+  for (const [region, counts] of Object.entries(anonymous.byRegion)) {
+    yield* Effect.logInfo(
+      `  ${region}: ${counts.unresolved} unresolved · ${counts.linked} linked · ${counts.ignored} ignored`,
+    )
+  }
+
+  yield* Effect.logInfo(`match cache: ${cache.matches} matches · ${cache.rows} participant rows`)
+})
+
+const anonCache = Effect.gen(function* () {
+  const config = yield* AppConfig
+  const cache = yield* matchCacheStats.pipe(Effect.provide(readDatabase(config.databasePath)))
+
+  if (process.argv.includes('--prune')) {
+    const pruned = yield* pruneMatchCache({
+      olderThanDays: config.matchCacheDays,
+      matchesPerRegion: config.matchCacheMatchesPerRegion,
+    }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+
+    if (jsonOutput) {
+      printJson({ cache, pruned })
+    } else {
+      yield* Effect.logInfo(`match cache pruned: ${pruned.deleted} rows`)
+    }
+    return
+  }
+
+  if (jsonOutput) {
+    printJson(cache)
+  } else {
+    yield* Effect.logInfo(JSON.stringify(cache, null, 2))
   }
 })
 
@@ -334,6 +462,21 @@ const main = Effect.gen(function* () {
     return
   }
 
+  if (command === 'anon:list') {
+    yield* anonList
+    return
+  }
+
+  if (command === 'anon:resolve') {
+    yield* anonResolve
+    return
+  }
+
+  if (command === 'anon:cache') {
+    yield* anonCache
+    return
+  }
+
   if (command === 'db:prune') {
     yield* pruneCommand
     return
@@ -381,6 +524,40 @@ const main = Effect.gen(function* () {
           yield* scanOnce(config, 'schedule').pipe(
             Effect.tap((result) => Effect.logInfo(`scheduled scan: ${JSON.stringify(result)}`)),
             Effect.catch((error) => Effect.logWarning(`scheduled scan failed: ${String(error)}`)),
+          )
+        }
+      }),
+    )
+
+    yield* Effect.forkDetach(
+      Effect.gen(function* () {
+        const lastRun = yield* Effect.gen(function* () {
+          const db = yield* Database
+          return yield* db.get<{ value: string }>(
+            `select value from meta where key = 'anon:lastRunAt'`,
+          )
+        }).pipe(Effect.provide(writeDatabase(config.databasePath)))
+        const lastRunAt = lastRun ? Date.parse(lastRun.value) : 0
+        const now = yield* Clock.currentTimeMillis
+
+        if (now - lastRunAt >= 86_400_000) {
+          yield* resolvePass({ ...config, limit: 500 }).pipe(
+            Effect.tap((result) => Effect.logInfo(`identity boot pass: ${JSON.stringify(result)}`)),
+            Effect.catch((error) =>
+              Effect.logWarning(`identity boot pass failed: ${String(error)}`),
+            ),
+          )
+        }
+
+        while (true) {
+          yield* Effect.sleep('24 hours')
+          yield* resolvePass({ ...config, limit: 500 }).pipe(
+            Effect.tap((result) =>
+              Effect.logInfo(`identity daily pass: ${JSON.stringify(result)}`),
+            ),
+            Effect.catch((error) =>
+              Effect.logWarning(`identity daily pass failed: ${String(error)}`),
+            ),
           )
         }
       }),

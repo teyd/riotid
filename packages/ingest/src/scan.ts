@@ -4,6 +4,7 @@ import {
   anonymousRows,
   bannedPlayers,
   Database,
+  leaderboardSeeds,
   meta,
   playerNames,
   playerRegions,
@@ -12,9 +13,13 @@ import {
   runs,
   seasons,
 } from '@riotid/db'
-import { RiotRequestError, type AuthSession, type LeaderboardPlayer } from '@riotid/riot'
+import {
+  RiotRequestError,
+  RiotSource,
+  type AuthSession,
+  type LeaderboardPlayer,
+} from '@riotid/riot'
 import { Clock, Data, Duration, Effect } from 'effect'
-import { RiotSource } from './source.ts'
 
 const regions = ['na', 'eu', 'ap', 'kr'] as const
 type Region = (typeof regions)[number]
@@ -325,6 +330,7 @@ export const scan = (
     const openBanByPuuid = new Map(openBans.map((row) => [row.puuid, row]))
     const observedAt = nowDate(yield* Clock.currentTimeMillis)
     const playerUpserts: Array<typeof players.$inferInsert> = []
+    const seedUpserts: Array<typeof leaderboardSeeds.$inferInsert> = []
     const newNames: Array<typeof playerNames.$inferInsert> = []
     const newRegions: Array<typeof playerRegions.$inferInsert> = []
     const newBans: Array<typeof bannedPlayers.$inferInsert> = []
@@ -439,6 +445,20 @@ export const scan = (
             updatedAt: observedAt,
           })
         }
+      }
+
+      if (unambiguousRegion) {
+        seedUpserts.push({
+          puuid,
+          region: unambiguousRegion,
+          seasonId: act.uuid,
+          leaderboardRank: entry.player.leaderboardRank,
+          rankedRating: entry.player.rankedRating,
+          numberOfWins: entry.player.numberOfWins,
+          competitiveTier: entry.player.competitiveTier,
+          lastSeenAt: observedAt,
+          updatedAt: observedAt,
+        })
       }
 
       let banCount = existing?.banCount ?? 0
@@ -581,6 +601,25 @@ export const scan = (
                 lastRegionChangeAt: sql`excluded.last_region_change_at`,
                 lastBanAt: sql`excluded.last_ban_at`,
                 lastUnbanAt: sql`excluded.last_unban_at`,
+                updatedAt: sql`excluded.updated_at`,
+              },
+            })
+        }
+
+        for (const batch of chunks(seedUpserts, 250)) {
+          yield* tx
+            .insert(leaderboardSeeds)
+            .values(batch)
+            .onConflictDoUpdate({
+              target: leaderboardSeeds.puuid,
+              set: {
+                region: sql`excluded.region`,
+                seasonId: sql`excluded.season_id`,
+                leaderboardRank: sql`excluded.leaderboard_rank`,
+                rankedRating: sql`excluded.ranked_rating`,
+                numberOfWins: sql`excluded.number_of_wins`,
+                competitiveTier: sql`excluded.competitive_tier`,
+                lastSeenAt: sql`excluded.last_seen_at`,
                 updatedAt: sql`excluded.updated_at`,
               },
             })

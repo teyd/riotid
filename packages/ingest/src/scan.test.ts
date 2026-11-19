@@ -10,6 +10,7 @@ import {
   migrateDatabase,
   playerNames,
   playerRegions,
+  leaderboardSeeds,
   players,
   runs,
   writeDatabase,
@@ -20,7 +21,7 @@ import { Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { scan, type ScanResult } from './scan.ts'
-import { RiotSource, type RiotSourceShape } from './source.ts'
+import { RiotSource, type RiotSourceShape } from '@riotid/riot'
 
 const migrationsFolder = fileURLToPath(new URL('../../db/drizzle', import.meta.url))
 
@@ -86,6 +87,9 @@ const makeSource = (data: {
 
       return Effect.succeed(page)
     },
+    getMmr: () => Effect.die('unused'),
+    getMatchHistory: () => Effect.die('unused'),
+    getMatchDetails: () => Effect.die('unused'),
     getNameService: (_session, _clientVersion, _shard, puuids) => {
       if (data.failNames) {
         return Effect.succeed([])
@@ -161,9 +165,10 @@ describe('scan', () => {
             .from(playerRegions)
             .where(isNull(playerRegions.endedAt))
           const anonymous = yield* db.select().from(anonymousRows)
+          const seeds = yield* db.select().from(leaderboardSeeds)
           const allRuns = yield* db.select().from(runs)
 
-          return { allPlayers, openNames, openRegions, anonymous, allRuns }
+          return { allPlayers, openNames, openRegions, anonymous, seeds, allRuns }
         }),
       )
 
@@ -171,6 +176,8 @@ describe('scan', () => {
       expect(rows.openNames).toHaveLength(3)
       expect(rows.openRegions).toHaveLength(3)
       expect(rows.anonymous).toHaveLength(1)
+      expect(rows.seeds).toHaveLength(3)
+      expect(rows.seeds.every((row) => row.leaderboardRank === 1)).toBe(true)
       expect(rows.allRuns[0]?.status).toBe('succeeded')
     })
   })

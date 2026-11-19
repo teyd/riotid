@@ -21,6 +21,9 @@ The approved implementation plan lives in
 - `mise run stats` — print database statistics
 - `mise run backup` — create and rotate a consistent database backup
 - `mise run db:prune` — delete runs older than the retention window
+- `mise run anon:list` — show anonymous rows and match-cache totals
+- `mise run anon:resolve` — run one budgeted identity-resolution pass
+- `mise run anon:cache` — inspect the match cache (`-- --prune` to trim it)
 
 The in-process scheduler runs in production (`NODE_ENV=production`); during local development use `mise run scan` when you want a real scan.
 

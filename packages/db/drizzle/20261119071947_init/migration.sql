@@ -45,7 +45,7 @@ CREATE TABLE `identity_links` (
 	`puuid` text NOT NULL,
 	`region` text NOT NULL,
 	`season_id` text NOT NULL,
-	`match_id` text NOT NULL,
+	`match_id` text,
 	`method` text NOT NULL,
 	`confidence` integer NOT NULL,
 	`evidence` text DEFAULT '{}' NOT NULL,
@@ -56,6 +56,21 @@ CREATE TABLE `identity_links` (
 	CONSTRAINT "identity_links_region_check" CHECK("region" IN ('na', 'eu', 'ap', 'kr')),
 	CONSTRAINT "identity_links_method_check" CHECK("method" IN ('direct_puuid', 'mmr_fingerprint', 'match_graph')),
 	CONSTRAINT "identity_links_confidence_check" CHECK("confidence" BETWEEN 0 AND 10000)
+);
+--> statement-breakpoint
+CREATE TABLE `leaderboard_seeds` (
+	`puuid` text PRIMARY KEY,
+	`region` text NOT NULL,
+	`season_id` text NOT NULL,
+	`leaderboard_rank` integer NOT NULL,
+	`ranked_rating` integer NOT NULL,
+	`number_of_wins` integer NOT NULL,
+	`competitive_tier` integer NOT NULL,
+	`last_seen_at` integer NOT NULL,
+	`created_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch() * 1000) NOT NULL,
+	CONSTRAINT `fk_leaderboard_seeds_puuid_players_puuid_fk` FOREIGN KEY (`puuid`) REFERENCES `players`(`puuid`) ON DELETE CASCADE,
+	CONSTRAINT "leaderboard_seeds_region_check" CHECK("region" IN ('na', 'eu', 'ap', 'kr'))
 );
 --> statement-breakpoint
 CREATE TABLE `match_candidates` (
@@ -200,11 +215,13 @@ CREATE TABLE `seasons` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `anonymous_rows_row_idx` ON `anonymous_rows` (`region`,`season_id`,`leaderboard_rank`);--> statement-breakpoint
 CREATE INDEX `anonymous_rows_status_idx` ON `anonymous_rows` (`status`,`region`);--> statement-breakpoint
+CREATE INDEX `anonymous_rows_queue_idx` ON `anonymous_rows` (`status`,`last_tried_at`);--> statement-breakpoint
 CREATE UNIQUE INDEX `banned_players_open_idx` ON `banned_players` (`puuid`) WHERE "banned_players"."ended_at" IS NULL;--> statement-breakpoint
 CREATE INDEX `banned_players_puuid_idx` ON `banned_players` (`puuid`,`started_at`);--> statement-breakpoint
 CREATE UNIQUE INDEX `identity_links_anonymous_idx` ON `identity_links` (`anonymous_row_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `identity_links_player_season_idx` ON `identity_links` (`puuid`,`season_id`);--> statement-breakpoint
 CREATE INDEX `identity_links_puuid_idx` ON `identity_links` (`puuid`);--> statement-breakpoint
+CREATE INDEX `leaderboard_seeds_lookup_idx` ON `leaderboard_seeds` (`region`,`season_id`,`leaderboard_rank`);--> statement-breakpoint
 CREATE INDEX `match_candidates_lookup_idx` ON `match_candidates` (`region`,`competitive_tier`,`card_id`,`title_id`);--> statement-breakpoint
 CREATE INDEX `match_candidates_puuid_idx` ON `match_candidates` (`puuid`);--> statement-breakpoint
 CREATE INDEX `match_candidates_created_idx` ON `match_candidates` (`created_at`);--> statement-breakpoint

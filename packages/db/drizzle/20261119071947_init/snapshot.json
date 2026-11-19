@@ -1,7 +1,7 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "fdfc87cb-fc6d-4bf5-9b02-63a1f30b0c47",
+  "id": "1fae1ca6-9e19-473d-92f9-259b047b2382",
   "prevIds": ["00000000-0000-0000-0000-000000000000"],
   "ddl": [
     {
@@ -14,6 +14,10 @@
     },
     {
       "name": "identity_links",
+      "entityType": "tables"
+    },
+    {
+      "name": "leaderboard_seeds",
       "entityType": "tables"
     },
     {
@@ -372,7 +376,7 @@
       "table": "identity_links",
       "name": "match_id",
       "type": "text",
-      "notNull": true,
+      "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -420,6 +424,106 @@
     },
     {
       "table": "identity_links",
+      "name": "updated_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "puuid",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "region",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "season_id",
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_rank",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "ranked_rating",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "number_of_wins",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "competitive_tier",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "last_seen_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "created_at",
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "(unixepoch() * 1000)",
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "leaderboard_seeds",
       "name": "updated_at",
       "type": "integer",
       "notNull": true,
@@ -1379,6 +1483,24 @@
       "entityType": "indexes"
     },
     {
+      "table": "anonymous_rows",
+      "name": "anonymous_rows_queue_idx",
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        },
+        {
+          "value": "last_tried_at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
       "table": "banned_players",
       "name": "banned_players_open_idx",
       "columns": [
@@ -1448,6 +1570,28 @@
       "columns": [
         {
           "value": "puuid",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_seeds_lookup_idx",
+      "columns": [
+        {
+          "value": "region",
+          "isExpression": false
+        },
+        {
+          "value": "season_id",
+          "isExpression": false
+        },
+        {
+          "value": "leaderboard_rank",
           "isExpression": false
         }
       ],
@@ -1751,6 +1895,17 @@
       "entityType": "fks"
     },
     {
+      "table": "leaderboard_seeds",
+      "name": "fk_leaderboard_seeds_puuid_players_puuid_fk",
+      "columns": ["puuid"],
+      "tableTo": "players",
+      "columnsTo": ["puuid"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "entityType": "fks"
+    },
+    {
       "table": "player_names",
       "name": "fk_player_names_puuid_players_puuid_fk",
       "columns": ["puuid"],
@@ -1896,6 +2051,13 @@
       "entityType": "pks"
     },
     {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_seeds_pk",
+      "columns": ["puuid"],
+      "nameExplicit": false,
+      "entityType": "pks"
+    },
+    {
       "table": "meta",
       "name": "meta_pk",
       "columns": ["key"],
@@ -1977,6 +2139,12 @@
       "table": "identity_links",
       "name": "identity_links_confidence_check",
       "value": "\"confidence\" BETWEEN 0 AND 10000",
+      "entityType": "checks"
+    },
+    {
+      "table": "leaderboard_seeds",
+      "name": "leaderboard_seeds_region_check",
+      "value": "\"region\" IN ('na', 'eu', 'ap', 'kr')",
       "entityType": "checks"
     },
     {
