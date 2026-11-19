@@ -34,6 +34,8 @@ type Props = {
   readonly puuid: string
   readonly row: IndexRow | null
   readonly cardId: string | null
+  readonly focusOnMount: boolean
+  readonly focusHeading: boolean
   readonly onBack: () => void
 }
 
@@ -233,13 +235,21 @@ const CopyLink = ({ puuid }: { puuid: string }) => {
   )
 }
 
-export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
+export const PlayerDetailPanel = ({
+  puuid,
+  row,
+  cardId,
+  focusOnMount,
+  focusHeading,
+  onBack,
+}: Props) => {
   const query = useQuery({
     queryKey: ['player', puuid],
     queryFn: () => fetchPlayer(puuid),
     staleTime: 60_000,
   })
   const backRef = useRef<HTMLButtonElement>(null)
+  const headingRef = useRef<HTMLHeadingElement>(null)
 
   const detail = query.data
   const name = detail?.player.name ?? row?.[P.name] ?? ''
@@ -260,10 +270,13 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
   )
 
   useEffect(() => {
+    if (!focusOnMount) return
     if (window.matchMedia('(max-width: 1023px)').matches) {
       backRef.current?.focus()
+      return
     }
-  }, [puuid])
+    if (focusHeading) headingRef.current?.focus()
+  }, [focusHeading, focusOnMount])
 
   return (
     <div className="flex h-full w-full flex-col overflow-y-auto">
@@ -297,7 +310,11 @@ export const PlayerDetailPanel = ({ puuid, row, cardId, onBack }: Props) => {
             )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <h2 className="truncate text-3xl font-semibold tracking-tight text-zinc-50">
+                <h2
+                  ref={headingRef}
+                  tabIndex={-1}
+                  className="truncate text-3xl font-semibold tracking-tight text-zinc-50 focus:outline-none"
+                >
                   {name || 'Anonymous'}
                 </h2>
                 {tag ? <span className="font-mono text-sm text-zinc-300">#{tag}</span> : null}
