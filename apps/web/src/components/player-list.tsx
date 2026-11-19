@@ -19,6 +19,8 @@ type Props = {
   readonly cards: ReadonlyArray<string>
   readonly selected: string | null
   readonly loading: boolean
+  readonly filtered: boolean
+  readonly focusSelectedOnMount: boolean
   readonly searchRef: RefObject<HTMLInputElement | null>
   readonly onSelect: (puuid: string | null) => void
   readonly onPrefetch: (puuid: string) => void
@@ -33,6 +35,8 @@ export const PlayerList = ({
   cards,
   selected,
   loading,
+  filtered,
+  focusSelectedOnMount,
   searchRef,
   onSelect,
   onPrefetch,
@@ -40,6 +44,7 @@ export const PlayerList = ({
 }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const pendingFocus = useRef<string | null>(null)
+  const focusedOnMount = useRef(false)
   // TanStack Virtual returns functions the compiler cannot safely memoize.
   // eslint-disable-next-line react/incompatible-library
   const virtualizer = useVirtualizer({
@@ -62,6 +67,18 @@ export const PlayerList = ({
   }, [selectedIndex, virtualizer])
 
   useEffect(() => {
+    if (focusedOnMount.current || !focusSelectedOnMount || !selected) return
+    const frame = window.requestAnimationFrame(() => {
+      focusedOnMount.current = true
+      if (!window.matchMedia('(min-width: 1024px)').matches) return
+      scrollRef.current
+        ?.querySelector<HTMLElement>(`[data-puuid="${CSS.escape(selected)}"]`)
+        ?.focus()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [focusSelectedOnMount, selected])
+
+  useEffect(() => {
     const pending = pendingFocus.current
     if (!pending) return
     if (!window.matchMedia('(min-width: 1024px)').matches) {
@@ -82,13 +99,13 @@ export const PlayerList = ({
     const handler = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return
 
-      const target = event.target as HTMLElement | null
+      const target = event.target instanceof Element ? event.target : null
       if (
         target &&
         (target.tagName === 'INPUT' ||
           target.tagName === 'TEXTAREA' ||
           target.tagName === 'SELECT' ||
-          target.isContentEditable ||
+          (target as HTMLElement).isContentEditable ||
           target.closest(interactiveRoles))
       ) {
         return
@@ -96,6 +113,7 @@ export const PlayerList = ({
 
       const move = (next: number) => {
         const bounded = Math.max(0, Math.min(rows.length - 1, next))
+        if (bounded === selectedIndex) return
         const row = rows[bounded]
         if (!row) return
         event.preventDefault()
@@ -136,7 +154,11 @@ export const PlayerList = ({
 
   if (loading) return <PlayerListSkeleton />
   if (rows.length === 0) {
-    return <EmptyState title="No players match." hint="Try a different name, tag, or region." />
+    return filtered ? (
+      <EmptyState title="No players match." hint="Try a different name, tag, or region." />
+    ) : (
+      <EmptyState title="No players yet." hint="Run a scan to populate the index." />
+    )
   }
 
   return (
