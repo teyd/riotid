@@ -118,6 +118,8 @@ describe('api', () => {
       const pastResponse = await request(app, '/api/v1/search?q=one%20old')
       expect(pastResponse.status).toBe(200)
       expect(pastResponse.headers.get('cache-control')).toContain('s-maxage=30')
+      expect(pastResponse.headers.get('ratelimit-limit')).toBe('60')
+      expect(pastResponse.headers.get('ratelimit-remaining')).toBe('59')
 
       const past = (await pastResponse.json()) as PlayerSearch
       expect(past.query).toBe('one old')
