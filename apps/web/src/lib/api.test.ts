@@ -13,6 +13,7 @@ import {
   trackerProfileUrl,
   vtlProfileUrl,
 } from './api.ts'
+import { getRateLimit } from './rate-limit.ts'
 
 describe('profile links', () => {
   it('encodes a Riot ID for tracker.gg', () => {
@@ -163,5 +164,21 @@ describe('request errors', () => {
 
     expect(error).toMatchObject({ status: 404, message: 'Player not found.' })
     expect(isRateLimited(error)).toBe(false)
+  })
+
+  it('reports the remaining quota from response headers', async () => {
+    respond(
+      200,
+      {},
+      {
+        'RateLimit-Limit': '120',
+        'RateLimit-Remaining': '7',
+        'RateLimit-Reset': '42',
+      },
+    )
+
+    await fetchPlayer('puuid')
+
+    expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 7 })
   })
 })

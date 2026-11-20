@@ -82,6 +82,8 @@ const indexFormat = 6
 
 type Bucket = { count: number; resetAt: number }
 
+type LimitState = { limited: boolean; limit: number; remaining: number; resetAt: number }
+
 const clientIp = async (c: Context): Promise<string> => {
   const forwarded = c.req.header('cf-connecting-ip') ?? c.req.header('x-real-ip')
 
@@ -103,9 +105,7 @@ const errorBody = (c: Context, code: string, message: string): ApiError => ({
 })
 
 const rateLimited = (c: Context) =>
-  c.json(errorBody(c, 'rate_limited', 'Too many requests. Try again shortly.'), 429, {
-    'Retry-After': '60',
-  })
+  c.json(errorBody(c, 'rate_limited', 'Too many requests. Try again shortly.'), 429)
 
 const normalizeEtag = (value: string): string => value.trim().replace(/^W\//, '')
 
@@ -149,13 +149,14 @@ export const makeApp = (options: AppOptions) => {
   let cachedIndex: CachedJson | null = null
   let cachedOverview: { key: string; body: string; etag: string } | null = null
 
-  const hitLimit = (key: string, limit: number, windowMs = 60_000): boolean => {
+  const hitLimit = (key: string, limit: number, windowMs = 60_000): LimitState => {
     const now = Date.now()
     const bucket = buckets.get(key)
 
     if (!bucket || bucket.resetAt <= now) {
-      buckets.set(key, { count: 1, resetAt: now + windowMs })
-      return false
+      const fresh = { count: 1, resetAt: now + windowMs }
+      buckets.set(key, fresh)
+      return { limited: false, limit, remaining: Math.max(0, limit - 1), resetAt: fresh.resetAt }
     }
 
     bucket.count += 1
@@ -166,7 +167,12 @@ export const makeApp = (options: AppOptions) => {
       }
     }
 
-    return bucket.count > limit
+    return {
+      limited: bucket.count > limit,
+      limit,
+      remaining: Math.max(0, limit - bucket.count),
+      resetAt: bucket.resetAt,
+    }
   }
 
   const getIndex = Effect.gen(function* () {
@@ -257,7 +263,15 @@ export const makeApp = (options: AppOptions) => {
 
   const rateLimit = async (c: Context, scope: string, limit: number) => {
     const ip = await clientIp(c)
-    return hitLimit(`${scope}:${ip}`, limit)
+    const state = hitLimit(`${scope}:${ip}`, limit)
+    const reset = Math.max(0, Math.ceil((state.resetAt - Date.now()) / 1000))
+
+    c.header('RateLimit-Limit', String(state.limit))
+    c.header('RateLimit-Remaining', String(state.remaining))
+    c.header('RateLimit-Reset', String(reset))
+    if (state.limited) c.header('Retry-After', String(reset))
+
+    return state.limited
   }
 
   app.get('/api/v1/index', async (c) => {
