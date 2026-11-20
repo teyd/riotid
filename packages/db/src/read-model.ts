@@ -18,6 +18,7 @@ import { Database } from './client.ts'
 
 const dayMs = 86_400_000
 const hourMs = 3_600_000
+export const defaultIndexPlayerLimit = 50_000
 
 type PlayerRow = {
   puuid: string
@@ -48,6 +49,7 @@ export const buildSiteIndex = (
   now = Date.now(),
   indexWindowDays = 30,
   scanIntervalHours = 6,
+  playerLimit = defaultIndexPlayerLimit,
 ): Effect.Effect<SiteIndex, unknown, Database> =>
   Effect.gen(function* () {
     const db = yield* Database
@@ -74,6 +76,11 @@ export const buildSiteIndex = (
         coalesce(sum(unban_count), 0) as unbans
       from players
     `)
+    const publicTotals = yield* db.get<{ total: number }>(sql`
+      select count(*) as total
+      from players
+      where is_banned = 0 and last_seen_at >= ${cutoff}
+    `)
     const anonymous = yield* db.get<{ total: number; linked: number; unresolved: number }>(sql`
       select
         count(*) as total,
@@ -92,19 +99,21 @@ export const buildSiteIndex = (
       from players
       where is_banned = 0 and last_seen_at >= ${cutoff}
       order by last_seen_at desc, puuid desc
+      limit ${playerLimit + 1}
     `)
 
+    const visibleRows = rows.slice(0, playerLimit)
     const cards: string[] = []
     const cardIndexes = new Map<string, number>()
 
-    for (const row of rows) {
+    for (const row of visibleRows) {
       if (row.card_id && !cardIndexes.has(row.card_id)) {
         cardIndexes.set(row.card_id, cards.length)
         cards.push(row.card_id)
       }
     }
 
-    const players: IndexPlayer[] = rows.map((row) => {
+    const players: IndexPlayer[] = visibleRows.map((row) => {
       let flags = 0
       if (row.is_anonymized) flags |= 1
       if (row.name_changes > 0) flags |= 2
@@ -135,6 +144,7 @@ export const buildSiteIndex = (
         : null,
       stats: {
         players: totals?.players ?? 0,
+        publicPlayers: publicTotals?.total ?? 0,
         nameChanges: totals?.name_changes ?? 0,
         regionChanges: totals?.region_changes ?? 0,
         bans: totals?.bans ?? 0,
@@ -155,6 +165,7 @@ export const buildSiteIndex = (
 export const searchMinQueryLength = 3
 export const searchDefaultLimit = 20
 export const searchMaxLimit = 50
+const searchCandidateLimit = 100
 
 export type SearchOptions = {
   readonly region?: Region | null
@@ -163,7 +174,7 @@ export type SearchOptions = {
   readonly indexWindowDays?: number
 }
 
-type CurrentSearchRow = {
+type SearchRow = {
   puuid: string
   name: string
   tag: string
@@ -173,28 +184,30 @@ type CurrentSearchRow = {
   region_changes: number
   first_seen_at: number
   last_seen_at: number
-  total: number
-}
-
-type PastSearchRow = CurrentSearchRow & {
   match_name: string
   match_tag: string
-  started_at: number
-  ended_at: number
+  started_at: number | null
+  ended_at: number | null
 }
 
-const emptySearch = (
-  query: string,
-  limit: number,
-): PlayerSearch => ({
+type SearchCandidate = {
+  readonly player: SearchPlayer
+  readonly matchName: string
+  readonly matchTag: string
+  readonly startedAt: number | null
+  readonly endedAt: number | null
+  readonly bucket: number
+}
+
+const emptySearch = (query: string, limit: number): PlayerSearch => ({
   query,
   minQueryLength: searchMinQueryLength,
   limit,
-  current: { total: 0, players: [] },
-  past: { total: 0, matches: [] },
+  current: { total: 0, truncated: false, players: [] },
+  past: { total: 0, truncated: false, matches: [] },
 })
 
-const toSearchPlayer = (row: CurrentSearchRow): SearchPlayer => ({
+const toSearchPlayer = (row: SearchRow): SearchPlayer => ({
   puuid: row.puuid,
   name: row.name,
   tag: row.tag,
@@ -205,6 +218,44 @@ const toSearchPlayer = (row: CurrentSearchRow): SearchPlayer => ({
   firstSeenAt: row.first_seen_at,
   lastSeenAt: row.last_seen_at,
 })
+
+const matchBucket = (name: string, tag: string, needle: string): number => {
+  const foldedName = name.toLowerCase()
+  const foldedTag = tag.toLowerCase()
+  const combined = `${foldedName}#${foldedTag}`
+
+  if (combined === needle) return 0
+  if (foldedName === needle) return 1
+  if (foldedTag === needle) return 2
+  if (combined.startsWith(needle)) return 3
+  if (foldedName.startsWith(needle)) return 4
+  if (foldedTag.startsWith(needle)) return 5
+  return 6
+}
+
+const currentNameMatches = (player: SearchPlayer, needle: string): boolean => {
+  const name = player.name.toLowerCase()
+  const tag = player.tag.toLowerCase()
+  return name.includes(needle) || tag.includes(needle) || `${name}#${tag}`.includes(needle)
+}
+
+const sameName = (player: SearchPlayer, name: string, tag: string): boolean =>
+  player.name.toLowerCase() === name.toLowerCase() && player.tag.toLowerCase() === tag.toLowerCase()
+
+const escapeGlob = (value: string): string =>
+  value.replaceAll('*', '[*]').replaceAll('?', '[?]').replaceAll('[', '[[]')
+
+const addCandidate = (target: Map<string, SearchCandidate>, candidate: SearchCandidate): void => {
+  const existing = target.get(candidate.player.puuid)
+
+  if (
+    !existing ||
+    candidate.bucket < existing.bucket ||
+    (candidate.bucket === existing.bucket && (candidate.endedAt ?? 0) > (existing.endedAt ?? 0))
+  ) {
+    target.set(candidate.player.puuid, candidate)
+  }
+}
 
 export const searchPlayers = (
   query: string,
@@ -220,109 +271,168 @@ export const searchPlayers = (
     }
 
     const needle = trimmed.toLowerCase()
-    const escapeLike = (value: string) =>
-      value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')
-    const contains = `%${escapeLike(needle)}%`
-    const prefix = `${escapeLike(needle)}%`
     const fts = `"${needle.replaceAll('"', '""')}"`
+    const ftsCurrent = `${fts} AND kind:current`
+    const ftsPast = `${fts} AND kind:past`
+    const glob = `${escapeGlob(needle)}*`
     const cutoff = (options.now ?? Date.now()) - (options.indexWindowDays ?? 30) * dayMs
     const region = options.region ?? null
+    const candidateLimit = Math.max(searchCandidateLimit, limit * 5)
 
-    const currentRows = yield* db.all<CurrentSearchRow>(sql`
-      with hits as (
-        select
-          p.puuid, p.name, p.tag, p.region, p.card_id,
-          p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
-          case
-            when s.combined_folded = ${needle} then 0
-            when s.name_folded = ${needle} then 1
-            when s.tag_folded = ${needle} then 2
-            when s.combined_folded like ${prefix} escape '\\' then 3
-            when s.name_folded like ${prefix} escape '\\' then 4
-            else 5
-          end as bucket
-        from player_search_fts
-        join player_search s on s.id = player_search_fts.rowid and s.kind = 'current'
-        join players p on p.puuid = s.puuid
-        where player_search_fts match ${fts}
-          and p.is_banned = 0
-          and p.last_seen_at >= ${cutoff}
-          and (${region} is null or p.region = ${region})
-      )
-      select *, count(*) over () as total
-      from hits
-      order by bucket, last_seen_at desc, puuid
-      limit ${limit}
+    const currentPrefixRows = yield* db.all<SearchRow>(sql`
+      select
+        p.puuid, p.name, p.tag, p.region, p.card_id,
+        p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
+        p.name as match_name, p.tag as match_tag,
+        null as started_at, null as ended_at
+      from player_search s
+      join players p on p.puuid = s.puuid
+      where s.kind = 'current'
+        and p.is_banned = 0
+        and p.last_seen_at >= ${cutoff}
+        and (${region} is null or p.region = ${region})
+        and (
+          s.name_folded glob ${glob}
+          or s.tag_folded glob ${glob}
+          or s.combined_folded glob ${glob}
+        )
+      limit ${candidateLimit}
     `)
 
-    const pastRows = yield* db.all<PastSearchRow>(sql`
-      with hits as (
-        select
-          p.puuid, p.name, p.tag, p.region, p.card_id,
-          p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
-          s.id as search_id,
-          s.name as match_name, s.tag as match_tag,
-          n.started_at, s.ended_at,
-          case
-            when s.combined_folded = ${needle} then 0
-            when s.name_folded = ${needle} then 1
-            when s.tag_folded = ${needle} then 2
-            when s.combined_folded like ${prefix} escape '\\' then 3
-            when s.name_folded like ${prefix} escape '\\' then 4
-            else 5
-          end as bucket
-        from player_search_fts
-        join player_search s on s.id = player_search_fts.rowid and s.kind = 'past'
-        join player_names n on n.id = s.player_name_id
-        join players p on p.puuid = s.puuid
-        where player_search_fts match ${fts}
-          and p.is_banned = 0
-          and p.last_seen_at >= ${cutoff}
-          and (${region} is null or p.region = ${region})
-          and s.ended_at is not null
-          and not (
-            s.name_folded = lower(coalesce(p.name, ''))
-            and s.tag_folded = lower(coalesce(p.tag, ''))
-          )
-          and not (
-            lower(coalesce(p.name, '')) like ${contains} escape '\\'
-            or lower(coalesce(p.tag, '')) like ${contains} escape '\\'
-            or lower(coalesce(p.name, '') || '#' || coalesce(p.tag, '')) like ${contains} escape '\\'
-          )
-      ),
-      ranked as (
-        select *, row_number() over (partition by puuid order by bucket, ended_at desc, search_id desc) as rn
-        from hits
-      ),
-      deduped as (
-        select * from ranked where rn = 1
-      )
-      select *, count(*) over () as total
-      from deduped
-      order by bucket, ended_at desc, puuid
-      limit ${limit}
+    const currentSubstringRows = yield* db.all<SearchRow>(sql`
+      select
+        p.puuid, p.name, p.tag, p.region, p.card_id,
+        p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
+        p.name as match_name, p.tag as match_tag,
+        null as started_at, null as ended_at
+      from player_search_fts
+      join player_search s on s.id = player_search_fts.rowid and s.kind = 'current'
+      join players p on p.puuid = s.puuid
+      where player_search_fts match ${ftsCurrent}
+        and p.is_banned = 0
+        and p.last_seen_at >= ${cutoff}
+        and (${region} is null or p.region = ${region})
+      limit ${candidateLimit}
     `)
 
-    const current: SearchPlayer[] = currentRows.map(toSearchPlayer)
-    const past: SearchMatch[] = pastRows.map((row) => ({
-      player: toSearchPlayer(row),
-      name: row.match_name,
-      tag: row.match_tag,
-      startedAt: row.started_at,
-      endedAt: row.ended_at,
-    }))
+    const pastPrefixRows = yield* db.all<SearchRow>(sql`
+      select
+        p.puuid, p.name, p.tag, p.region, p.card_id,
+        p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
+        s.name as match_name, s.tag as match_tag,
+        n.started_at, s.ended_at
+      from player_search s
+      join player_names n on n.id = s.player_name_id
+      join players p on p.puuid = s.puuid
+      where s.kind = 'past'
+        and s.ended_at is not null
+        and p.is_banned = 0
+        and p.last_seen_at >= ${cutoff}
+        and (${region} is null or p.region = ${region})
+        and (
+          s.name_folded glob ${glob}
+          or s.tag_folded glob ${glob}
+          or s.combined_folded glob ${glob}
+        )
+      limit ${candidateLimit}
+    `)
+
+    const pastSubstringRows = yield* db.all<SearchRow>(sql`
+      select
+        p.puuid, p.name, p.tag, p.region, p.card_id,
+        p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
+        s.name as match_name, s.tag as match_tag,
+        n.started_at, s.ended_at
+      from player_search_fts
+      join player_search s on s.id = player_search_fts.rowid and s.kind = 'past'
+      join player_names n on n.id = s.player_name_id
+      join players p on p.puuid = s.puuid
+      where player_search_fts match ${ftsPast}
+        and s.ended_at is not null
+        and p.is_banned = 0
+        and p.last_seen_at >= ${cutoff}
+        and (${region} is null or p.region = ${region})
+      limit ${candidateLimit}
+    `)
+
+    const currentCandidates = new Map<string, SearchCandidate>()
+
+    for (const row of [...currentPrefixRows, ...currentSubstringRows]) {
+      addCandidate(currentCandidates, {
+        player: toSearchPlayer(row),
+        matchName: row.match_name,
+        matchTag: row.match_tag,
+        startedAt: null,
+        endedAt: null,
+        bucket: matchBucket(row.match_name, row.match_tag, needle),
+      })
+    }
+
+    const pastCandidates = new Map<string, SearchCandidate>()
+
+    for (const row of [...pastPrefixRows, ...pastSubstringRows]) {
+      const player = toSearchPlayer(row)
+
+      if (currentNameMatches(player, needle) || sameName(player, row.match_name, row.match_tag)) {
+        continue
+      }
+
+      addCandidate(pastCandidates, {
+        player,
+        matchName: row.match_name,
+        matchTag: row.match_tag,
+        startedAt: row.started_at,
+        endedAt: row.ended_at,
+        bucket: matchBucket(row.match_name, row.match_tag, needle),
+      })
+    }
+
+    const currentSorted = [...currentCandidates.values()].sort(
+      (left, right) =>
+        left.bucket - right.bucket ||
+        right.player.lastSeenAt - left.player.lastSeenAt ||
+        left.player.puuid.localeCompare(right.player.puuid),
+    )
+    const pastSorted = [...pastCandidates.values()].sort(
+      (left, right) =>
+        left.bucket - right.bucket ||
+        (right.endedAt ?? 0) - (left.endedAt ?? 0) ||
+        right.player.lastSeenAt - left.player.lastSeenAt ||
+        left.player.puuid.localeCompare(right.player.puuid),
+    )
+    const currentTruncated =
+      currentPrefixRows.length >= candidateLimit ||
+      currentSubstringRows.length >= candidateLimit ||
+      currentSorted.length > limit
+    const pastTruncated =
+      pastPrefixRows.length >= candidateLimit ||
+      pastSubstringRows.length >= candidateLimit ||
+      pastSorted.length > limit
+    const current = currentSorted.slice(0, limit)
+    const past = pastSorted.slice(0, limit)
 
     return {
       query: trimmed,
       minQueryLength: searchMinQueryLength,
       limit,
       current: {
-        total: currentRows[0]?.total ?? 0,
-        players: current,
+        total: currentSorted.length,
+        truncated: currentTruncated,
+        players: current.map((candidate) => candidate.player),
       },
       past: {
-        total: pastRows[0]?.total ?? 0,
-        matches: past,
+        total: pastSorted.length,
+        truncated: pastTruncated,
+        matches: past.map(
+          (candidate) =>
+            ({
+              player: candidate.player,
+              name: candidate.matchName,
+              tag: candidate.matchTag,
+              startedAt: candidate.startedAt ?? 0,
+              endedAt: candidate.endedAt ?? 0,
+            }) satisfies SearchMatch,
+        ),
       },
     }
   })

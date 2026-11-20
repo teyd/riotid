@@ -8,12 +8,12 @@ import type { ApiError, Health, PlayerSearch, Region, ServiceStatus } from '@rio
 import {
   buildSiteIndex,
   Database,
+  defaultIndexPlayerLimit,
   loadPlayerDetail,
   readDatabase,
   readIndexVersion,
   searchDefaultLimit,
   searchMaxLimit,
-  searchMinQueryLength,
   searchPlayers,
 } from '@riotid/db'
 import { repoRoot } from '@riotid/config'
@@ -30,6 +30,7 @@ export type AppOptions = {
   readonly authRefreshMinutes?: number
   readonly webRoot?: string
   readonly indexWindowDays?: number
+  readonly indexPlayerLimit?: number
   readonly scanIntervalHours?: number
   readonly rateLimits?: {
     readonly index?: number
@@ -61,7 +62,7 @@ const encodeCached = (key: string, value: unknown, etag: string): CachedJson => 
   }
 }
 
-const indexFormat = 5
+const indexFormat = 6
 
 type Bucket = { count: number; resetAt: number }
 
@@ -117,6 +118,7 @@ export const makeApp = (options: AppOptions) => {
   const authStaleAfterMs = (options.authRefreshMinutes ?? 45) * 2 * 60_000
   const webRoot = options.webRoot ?? join(repoRoot, 'apps/web/dist')
   const indexWindowDays = options.indexWindowDays ?? 30
+  const indexPlayerLimit = options.indexPlayerLimit ?? defaultIndexPlayerLimit
   const scanIntervalHours = options.scanIntervalHours ?? 6
   const buckets = new Map<string, Bucket>()
   let cachedIndex: CachedJson | null = null
@@ -143,13 +145,18 @@ export const makeApp = (options: AppOptions) => {
 
   const getIndex = Effect.gen(function* () {
     const version = yield* readIndexVersion
-    const key = `${options.databasePath}:${indexWindowDays}:${scanIntervalHours}:${version}`
+    const key = `${options.databasePath}:${indexWindowDays}:${indexPlayerLimit}:${scanIntervalHours}:${version}`
 
     if (cachedIndex?.key === key) {
       return cachedIndex
     }
 
-    const value = yield* buildSiteIndex(Date.now(), indexWindowDays, scanIntervalHours)
+    const value = yield* buildSiteIndex(
+      Date.now(),
+      indexWindowDays,
+      scanIntervalHours,
+      indexPlayerLimit,
+    )
     const cached = encodeCached(
       key,
       value,

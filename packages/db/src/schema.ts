@@ -207,6 +207,9 @@ export const playerSearch = sqliteTable(
       .on(table.playerNameId)
       .where(sql`${table.kind} = 'past'`),
     index('player_search_puuid_idx').on(table.puuid),
+    index('player_search_name_idx').on(table.nameFolded),
+    index('player_search_tag_idx').on(table.tagFolded),
+    index('player_search_combined_idx').on(table.combinedFolded),
   ],
 )
 

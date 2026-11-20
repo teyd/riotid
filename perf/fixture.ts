@@ -64,6 +64,7 @@ const index = (): SiteIndex => {
     season: { id: 'e10a1', name: 'Episode 10 Act I', endsAt: NOW + 14 * 86_400_000 },
     stats: {
       players: PLAYERS,
+      publicPlayers: PLAYERS,
       nameChanges: 79_000,
       regionChanges: 31_000,
       bans: 4_200,
