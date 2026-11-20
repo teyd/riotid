@@ -59,10 +59,11 @@ this machine.
 
 The remaining cold first-load time is the index transfer, not React: the first
 run spent 1.6 s downloading the index; warm runs spent 0.17–0.20 s. The origin
-index is served Brotli-compressed and cached in-process; Cloudflare currently
-reports `cf-cache-status: DYNAMIC` because no Cache Rule is configured for
-`/api/v1/index`. Adding a Cloudflare Cache Rule for that path (or a longer
-`s-maxage`) is the next improvement, and should remove the cold-tail cost.
+index is served Brotli-compressed and cached in-process. At measurement time
+Cloudflare reported `cf-cache-status: DYNAMIC` because no Cache Rule existed for
+`/api/v1/index`. The `riotid-index` Cache Rule added on 2026-11-20 now caches
+that path (`s-maxage=300`); re-measure the cold path before changing anything
+else.
 
 Re-run with:
 
