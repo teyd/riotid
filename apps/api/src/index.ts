@@ -12,6 +12,7 @@ const program = Effect.gen(function* () {
     cookieFile: config.cookieFile,
     authRefreshMinutes: config.authRefreshMinutes,
     indexWindowDays: config.indexRetentionDays,
+    indexPlayerLimit: config.indexPlayerLimit,
     scanIntervalHours: config.scanIntervalHours,
   })
 

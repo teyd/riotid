@@ -4,13 +4,31 @@ import { existsSync, promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 
-import type { ApiError, Health, ServiceStatus } from '@riotid/contracts'
+import type {
+  ApiError,
+  Health,
+  PlayerPage,
+  PlayerSearch,
+  PlayerSort,
+  Region,
+  ServiceStatus,
+  SiteOverview,
+} from '@riotid/contracts'
 import {
   buildSiteIndex,
+  buildSiteOverview,
   Database,
+  decodePlayerCursor,
+  defaultIndexPlayerLimit,
+  defaultPlayerPageSize,
+  listPlayersPage,
   loadPlayerDetail,
+  maxPlayerPageSize,
   readDatabase,
   readIndexVersion,
+  searchDefaultLimit,
+  searchMaxLimit,
+  searchPlayers,
 } from '@riotid/db'
 import { repoRoot } from '@riotid/config'
 import { getConnInfo } from '@hono/node-server/conninfo'
@@ -26,10 +44,14 @@ export type AppOptions = {
   readonly authRefreshMinutes?: number
   readonly webRoot?: string
   readonly indexWindowDays?: number
+  readonly indexPlayerLimit?: number
   readonly scanIntervalHours?: number
   readonly rateLimits?: {
     readonly index?: number
+    readonly browse?: number
+    readonly overview?: number
     readonly players?: number
+    readonly search?: number
     readonly status?: number
   }
 }
@@ -56,7 +78,7 @@ const encodeCached = (key: string, value: unknown, etag: string): CachedJson => 
   }
 }
 
-const indexFormat = 5
+const indexFormat = 6
 
 type Bucket = { count: number; resetAt: number }
 
@@ -90,13 +112,30 @@ const normalizeEtag = (value: string): string => value.trim().replace(/^W\//, ''
 const parseIfNoneMatch = (header: string | undefined, etag: string): boolean =>
   header?.split(',').some((value) => normalizeEtag(value) === normalizeEtag(etag)) ?? false
 
+const searchRegions: ReadonlySet<string> = new Set<Region>(['na', 'eu', 'ap', 'kr'])
+const playerSorts: ReadonlySet<string> = new Set<PlayerSort>([
+  'recentChanges',
+  'changes',
+  'recent',
+  'new',
+  'name',
+])
+
+const parseRegion = (value: string | undefined): Region | null | undefined => {
+  if (value === undefined || value === 'all') return null
+  return searchRegions.has(value) ? (value as Region) : undefined
+}
+
 export const makeApp = (options: AppOptions) => {
   const app = new Hono<{ Variables: { requestId: string } }>()
   const runtime = ManagedRuntime.make(readDatabase(options.databasePath))
   const runDb = <A, E>(effect: Effect.Effect<A, E, Database>) => runtime.runPromise(effect)
   const limits = {
     index: options.rateLimits?.index ?? 30,
+    browse: options.rateLimits?.browse ?? 120,
+    overview: options.rateLimits?.overview ?? 60,
     players: options.rateLimits?.players ?? 120,
+    search: options.rateLimits?.search ?? 120,
     status: options.rateLimits?.status ?? 60,
   }
   const cookieFile = options.cookieFile ?? './data/cookies.json'
@@ -104,9 +143,11 @@ export const makeApp = (options: AppOptions) => {
   const authStaleAfterMs = (options.authRefreshMinutes ?? 45) * 2 * 60_000
   const webRoot = options.webRoot ?? join(repoRoot, 'apps/web/dist')
   const indexWindowDays = options.indexWindowDays ?? 30
+  const indexPlayerLimit = options.indexPlayerLimit ?? defaultIndexPlayerLimit
   const scanIntervalHours = options.scanIntervalHours ?? 6
   const buckets = new Map<string, Bucket>()
   let cachedIndex: CachedJson | null = null
+  let cachedOverview: { key: string; body: string; etag: string } | null = null
 
   const hitLimit = (key: string, limit: number, windowMs = 60_000): boolean => {
     const now = Date.now()
@@ -130,19 +171,40 @@ export const makeApp = (options: AppOptions) => {
 
   const getIndex = Effect.gen(function* () {
     const version = yield* readIndexVersion
-    const key = `${options.databasePath}:${indexWindowDays}:${scanIntervalHours}:${version}`
+    const key = `${options.databasePath}:${indexWindowDays}:${indexPlayerLimit}:${scanIntervalHours}:${version}`
 
     if (cachedIndex?.key === key) {
       return cachedIndex
     }
 
-    const value = yield* buildSiteIndex(Date.now(), indexWindowDays, scanIntervalHours)
+    const value = yield* buildSiteIndex(
+      Date.now(),
+      indexWindowDays,
+      scanIntervalHours,
+      indexPlayerLimit,
+    )
     const cached = encodeCached(
       key,
       value,
       `"${indexFormat}-${value.version}-${value.players.length}"`,
     )
     cachedIndex = cached
+    return cached
+  })
+
+  const getOverview = Effect.gen(function* () {
+    const version = yield* readIndexVersion
+    const key = `${options.databasePath}:${indexWindowDays}:${scanIntervalHours}:${version}`
+
+    if (cachedOverview?.key === key) return cachedOverview
+
+    const value = yield* buildSiteOverview(Date.now(), indexWindowDays, scanIntervalHours)
+    const cached = {
+      key,
+      body: JSON.stringify(value satisfies SiteOverview),
+      etag: `"overview-${version}"`,
+    }
+    cachedOverview = cached
     return cached
   })
 
@@ -229,6 +291,103 @@ export const makeApp = (options: AppOptions) => {
     }
 
     return c.body(index.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
+  })
+
+  app.get('/api/v1/search', async (c) => {
+    if (await rateLimit(c, 'search', limits.search)) return rateLimited(c)
+
+    const query = (c.req.query('q') ?? '').trim()
+
+    if (query.length > 64) {
+      return c.json(errorBody(c, 'invalid_query', 'Search query is too long.'), 400)
+    }
+
+    const limitValue = c.req.query('limit')
+    const limit = limitValue === undefined ? searchDefaultLimit : Number(limitValue)
+
+    if (!Number.isInteger(limit) || limit < 1 || limit > searchMaxLimit) {
+      return c.json(
+        errorBody(c, 'invalid_limit', `Limit must be between 1 and ${searchMaxLimit}.`),
+        400,
+      )
+    }
+
+    const region = parseRegion(c.req.query('region'))
+
+    if (region === undefined) {
+      return c.json(errorBody(c, 'invalid_region', 'Invalid region.'), 400)
+    }
+
+    const results = await runDb(
+      searchPlayers(query, { region, limit, now: Date.now(), indexWindowDays }),
+    )
+
+    return c.json(results satisfies PlayerSearch, 200, {
+      'Cache-Control': 'public, max-age=30, s-maxage=30',
+    })
+  })
+
+  app.get('/api/v1/overview', async (c) => {
+    if (await rateLimit(c, 'overview', limits.overview)) return rateLimited(c)
+
+    const overview = await runDb(getOverview)
+    c.header('ETag', overview.etag)
+    c.header('Cache-Control', 'public, max-age=60, s-maxage=300')
+
+    if (parseIfNoneMatch(c.req.header('if-none-match'), overview.etag)) {
+      return c.body(null, 304)
+    }
+
+    return c.body(overview.body, 200, { 'Content-Type': 'application/json; charset=utf-8' })
+  })
+
+  app.get('/api/v1/players', async (c) => {
+    if (await rateLimit(c, 'browse', limits.browse)) return rateLimited(c)
+
+    const sortValue = c.req.query('sort') ?? 'recentChanges'
+
+    if (!playerSorts.has(sortValue)) {
+      return c.json(errorBody(c, 'invalid_sort', 'Invalid player sort.'), 400)
+    }
+
+    const sort = sortValue as PlayerSort
+    const region = parseRegion(c.req.query('region'))
+
+    if (region === undefined) {
+      return c.json(errorBody(c, 'invalid_region', 'Invalid region.'), 400)
+    }
+
+    const limitValue = c.req.query('limit')
+    const limit = limitValue === undefined ? defaultPlayerPageSize : Number(limitValue)
+
+    if (!Number.isInteger(limit) || limit < 1 || limit > maxPlayerPageSize) {
+      return c.json(
+        errorBody(c, 'invalid_limit', `Limit must be between 1 and ${maxPlayerPageSize}.`),
+        400,
+      )
+    }
+
+    const cursorValue = c.req.query('cursor')
+    const cursor = cursorValue === undefined ? null : decodePlayerCursor(cursorValue)
+
+    if (cursorValue !== undefined && (cursor === null || cursor.sort !== sort)) {
+      return c.json(errorBody(c, 'invalid_cursor', 'Invalid player cursor.'), 400)
+    }
+
+    const page = await runDb(
+      listPlayersPage({
+        sort,
+        region,
+        cursor,
+        limit,
+        now: Date.now(),
+        indexWindowDays,
+      }),
+    )
+
+    return c.json(page satisfies PlayerPage, 200, {
+      'Cache-Control': 'public, max-age=30, s-maxage=60',
+    })
   })
 
   app.get('/api/v1/status', async (c) => {

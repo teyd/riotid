@@ -85,6 +85,7 @@ describe('cli', () => {
       const { stdout, stderr, code } = await runCli(['status', '--json'], {
         DATABASE_PATH: join(directory, 'missing', 'riotid.db'),
         COOKIE_FILE: join(directory, 'missing', 'cookies.json'),
+        PORT: '8787',
       })
 
       expect(code).toBe(0)

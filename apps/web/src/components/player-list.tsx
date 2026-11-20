@@ -5,21 +5,25 @@ import {
   cardArt,
   displayName,
   formatRelative,
-  P,
   regionLabel,
   regionShort,
-  type IndexRow,
+  type PlayerListItem,
+  type PlayerSection,
 } from '../lib/api.ts'
 import { CardArt } from './card-art.tsx'
 import { EmptyState } from './ui.tsx'
-import { PlayerListSkeleton } from './skeleton.tsx'
+import { PlayerListSkeleton, Skeleton } from './skeleton.tsx'
 
 type Props = {
-  readonly rows: ReadonlyArray<IndexRow>
-  readonly cards: ReadonlyArray<string>
+  readonly sections: ReadonlyArray<PlayerSection>
   readonly selected: string | null
   readonly loading: boolean
-  readonly filtered: boolean
+  readonly emptyTitle: string
+  readonly emptyHint: string
+  readonly hasMore: boolean
+  readonly loadingMore: boolean
+  readonly pendingCount: number
+  readonly onLoadMore: () => void
   readonly focusSelectedOnMount: boolean
   readonly searchRef: RefObject<HTMLInputElement | null>
   readonly onSelect: (puuid: string | null) => void
@@ -27,17 +31,71 @@ type Props = {
   readonly onEscape: () => void
 }
 
+type HeaderItem = {
+  readonly kind: 'header'
+  readonly key: string
+  readonly label: string
+  readonly total: number
+  readonly truncated: boolean
+  readonly shown: number
+}
+
+type PlayerItem = {
+  readonly kind: 'player'
+  readonly key: string
+  readonly player: PlayerListItem
+}
+
+type PlaceholderItem = {
+  readonly kind: 'placeholder'
+  readonly key: string
+}
+
+type ListItem = HeaderItem | PlayerItem | PlaceholderItem
+
 const interactiveRoles =
   '[data-slot="select-trigger"],[role="combobox"],[role="radiogroup"],[role="toolbar"],[role="list"],[role="menu"],[role="listbox"],[role="dialog"],[role="separator"]'
 
 const navigationKeys = new Set(['ArrowDown', 'ArrowUp', 'j', 'k', 'Home', 'End'])
 
+const buildItems = (sections: ReadonlyArray<PlayerSection>, pendingCount: number): ListItem[] => {
+  const items: ListItem[] = sections.flatMap((section) => [
+    ...(section.label
+      ? [
+          {
+            kind: 'header' as const,
+            key: `section-${section.id}`,
+            label: section.label,
+            total: section.total,
+            truncated: section.truncated,
+            shown: section.players.length,
+          },
+        ]
+      : []),
+    ...section.players.map((player) => ({
+      kind: 'player' as const,
+      key: `${section.id}:${player.puuid}`,
+      player,
+    })),
+  ])
+
+  for (let index = 0; index < pendingCount; index += 1) {
+    items.push({ kind: 'placeholder', key: `placeholder-${index}` })
+  }
+
+  return items
+}
+
 export const PlayerList = ({
-  rows,
-  cards,
+  sections,
   selected,
   loading,
-  filtered,
+  emptyTitle,
+  emptyHint,
+  hasMore,
+  loadingMore,
+  pendingCount,
+  onLoadMore,
   focusSelectedOnMount,
   searchRef,
   onSelect,
@@ -48,20 +106,32 @@ export const PlayerList = ({
   const pendingFocus = useRef<string | null>(null)
   const focusedOnMount = useRef(false)
   const [keyboardNavigation, setKeyboardNavigation] = useState(false)
+  const items = useMemo(() => buildItems(sections, pendingCount), [sections, pendingCount])
+  const firstPlayerIndex = items.findIndex((item) => item.kind === 'player')
   // TanStack Virtual returns functions the compiler cannot safely memoize.
   // eslint-disable-next-line react/incompatible-library
   const virtualizer = useVirtualizer({
-    count: rows.length,
+    count: items.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 56,
+    estimateSize: (index) => (items[index]?.kind === 'header' ? 34 : 56),
+    getItemKey: (index) => items[index]?.key ?? index,
     overscan: 8,
   })
 
-  const selectedIndex = useMemo(
-    () => (selected ? rows.findIndex((row) => row[P.puuid] === selected) : -1),
-    [rows, selected],
+  const virtualItems = virtualizer.getVirtualItems()
+  const loadedPlayers = sections.reduce((total, section) => total + section.players.length, 0)
+
+  useEffect(() => {
+    if (!hasMore || loadingMore || loadedPlayers === 0) return
+    const last = virtualItems.at(-1)
+    if (last && last.index >= loadedPlayers - 80) onLoadMore()
+  }, [virtualItems, hasMore, loadingMore, loadedPlayers, onLoadMore])
+
+  const selectedIndex = items.findIndex(
+    (item) => item.kind === 'player' && item.player.puuid === selected,
   )
-  const activeRow = selectedIndex >= 0 ? (rows[selectedIndex] ?? null) : null
+  const activeItem = selectedIndex >= 0 ? (items[selectedIndex] ?? null) : null
+  const activePlayer = activeItem?.kind === 'player' ? activeItem.player : null
 
   useEffect(() => {
     if (selectedIndex >= 0) {
@@ -114,14 +184,24 @@ export const PlayerList = ({
         return
       }
 
-      const move = (next: number) => {
-        const bounded = Math.max(0, Math.min(rows.length - 1, next))
-        if (bounded === selectedIndex) return
-        const row = rows[bounded]
-        if (!row) return
+      const playerAt = (index: number): PlayerItem | null => {
+        const item = items[index]
+        return item?.kind === 'player' ? item : null
+      }
+
+      const playerAfter = (index: number, delta: number): PlayerItem | null => {
+        for (let next = index + delta; next >= 0 && next < items.length; next += delta) {
+          const player = playerAt(next)
+          if (player) return player
+        }
+        return null
+      }
+
+      const move = (player: PlayerItem | null) => {
+        if (!player || player.player.puuid === selected) return
         event.preventDefault()
-        if (target?.closest('[data-player-row]')) pendingFocus.current = row[P.puuid]
-        onSelect(row[P.puuid])
+        if (target?.closest('[data-player-row]')) pendingFocus.current = player.player.puuid
+        onSelect(player.player.puuid)
       }
 
       if (navigationKeys.has(event.key)) setKeyboardNavigation(true)
@@ -133,17 +213,17 @@ export const PlayerList = ({
           break
         case 'ArrowDown':
         case 'j':
-          move(selectedIndex < 0 ? 0 : selectedIndex + 1)
+          move(selectedIndex < 0 ? playerAt(firstPlayerIndex) : playerAfter(selectedIndex, 1))
           break
         case 'ArrowUp':
         case 'k':
-          move(selectedIndex < 0 ? rows.length - 1 : selectedIndex - 1)
+          move(selectedIndex < 0 ? playerAfter(items.length, -1) : playerAfter(selectedIndex, -1))
           break
         case 'Home':
-          move(0)
+          move(playerAt(firstPlayerIndex))
           break
         case 'End':
-          move(rows.length - 1)
+          move(playerAfter(items.length, -1))
           break
         case 'Escape':
           onEscape()
@@ -155,16 +235,10 @@ export const PlayerList = ({
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [rows, selectedIndex, onSelect, onEscape, searchRef])
+  }, [items, selectedIndex, firstPlayerIndex, selected, onSelect, onEscape, searchRef])
 
   if (loading) return <PlayerListSkeleton />
-  if (rows.length === 0) {
-    return filtered ? (
-      <EmptyState title="No players match." hint="Try a different name, tag, or region." />
-    ) : (
-      <EmptyState title="No players yet." hint="Run a scan to populate the index." />
-    )
-  }
+  if (items.length === 0) return <EmptyState title={emptyTitle} hint={emptyHint} />
 
   return (
     <>
@@ -175,31 +249,65 @@ export const PlayerList = ({
         className="h-full overflow-y-auto overscroll-contain"
       >
         <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-          {virtualizer.getVirtualItems().map((item) => {
-            const row = rows[item.index]
+          {virtualItems.map((item) => {
+            const row = items[item.index]
             if (!row) return null
-            const puuid = row[P.puuid]
-            const region = row[P.region]
-            const active = puuid === selected
-            const name = row[P.name]
-            const tag = row[P.tag]
 
-            const cardIndex = row[P.cardId]
-            const cardId = cardIndex === null ? null : (cards[cardIndex] ?? null)
-            const art = cardArt(cardId)
+            if (row.kind === 'placeholder') {
+              return (
+                <div
+                  key={row.key}
+                  aria-hidden="true"
+                  data-list-placeholder
+                  className="absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] px-3"
+                  style={{ transform: `translateY(${item.start}px)` }}
+                >
+                  <Skeleton className="size-9 shrink-0 rounded-sm" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-40" />
+                    <Skeleton className="h-2.5 w-24" />
+                  </div>
+                  <Skeleton className="h-2.5 w-12" />
+                </div>
+              )
+            }
+
+            if (row.kind === 'header') {
+              const count = row.truncated
+                ? `${row.shown.toLocaleString()}+`
+                : row.total.toLocaleString()
+
+              return (
+                <h3
+                  key={row.key}
+                  className="absolute top-0 left-0 flex h-[34px] w-full items-end gap-3 border-b border-white/[0.06] bg-ink px-4 pb-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400"
+                  style={{ transform: `translateY(${item.start}px)` }}
+                >
+                  <span>{row.label}</span>
+                  <span className="ms-auto tabular-nums text-zinc-500">{count}</span>
+                </h3>
+              )
+            }
+
+            const player = row.player
+            const active = player.puuid === selected
+            const past = player.former
+            const rowName = past ? past.name : player.name
+            const rowTag = past ? past.tag : player.tag
+            const art = cardArt(player.cardId)
 
             return (
               <button
-                key={puuid}
+                key={row.key}
                 type="button"
                 data-player-row
-                data-puuid={puuid}
+                data-puuid={player.puuid}
                 data-selected={active}
                 aria-current={active ? 'true' : undefined}
-                tabIndex={active || (selectedIndex < 0 && item.index === 0) ? 0 : -1}
-                onClick={() => onSelect(puuid)}
-                onMouseEnter={() => onPrefetch(puuid)}
-                onFocus={() => onPrefetch(puuid)}
+                tabIndex={active || (selectedIndex < 0 && item.index === firstPlayerIndex) ? 0 : -1}
+                onClick={() => onSelect(player.puuid)}
+                onMouseEnter={() => onPrefetch(player.puuid)}
+                onFocus={() => onPrefetch(player.puuid)}
                 className={`absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left focus-visible:outline-none data-[selected=true]:bg-white/10 ${
                   keyboardNavigation ? '' : 'hover:bg-white/[0.035]'
                 }`}
@@ -207,7 +315,7 @@ export const PlayerList = ({
               >
                 <CardArt
                   art={art}
-                  name={name}
+                  name={rowName}
                   width={36}
                   height={36}
                   fetchPriority="low"
@@ -217,23 +325,42 @@ export const PlayerList = ({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
                     <span className="truncate text-[16px] font-medium tracking-tight text-zinc-100">
-                      {name || 'Anonymous'}
+                      {rowName || 'Anonymous'}
                     </span>
-                    {tag ? (
+                    {rowTag ? (
                       <span className="shrink-0 font-mono text-xs font-medium text-zinc-300">
-                        #{tag}
+                        #{rowTag}
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-1 flex items-center gap-2 font-mono text-[12px] text-zinc-400">
-                    <span>{regionShort(region)}</span>
-                    {row[P.nameChanges] > 0 ? <span>{row[P.nameChanges]} name</span> : null}
-                    {row[P.regionChanges] > 0 ? <span>{row[P.regionChanges]} region</span> : null}
+                  <div className="mt-1 flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-400">
+                    <span className="shrink-0">{regionShort(player.region)}</span>
+                    {past ? (
+                      <>
+                        <span className="shrink-0 text-zinc-500">now</span>
+                        <span
+                          className="truncate text-zinc-300"
+                          title={`${player.name}#${player.tag}`}
+                        >
+                          {player.name || 'Anonymous'}
+                          {player.tag ? `#${player.tag}` : ''}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        {player.nameChanges > 0 ? (
+                          <span className="shrink-0">{player.nameChanges} name</span>
+                        ) : null}
+                        {player.regionChanges > 0 ? (
+                          <span className="shrink-0">{player.regionChanges} region</span>
+                        ) : null}
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="shrink-0 font-mono text-[12px] text-zinc-400 tabular-nums">
-                  {formatRelative(row[P.lastSeenAt])}
+                  {formatRelative(player.lastSeenAt)}
                 </div>
               </button>
             )
@@ -241,7 +368,14 @@ export const PlayerList = ({
         </div>
       </div>
       <p role="status" className="sr-only">
-        {activeRow ? `Selected ${displayName(activeRow)}, ${regionLabel(activeRow[P.region])}` : ''}
+        {loadingMore ? 'Loading more players…' : ''}
+      </p>
+      <p role="status" className="sr-only">
+        {activePlayer
+          ? activePlayer.former
+            ? `Selected ${activePlayer.former.name}#${activePlayer.former.tag}, now ${displayName(activePlayer)}, ${regionLabel(activePlayer.region)}`
+            : `Selected ${displayName(activePlayer)}, ${regionLabel(activePlayer.region)}`
+          : ''}
       </p>
     </>
   )

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 
-import type { IndexRow } from '../lib/api.ts'
+import type { PlayerPreview } from '../lib/api.ts'
 import { DetailSkeleton } from './skeleton.tsx'
 
 const PlayerDetailPanel = lazy(() =>
@@ -9,7 +9,7 @@ const PlayerDetailPanel = lazy(() =>
 
 type Props = {
   readonly puuid: string
-  readonly row: IndexRow | null
+  readonly preview: PlayerPreview | null
   readonly cardId: string | null
   readonly focusOnMount: boolean
   readonly focusHeading: boolean
@@ -20,7 +20,7 @@ const Fallback = () => <DetailSkeleton />
 
 export const PlayerDetailLoader = ({
   puuid,
-  row,
+  preview,
   cardId,
   focusOnMount,
   focusHeading,
@@ -29,7 +29,7 @@ export const PlayerDetailLoader = ({
   <Suspense fallback={<Fallback />}>
     <PlayerDetailPanel
       puuid={puuid}
-      row={row}
+      preview={preview}
       cardId={cardId}
       focusOnMount={focusOnMount}
       focusHeading={focusHeading}

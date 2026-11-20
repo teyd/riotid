@@ -55,6 +55,7 @@ export const IndexSeason = Schema.Struct({
 
 export const IndexStats = Schema.Struct({
   players: Schema.Finite,
+  publicPlayers: Schema.Finite,
   nameChanges: Schema.Finite,
   regionChanges: Schema.Finite,
   bans: Schema.Finite,
@@ -76,6 +77,15 @@ export const SiteIndex = Schema.Struct({
 })
 
 export type SiteIndex = typeof SiteIndex.Type
+
+export const SiteOverview = Schema.Struct({
+  version: Schema.Finite,
+  generatedAt: Schema.Finite,
+  season: Schema.NullOr(IndexSeason),
+  stats: IndexStats,
+})
+
+export type SiteOverview = typeof SiteOverview.Type
 
 export const NameInterval = Schema.Struct({
   name: Schema.String,
@@ -157,6 +167,61 @@ export const PlayerDetail = Schema.Struct({
 })
 
 export type PlayerDetail = typeof PlayerDetail.Type
+
+export const SearchPlayer = Schema.Struct({
+  puuid: Schema.String,
+  name: Schema.String,
+  tag: Schema.String,
+  region: Schema.NullOr(Region),
+  cardId: Schema.NullOr(Schema.String),
+  nameChanges: Schema.Finite,
+  regionChanges: Schema.Finite,
+  firstSeenAt: Schema.Finite,
+  lastSeenAt: Schema.Finite,
+})
+
+export type SearchPlayer = typeof SearchPlayer.Type
+
+export const PlayerSort = Schema.Literals(['recentChanges', 'changes', 'recent', 'new', 'name'])
+export type PlayerSort = typeof PlayerSort.Type
+
+export const PlayerPage = Schema.Struct({
+  sort: PlayerSort,
+  region: Schema.NullOr(Region),
+  total: Schema.Finite,
+  players: Schema.Array(SearchPlayer),
+  nextCursor: Schema.NullOr(Schema.String),
+})
+
+export type PlayerPage = typeof PlayerPage.Type
+
+export const SearchMatch = Schema.Struct({
+  player: SearchPlayer,
+  name: Schema.String,
+  tag: Schema.String,
+  startedAt: Schema.Finite,
+  endedAt: Schema.Finite,
+})
+
+export type SearchMatch = typeof SearchMatch.Type
+
+export const PlayerSearch = Schema.Struct({
+  query: Schema.String,
+  minQueryLength: Schema.Finite,
+  limit: Schema.Finite,
+  current: Schema.Struct({
+    total: Schema.Finite,
+    truncated: Schema.Boolean,
+    players: Schema.Array(SearchPlayer),
+  }),
+  past: Schema.Struct({
+    total: Schema.Finite,
+    truncated: Schema.Boolean,
+    matches: Schema.Array(SearchMatch),
+  }),
+})
+
+export type PlayerSearch = typeof PlayerSearch.Type
 
 export const ApiError = Schema.Struct({
   error: Schema.Struct({

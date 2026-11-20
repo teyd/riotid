@@ -1,0 +1,4 @@
+CREATE INDEX `players_public_recent_changes_idx` ON `players` (coalesce("last_name_change_at", 0) desc,"last_seen_at" desc,"puuid" desc) WHERE "players"."is_banned" = 0;--> statement-breakpoint
+CREATE INDEX `players_public_change_score_idx` ON `players` ("name_changes" * 2 + "region_changes" * 3 desc,"last_seen_at" desc,"puuid" desc) WHERE "players"."is_banned" = 0;--> statement-breakpoint
+CREATE INDEX `players_public_first_seen_idx` ON `players` ("first_seen_at" desc,"puuid" desc) WHERE "players"."is_banned" = 0;--> statement-breakpoint
+CREATE INDEX `players_public_name_idx` ON `players` (lower(coalesce("name", '')) asc,lower(coalesce("tag", '')) asc,"puuid" asc) WHERE "players"."is_banned" = 0;
