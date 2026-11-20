@@ -642,6 +642,13 @@ export const listPlayersPage = (
       )`
     }
 
+    const totalRow = yield* db.get<{ total: number }>(sql`
+      select count(*) as total
+      from players
+      where is_banned = 0
+        and last_seen_at >= ${cutoff}
+        and (${region} is null or region = ${region})
+    `)
     const rows = yield* db.all<PlayerRow>(sql`
       select
         puuid, name, tag, card_id, region, is_anonymized,
@@ -663,6 +670,7 @@ export const listPlayersPage = (
     return {
       sort,
       region,
+      total: totalRow?.total ?? 0,
       players: pageRows.map(toSearchPlayer),
       nextCursor: hasMore && last ? encodePlayerCursor(sort, last) : null,
     }

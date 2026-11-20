@@ -188,6 +188,7 @@ export type PlayerSort = typeof PlayerSort.Type
 export const PlayerPage = Schema.Struct({
   sort: PlayerSort,
   region: Schema.NullOr(Region),
+  total: Schema.Finite,
   players: Schema.Array(SearchPlayer),
   nextCursor: Schema.NullOr(Schema.String),
 })

@@ -198,6 +198,7 @@ describe('api', () => {
       expect(firstResponse.status).toBe(200)
       const first = (await firstResponse.json()) as PlayerPage
       expect(first.sort).toBe('recentChanges')
+      expect(first.total).toBe(2)
       expect(first.players).toHaveLength(1)
       expect(first.players[0]?.puuid).toBe('seed-player-1')
       expect(first.nextCursor).toBeTruthy()
@@ -208,6 +209,7 @@ describe('api', () => {
           `/api/v1/players?sort=recentChanges&limit=1&cursor=${encodeURIComponent(first.nextCursor ?? '')}`,
         )
       ).json()) as PlayerPage
+      expect(second.total).toBe(2)
       expect(second.players).toHaveLength(1)
       expect(second.players[0]?.puuid).toBe('seed-player-2')
       expect(second.nextCursor).toBeNull()
@@ -223,6 +225,7 @@ describe('api', () => {
       expect(newest.players[0]?.puuid).toBe('seed-player-2')
 
       const empty = (await (await request(app, '/api/v1/players?region=na')).json()) as PlayerPage
+      expect(empty.total).toBe(0)
       expect(empty.players).toEqual([])
       expect(empty.nextCursor).toBeNull()
 

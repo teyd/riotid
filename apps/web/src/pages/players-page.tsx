@@ -183,6 +183,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const searchRef = useRef<HTMLInputElement>(null)
+  const loadingMoreRef = useRef(false)
   const [query, setQueryState] = useState(lastQuery)
   const [region, setRegionState] = useState<'all' | Region>(lastRegion)
   const [sort, setSortState] = useState<Sort>(lastSort)
@@ -258,6 +259,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const searchFailed = searchMode && !searchData && search.isError
   const typing = needle.length > 0 && !searchMode
   const publicPlayers = overview.data?.stats.publicPlayers ?? 0
+  const browseTotal = browse.data?.pages[0]?.total ?? null
 
   const rows: PlayerListItem[] = useMemo(
     () => browse.data?.pages.flatMap((page) => page.players.map(searchPlayerToItem)) ?? [],
@@ -341,6 +343,14 @@ export function PlayersPage({ selected }: { selected?: string }) {
     select(null)
   }
 
+  const loadMore = () => {
+    if (loadingMoreRef.current || !browse.hasNextPage || browse.isFetchNextPageError) return
+    loadingMoreRef.current = true
+    void browse.fetchNextPage().finally(() => {
+      loadingMoreRef.current = false
+    })
+  }
+
   const firstResult = searchMode
     ? (searchItems[0]?.puuid ?? null)
     : typing
@@ -354,9 +364,9 @@ export function PlayersPage({ selected }: { selected?: string }) {
       : '—'
     : typing
       ? '0'
-      : overview.isPending
+      : browseTotal === null
         ? '—'
-        : publicPlayers.toLocaleString()
+        : browseTotal.toLocaleString()
   const browseFailed = !searchMode && !typing && browse.isError && rows.length === 0
   const listLoading = searchMode ? !searchData && !searchFailed : browse.isPending
   const emptyTitle = searchMode
@@ -543,11 +553,11 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   loading={listLoading}
                   emptyTitle={emptyTitle}
                   emptyHint={emptyHint}
-                  hasMore={!searchMode && !typing && browse.hasNextPage}
+                  hasMore={
+                    !searchMode && !typing && browse.hasNextPage && !browse.isFetchNextPageError
+                  }
                   loadingMore={browse.isFetchingNextPage}
-                  onLoadMore={() => {
-                    if (!browse.isFetchingNextPage) void browse.fetchNextPage()
-                  }}
+                  onLoadMore={loadMore}
                   focusSelectedOnMount={selectionSource === 'list'}
                   searchRef={searchRef}
                   onSelect={select}
