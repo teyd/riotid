@@ -114,7 +114,7 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
     <Meter
       value={current.remaining}
       max={current.limit}
-      format={(value) => `${value} / ${current.limit} left`}
+      format={(value) => `${value}/${current.limit}`}
       getValueLabel={(value) =>
         `${value} of ${current.limit} ${label} API requests left this minute`
       }
@@ -132,7 +132,7 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
 }
 
 const RateLimits = ({ now }: { now: number }) => (
-  <div className="grid gap-2 sm:grid-cols-[3fr_2fr] sm:gap-6">
+  <div className="grid gap-2 sm:grid-cols-[20rem_14rem] sm:gap-6">
     <RateLimitMeter scope="browse" label="list" now={now} />
     <RateLimitMeter scope="search" label="search" now={now} />
   </div>
