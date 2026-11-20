@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -41,6 +42,25 @@ jobs:
           cache-toolchain: true
           cache-save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - run: pnpm exec vp run -r test
+
+  # Strobe is a post-merge check; timed A/B stays local.
+  strobe:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: voidzero-dev/setup-vp@v1.22.0
+        with:
+          node-version-file: .node-version
+          cache: true
+          cache-toolchain: true
+          cache-save: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+      - uses: anomalyco/strobe@v0.44.0
+        with:
+          bench: perf/app.bench.ts
+          version: project
+          upload-artifacts: never
 
   docker:
     runs-on: ubuntu-latest
