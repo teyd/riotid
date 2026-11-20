@@ -10,34 +10,23 @@ const quota = (limit: number, remaining: number, reset = 30) =>
   })
 
 describe('rate limit meter', () => {
-  it('tracks the tightest live bucket and expires it with its window', () => {
-    expect(getRateLimit()).toBeNull()
+  it('tracks each scope separately, clamps and ignores bad headers', () => {
+    expect(getRateLimit('browse')).toBeNull()
 
-    trackRateLimit('status', new Headers())
-    expect(getRateLimit()).toBeNull()
-
-    trackRateLimit('search', quota(120, 90))
-    expect(getRateLimit()).toMatchObject({ scope: 'search', limit: 120, remaining: 90 })
-    expect(getRateLimit()?.resetAt).toBeGreaterThan(Date.now() + 25_000)
+    trackRateLimit('browse', new Headers())
+    expect(getRateLimit('browse')).toBeNull()
 
     trackRateLimit('browse', quota(120, 20))
-    expect(getRateLimit()).toMatchObject({ scope: 'browse', limit: 120, remaining: 20 })
+    trackRateLimit('search', quota(120, 90))
+    expect(getRateLimit('browse')).toMatchObject({ limit: 120, remaining: 20 })
+    expect(getRateLimit('browse')?.resetAt).toBeGreaterThan(Date.now() + 25_000)
+    expect(getRateLimit('search')).toMatchObject({ limit: 120, remaining: 90 })
 
-    trackRateLimit('overview', quota(60, 50))
-    expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 20 })
+    trackRateLimit('search', quota(120, 150))
+    expect(getRateLimit('search')).toMatchObject({ limit: 120, remaining: 120 })
 
-    trackRateLimit('browse', quota(120, 100))
-    expect(getRateLimit()).toMatchObject({ scope: 'search', limit: 120, remaining: 90 })
-
-    trackRateLimit('search', quota(120, 0, 0))
-    expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 100 })
-
-    trackRateLimit('browse', quota(120, 0, 0))
-    trackRateLimit('overview', quota(60, 0, 0))
-    expect(getRateLimit()).toBeNull()
-
-    trackRateLimit('index', quota(30, 45))
-    expect(getRateLimit()).toMatchObject({ limit: 30, remaining: 30 })
+    trackRateLimit('browse', quota(60, -5))
+    expect(getRateLimit('browse')).toMatchObject({ limit: 60, remaining: 0 })
   })
 
   it('moves from white to yellow, orange and red as the bucket drains', () => {
