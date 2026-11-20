@@ -366,6 +366,10 @@ describe('api', () => {
           headers: { 'cf-connecting-ip': '203.0.113.7' },
         })
         expect(first.status).toBe(200)
+        expect(first.headers.get('ratelimit-limit')).toBe('1')
+        expect(first.headers.get('ratelimit-remaining')).toBe('0')
+        expect(Number(first.headers.get('ratelimit-reset'))).toBeGreaterThan(0)
+        expect(Number(first.headers.get('ratelimit-reset'))).toBeLessThanOrEqual(60)
 
         const second = await request(app, '/api/v1/index', {
           headers: { 'cf-connecting-ip': '203.0.113.7' },

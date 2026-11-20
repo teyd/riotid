@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from '@ui-sdk/react/select'
 import { Input } from '@ui-sdk/react/input'
+import { Meter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from '@ui-sdk/react/meter'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
 import {
@@ -15,7 +16,15 @@ import {
   SegmentedControlItem,
 } from '@ui-sdk/react/segmented-control'
 import { useNavigate } from '@tanstack/react-router'
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type SVGProps } from 'react'
+import {
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type SVGProps,
+} from 'react'
 
 import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
@@ -39,6 +48,7 @@ import {
   type Region,
 } from '../lib/api.ts'
 import { useDebouncedValue } from '../lib/use-debounced-value.ts'
+import { getRateLimit, subscribeRateLimit } from '../lib/rate-limit.ts'
 
 type Sort = 'recentChanges' | 'changes' | 'recent' | 'new' | 'name'
 
@@ -76,6 +86,30 @@ const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
     <path d="m20 20-3.5-3.5" strokeLinecap="round" />
   </svg>
 )
+
+const RateLimitMeter = ({ now }: { now: number }) => {
+  const rate = useSyncExternalStore(subscribeRateLimit, getRateLimit)
+
+  if (!rate || now >= rate.resetAt) return null
+
+  const low = rate.remaining / rate.limit <= 0.2
+
+  return (
+    <Meter
+      value={rate.remaining}
+      max={rate.limit}
+      format={(value) => `${value} / ${rate.limit} left`}
+      getValueLabel={(value) => `${value} of ${rate.limit} API requests left this minute`}
+      className="flex items-center gap-3"
+    >
+      <MeterLabel className="shrink-0 tracking-wide">rate limit</MeterLabel>
+      <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
+        <MeterIndicator className={`h-full rounded-full ${low ? 'bg-amber-300' : 'bg-zinc-400'}`} />
+      </MeterTrack>
+      <MeterValue className={`shrink-0 tabular-nums ${low ? 'text-amber-300' : ''}`} />
+    </Meter>
+  )
+}
 
 type ScanStatusProps = {
   players: number | null
@@ -115,68 +149,73 @@ const ScanStatus = ({
   return (
     <footer
       role={error ? 'status' : undefined}
-      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400"
+      className="flex shrink-0 flex-col gap-2 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400"
     >
-      {error ? (
-        <>
-          <span className="text-zinc-300">
-            {isRateLimited(error) ? 'API rate limited (429) — retrying' : 'API offline — retrying'}
-          </span>
-          <button
-            type="button"
-            onClick={onRetry}
-            className="inline-flex min-h-6 items-center px-1 text-zinc-200 underline decoration-white/30 underline-offset-2 hover:text-white"
-          >
-            Retry now
-          </button>
-        </>
-      ) : (
-        <>
-          <span>{players?.toLocaleString() ?? '—'} public players</span>
-          <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
-          <span className={cookieWarning ? 'text-amber-300' : undefined}>
-            cookie{' '}
-            {typeof cookieUpdatedAt === 'number' ? (
-              <>
-                {cookieStale ? 'stale · ' : ''}
-                <time
-                  dateTime={new Date(cookieUpdatedAt).toISOString()}
-                  title={exact(cookieUpdatedAt)}
-                >
-                  {formatRelative(cookieUpdatedAt)}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {error ? (
+          <>
+            <span className="text-zinc-300">
+              {isRateLimited(error)
+                ? 'API rate limited (429) — retrying'
+                : 'API offline — retrying'}
+            </span>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex min-h-6 items-center px-1 text-zinc-200 underline decoration-white/30 underline-offset-2 hover:text-white"
+            >
+              Retry now
+            </button>
+          </>
+        ) : (
+          <>
+            <span>{players?.toLocaleString() ?? '—'} public players</span>
+            <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
+            <span className={cookieWarning ? 'text-amber-300' : undefined}>
+              cookie{' '}
+              {typeof cookieUpdatedAt === 'number' ? (
+                <>
+                  {cookieStale ? 'stale · ' : ''}
+                  <time
+                    dateTime={new Date(cookieUpdatedAt).toISOString()}
+                    title={exact(cookieUpdatedAt)}
+                  >
+                    {formatRelative(cookieUpdatedAt)}
+                  </time>
+                </>
+              ) : cookieUpdatedAt === null ? (
+                'missing'
+              ) : (
+                '—'
+              )}
+            </span>
+            <span className="sm:ms-auto">
+              last scan{' '}
+              {lastRunAt ? (
+                <time dateTime={new Date(lastRunAt).toISOString()} title={exact(lastRunAt)}>
+                  {formatScanTime(lastRunAt)}
                 </time>
-              </>
-            ) : cookieUpdatedAt === null ? (
-              'missing'
-            ) : (
-              '—'
-            )}
-          </span>
-          <span className="sm:ms-auto">
-            last scan{' '}
-            {lastRunAt ? (
-              <time dateTime={new Date(lastRunAt).toISOString()} title={exact(lastRunAt)}>
-                {formatScanTime(lastRunAt)}
-              </time>
-            ) : (
-              'never'
-            )}
-          </span>
-          <span>
-            next scan{' '}
-            {nextRunAt ? (
-              <>
-                <time dateTime={new Date(nextRunAt).toISOString()} title={exact(nextRunAt)}>
-                  {formatScanTime(nextRunAt)}
-                </time>{' '}
-                <span>({formatScanCountdown(nextRunAt, now)})</span>
-              </>
-            ) : (
-              '—'
-            )}
-          </span>
-        </>
-      )}
+              ) : (
+                'never'
+              )}
+            </span>
+            <span>
+              next scan{' '}
+              {nextRunAt ? (
+                <>
+                  <time dateTime={new Date(nextRunAt).toISOString()} title={exact(nextRunAt)}>
+                    {formatScanTime(nextRunAt)}
+                  </time>{' '}
+                  <span>({formatScanCountdown(nextRunAt, now)})</span>
+                </>
+              ) : (
+                '—'
+              )}
+            </span>
+          </>
+        )}
+      </div>
+      <RateLimitMeter now={now} />
     </footer>
   )
 }
