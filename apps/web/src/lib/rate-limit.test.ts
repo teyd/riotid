@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { getRateLimit, trackRateLimit } from './rate-limit.ts'
+import { getRateLimit, rateLimitTone, trackRateLimit } from './rate-limit.ts'
 
 const quota = (limit: number, remaining: number, reset = 30) =>
   new Headers({
@@ -38,5 +38,16 @@ describe('rate limit meter', () => {
 
     trackRateLimit('index', quota(30, 45))
     expect(getRateLimit()).toMatchObject({ limit: 30, remaining: 30 })
+  })
+
+  it('moves from white to yellow, orange and red as the bucket drains', () => {
+    expect(rateLimitTone({ remaining: 60, limit: 60 })).toBe('normal')
+    expect(rateLimitTone({ remaining: 31, limit: 60 })).toBe('normal')
+    expect(rateLimitTone({ remaining: 30, limit: 60 })).toBe('warning')
+    expect(rateLimitTone({ remaining: 16, limit: 60 })).toBe('warning')
+    expect(rateLimitTone({ remaining: 15, limit: 60 })).toBe('low')
+    expect(rateLimitTone({ remaining: 7, limit: 60 })).toBe('low')
+    expect(rateLimitTone({ remaining: 6, limit: 60 })).toBe('critical')
+    expect(rateLimitTone({ remaining: 0, limit: 60 })).toBe('critical')
   })
 })
