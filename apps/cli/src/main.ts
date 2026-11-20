@@ -9,46 +9,41 @@ import * as NodeHttpClient from '@effect/platform-node/NodeHttpClient'
 import { AppConfig } from '@riotid/config'
 import {
   anonymousRows,
-  backfillPlayerCards,
-  backupDatabase,
   bumpIndexVersion,
   checkDatabase,
   Database,
   databaseStats,
   loadPlayerDetail,
-  migrateDatabase,
-  migrationsFolder,
   players,
-  pruneRuns,
-  readDatabase,
   recoverInterruptedRuns,
   seedDemoDatabase,
   seedScaleDatabase,
-  setMeta,
-  writeDatabase,
 } from '@riotid/db'
-import {
-  anonymousStats,
-  matchCacheStats,
-  pruneMatchCache,
-  resolveAnonymous,
-} from '@riotid/identity'
-import { scan } from '@riotid/ingest'
+import { anonymousStats, matchCacheStats, pruneMatchCache } from '@riotid/identity'
 import {
   loadCookieFile,
   parseCookieInput,
   qrLogin,
   reauth,
-  refreshSession,
   RiotAuthError,
-  RiotSourceLive,
   saveCookieFile,
   type AuthSession,
 } from '@riotid/riot'
 import { sql } from 'drizzle-orm'
-import { Cause, Clock, Data, Effect, Layer, Logger } from 'effect'
+import { Cause, Data, Effect, Logger } from 'effect'
 
+import {
+  runAuthRefresh,
+  runBackup,
+  runIdentity,
+  runMigrations,
+  runPrune,
+  runScan,
+  withRead,
+  withWrite,
+} from './jobs.ts'
 import { runProbe } from './probe.ts'
+import { runWorkTick } from './work.ts'
 
 const require = createRequire(import.meta.url)
 const qrcode = require('qrcode-terminal') as {
@@ -67,7 +62,9 @@ type Flags = {
   readonly json: boolean
   readonly yes: boolean
   readonly prune: boolean
+  readonly plan: boolean
   readonly limit: number | undefined
+  readonly bootedAt: number | undefined
 }
 
 type CommandContext = {
@@ -102,22 +99,6 @@ const logSession = (session: AuthSession, cookieFile: string) =>
       session.expiresAt,
     ).toISOString()} · jar ${cookieFile}`,
   )
-
-const withWrite = <A, E>(config: AppConfig, effect: Effect.Effect<A, E, Database>) =>
-  effect.pipe(Effect.provide(writeDatabase(config.databasePath)))
-
-const withRead = <A, E>(config: AppConfig, effect: Effect.Effect<A, E, Database>) =>
-  effect.pipe(Effect.provide(readDatabase(config.databasePath)))
-
-const liveRiot = RiotSourceLive.pipe(Layer.provide(NodeHttpClient.layerNodeHttp))
-
-const withRiot = (config: AppConfig) => Layer.mergeAll(writeDatabase(config.databasePath), liveRiot)
-
-const migrate = (config: AppConfig) =>
-  Effect.gen(function* () {
-    yield* withWrite(config, migrateDatabase(migrationsFolder))
-    return yield* withWrite(config, backfillPlayerCards)
-  })
 
 const authLogin: Command = {
   summary: 'Sign in with a Riot Mobile QR code',
@@ -165,7 +146,7 @@ const authCheck: Command = {
   summary: 'Verify the stored cookie jar and persist refreshed tokens',
   run: ({ config, flags }) =>
     Effect.gen(function* () {
-      const session = yield* refreshSession(config.cookieFile)
+      const session = yield* runAuthRefresh(config)
 
       if (!flags.json) yield* logSession(session, config.cookieFile)
       return sessionInfo(session, config.cookieFile)
@@ -182,7 +163,7 @@ const dbMigrate: Command = {
   summary: 'Apply committed database migrations',
   run: (context) =>
     Effect.gen(function* () {
-      const cardsBackfilled = yield* migrate(context.config)
+      const cardsBackfilled = yield* runMigrations(context.config)
       yield* Effect.logInfo(`database migrated at ${context.config.databasePath}`)
       return { database: context.config.databasePath, migrated: true, cardsBackfilled }
     }),
@@ -196,7 +177,7 @@ const dbSeed: Command = {
         return yield* failure('refusing to seed a production database')
       }
 
-      yield* migrate(config)
+      yield* runMigrations(config)
       const result = yield* withWrite(config, seedDemoDatabase)
 
       yield* Effect.logInfo(
@@ -235,7 +216,7 @@ const dbSeedScale: Command = {
         )
       }
 
-      yield* migrate(config)
+      yield* runMigrations(config)
       const result = yield* withWrite(
         config,
         seedScaleDatabase({ players, names, regionChanges, seed }),
@@ -282,7 +263,7 @@ const dbPrune: Command = {
   summary: 'Delete runs older than RUN_RETENTION_DAYS',
   run: ({ config, flags }) =>
     Effect.gen(function* () {
-      const result = yield* withWrite(config, pruneRuns({ olderThanDays: config.runRetentionDays }))
+      const result = yield* runPrune(config)
 
       if (!flags.json) {
         yield* Effect.logInfo(`pruned ${result.deleted} runs older than ${result.cutoff}`)
@@ -295,11 +276,7 @@ const scanCommand: Command = {
   summary: 'Run one leaderboard scan',
   run: ({ config, flags }) =>
     Effect.gen(function* () {
-      yield* withWrite(config, migrateDatabase(migrationsFolder))
-      const session = yield* refreshSession(config.cookieFile)
-      const result = yield* scan({ session, trigger: 'manual' }).pipe(
-        Effect.provide(withRiot(config)),
-      )
+      const result = yield* runScan(config, 'manual')
 
       if (!flags.json) yield* Effect.logInfo(`scan complete: ${JSON.stringify(result)}`)
       return result
@@ -321,14 +298,7 @@ const backup: Command = {
   summary: 'Back up the database and prune old backups',
   run: ({ config, flags }) =>
     Effect.gen(function* () {
-      const result = yield* backupDatabase({
-        source: config.databasePath,
-        directory: config.backupDirectory,
-        keepDays: config.backupKeepDays,
-      })
-      const now = yield* Clock.currentTimeMillis
-
-      yield* withWrite(config, setMeta('lastBackupAt', new Date(now).toISOString()))
+      const result = yield* runBackup(config)
 
       if (!flags.json) {
         yield* Effect.logInfo(
@@ -411,29 +381,8 @@ const anonResolve: Command = {
   summary: 'Resolve anonymous leaderboard rows through the match graph',
   run: ({ config, flags }) =>
     Effect.gen(function* () {
-      yield* withWrite(config, migrateDatabase(migrationsFolder))
-      const session = yield* refreshSession(config.cookieFile)
-      const limit = flags.limit ?? 500
-      const result = yield* resolveAnonymous({
-        session,
-        budget: config.anonBudget,
-        seeds: config.anonSeeds,
-        coverageTarget: config.anonCoverageTarget,
-        cacheEnabled: config.matchCacheEnabled,
-        cacheMatchesPerRegion: config.matchCacheMatchesPerRegion,
-        cacheMaxMatchesPerRegion: config.matchCacheMaxMatchesPerRegion,
-        autotune: config.matchCacheAutotune,
-        limit,
-      }).pipe(Effect.provide(withRiot(config)))
-      const pruned = yield* withWrite(
-        config,
-        pruneMatchCache({
-          olderThanDays: config.matchCacheDays,
-          matchesPerRegion: result.matchCap,
-        }),
-      )
-
-      const payload = { ...result, cachePruned: pruned.deleted }
+      const result = yield* runIdentity(config, flags.limit ?? 500)
+      const payload = result
 
       if (!flags.json) yield* Effect.logInfo(`identity resolve: ${JSON.stringify(payload)}`)
       return payload
@@ -569,6 +518,16 @@ const status: Command = {
     }),
 }
 
+const workTick: Command = {
+  summary: 'Run at most one due scheduled job',
+  run: ({ config, flags }) =>
+    runWorkTick({
+      config,
+      bootedAt: flags.bootedAt ?? Date.now(),
+      plan: flags.plan,
+    }),
+}
+
 const commands: Record<string, Command> = {
   'auth:login': authLogin,
   'auth:save': authSave,
@@ -592,6 +551,7 @@ const commands: Record<string, Command> = {
   'player:show': playerShow,
   'player:remove': playerRemove,
   status,
+  'work:tick': workTick,
 }
 
 const help = () => {
@@ -617,6 +577,7 @@ Options:
   --yes            Confirm destructive operations
   --prune          Prune the match cache (anon:cache)
   --limit <n>      Cap the anonymous resolve batch (anon:resolve)
+  --plan           Print the job work:tick would run, without running it
 `
 }
 
@@ -629,11 +590,15 @@ const parseInvocation = (argv: ReadonlyArray<string>) => {
       json: { type: 'boolean', default: false },
       yes: { type: 'boolean', default: false },
       prune: { type: 'boolean', default: false },
+      plan: { type: 'boolean', default: false },
       limit: { type: 'string' },
+      'booted-at': { type: 'string' },
     },
   })
   const rawLimit = parsed.values.limit
   const limit = typeof rawLimit === 'string' ? Number(rawLimit) : Number.NaN
+  const rawBootedAt = parsed.values['booted-at']
+  const bootedAt = typeof rawBootedAt === 'string' ? Number(rawBootedAt) : Number.NaN
 
   return {
     command: parsed.positionals[0] ?? 'help',
@@ -642,7 +607,9 @@ const parseInvocation = (argv: ReadonlyArray<string>) => {
       json: parsed.values.json === true,
       yes: parsed.values.yes === true,
       prune: parsed.values.prune === true,
+      plan: parsed.values.plan === true,
       limit: Number.isFinite(limit) ? limit : undefined,
+      bootedAt: Number.isFinite(bootedAt) ? bootedAt : undefined,
     } satisfies Flags,
   }
 }

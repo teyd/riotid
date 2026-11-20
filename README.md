@@ -41,7 +41,7 @@ mise run dev
 
 ```mermaid
 flowchart LR
-  S[Scheduler] -->|spawns jobs| C[CLI]
+  S[Scheduler] -->|spawns work:tick| C[CLI]
   S -->|starts and supervises| A[API]
   C -->|Riot APIs| R[Riot]
   C -->|single writer| DB[(SQLite WAL)]
@@ -50,19 +50,19 @@ flowchart LR
   U[Browser] --> W
 ```
 
-| Path                  | Role                                                            |
-| --------------------- | --------------------------------------------------------------- |
-| `apps/api`            | Read-only Hono API and SPA host                                 |
-| `apps/cli`            | Operator CLI for auth, scans, identity, data, and takedowns     |
-| `apps/scheduler`      | Production daemon: supervises the API and spawns scheduled jobs |
-| `apps/web`            | React 19 + TanStack Router/Query/Virtual SPA                    |
-| `packages/db`         | Drizzle schema, migrations, and read/write connection layers    |
-| `packages/ingest`     | Leaderboard scan and transactional diff application             |
-| `packages/identity`   | Exact-fingerprint anonymous-row resolution                      |
-| `packages/config`     | Shared paths and environment contract                           |
-| `packages/contracts`  | Versioned API response contracts                                |
-| `packages/riot`       | Riot auth, HTTP client, and endpoint adapters                   |
-| `packages/test-utils` | Test databases and fake Riot sources                            |
+| Path                  | Role                                                         |
+| --------------------- | ------------------------------------------------------------ |
+| `apps/api`            | Read-only Hono API and SPA host                              |
+| `apps/cli`            | Operator CLI for auth, scans, identity, data, and takedowns  |
+| `apps/scheduler`      | Production daemon: supervises the API, one tick per minute   |
+| `apps/web`            | React 19 + TanStack Router/Query/Virtual SPA                 |
+| `packages/db`         | Drizzle schema, migrations, and read/write connection layers |
+| `packages/ingest`     | Leaderboard scan and transactional diff application          |
+| `packages/identity`   | Exact-fingerprint anonymous-row resolution                   |
+| `packages/config`     | Shared paths and environment contract                        |
+| `packages/contracts`  | Versioned API response contracts                             |
+| `packages/riot`       | Riot auth, HTTP client, and endpoint adapters                |
+| `packages/test-utils` | Test databases and fake Riot sources                         |
 
 <details>
 <summary>Public endpoints</summary>
