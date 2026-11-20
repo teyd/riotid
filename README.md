@@ -131,5 +131,4 @@ they never call Riot.
 
 ## License
 
-MIT. The vendored skills under `.agents/skills/` keep their own upstream
-licenses; see their `LICENSE` files and `skills-lock.json`.
+MIT. See [LICENSE](LICENSE).

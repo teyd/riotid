@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "schedule:monthly",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)",
+    ":disablePeerDependencies"
+  ],
+  "configMigration": true,
+  "timezone": "Europe/Berlin",
+  "rangeStrategy": "pin",
+  "separateMajorMinor": false,
+  "separateMinorPatch": false,
+  "separateMultipleMajor": false,
+  "postUpdateOptions": ["pnpmDedupe"],
+  "lockFileMaintenance": {
+    "enabled": false
+  },
+  "minimumReleaseAge": "3 days",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  },
+  "assignees": ["teyd"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "groupName": "all dependencies"
+    },
+    {
+      "matchDepTypes": ["engines"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["@ui-sdk/**", "drizzle-kit", "drizzle-orm"],
+      "ignoreUnstable": false
+    }
+  ]
+}
