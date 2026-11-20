@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { isNotNull } from 'drizzle-orm'
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
@@ -87,6 +88,30 @@ describe('player search', () => {
       expect(renamed.past.total).toBe(0)
       expect((await runDb(path, searchPlayers('alpha current'))).current.total).toBe(0)
       expect((await runDb(path, searchPlayers('alpha old'))).past.total).toBe(1)
+
+      await runDb(
+        path,
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db
+            .update(playerNames)
+            .set({ name: 'Gamma Past' })
+            .where(isNotNull(playerNames.endedAt))
+        }),
+      )
+
+      expect((await runDb(path, searchPlayers('gamma past'))).past.total).toBe(1)
+      expect((await runDb(path, searchPlayers('alpha older'))).past.total).toBe(0)
+
+      await runDb(
+        path,
+        Effect.gen(function* () {
+          const db = yield* Database
+          yield* db.delete(playerNames).where(isNotNull(playerNames.endedAt))
+        }),
+      )
+
+      expect((await runDb(path, searchPlayers('gamma past'))).past.total).toBe(0)
 
       await runDb(
         path,
