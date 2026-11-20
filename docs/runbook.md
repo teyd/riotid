@@ -192,8 +192,23 @@ curl -sI https://riotid.teyd.dev/api/v1/index | grep -i cf-cache-status
 node apps/cli/src/main.ts stats
 ```
 
-The second command reports `DYNAMIC` until a Cloudflare Cache Rule exists for
-`/api/v1/index`; `HIT` means edge caching is on.
+The second command reports `HIT` for `/api/v1/index` once the edge copy is warm;
+a `MISS` on the first request is expected.
+
+### Edge cache
+
+One Cache Rule, `riotid-index`, matches `riotid.teyd.dev/api/v1/index` and
+respects the origin's `s-maxage=300`. The Cloudflare CLI here is the `cf` npm
+package, not Cloud Foundry; the pinned invocation avoids the name clash:
+
+```bash
+pnpm dlx cf@1.0.0-rc.2 rulesets entrypoint get http_request_cache_settings -z teyd.dev
+pnpm dlx cf@1.0.0-rc.2 auth whoami
+```
+
+Edit the rule in the Cloudflare dashboard under **Caching > Cache Rules**.
+`cf` also exposes `rulesets entrypoint update`; it replaces the whole entrypoint,
+so use it only when this is the only cache rule.
 
 ## Incidents
 
