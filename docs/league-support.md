@@ -35,14 +35,14 @@ platform-scoped and is not the durable account key.
 
 League has a documented Riot API, unlike the Valorant PD endpoints used today.
 
-|                      | Valorant (today)                                     | League                                                                                   |
-| -------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Auth                 | Riot client cookies and entitlements; QR re-auth     | `X-Riot-Token` API key                                                                   |
-| Ladder               | `pd.{region}.a.pvp.net/mmr/v1/leaderboards/...`      | `{platform}.api.riotgames.com/lol/league/v4/{challenger,grandmaster,master}leagues/by-queue/{queue}` |
-| Row identity         | often anonymous                                      | `puuid` on every entry                                                                   |
-| Ban flag             | `IsBanned` per row                                   | none                                                                                     |
-| Scope                | 4 affinities (`na/eu/ap/kr`)                         | 15+ platforms (`na1/euw1/eun1/kr/br1/jp1/...`)                                            |
-| Limits               | client session budget                                | key limits (dev: 20 req/s, 100 req/2min)                                                 |
+|              | Valorant (today)                                 | League                                                                                               |
+| ------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Auth         | Riot client cookies and entitlements; QR re-auth | `X-Riot-Token` API key                                                                               |
+| Ladder       | `pd.{region}.a.pvp.net/mmr/v1/leaderboards/...`  | `{platform}.api.riotgames.com/lol/league/v4/{challenger,grandmaster,master}leagues/by-queue/{queue}` |
+| Row identity | often anonymous                                  | `puuid` on every entry                                                                               |
+| Ban flag     | `IsBanned` per row                               | none                                                                                                 |
+| Scope        | 4 affinities (`na/eu/ap/kr`)                     | 15+ platforms (`na1/euw1/eun1/kr/br1/jp1/...`)                                                       |
+| Limits       | client session budget                            | key limits (dev: 20 req/s, 100 req/2min)                                                             |
 
 Consequences:
 

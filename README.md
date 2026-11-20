@@ -64,12 +64,13 @@ flowchart LR
 <details>
 <summary>Public endpoints</summary>
 
-| Endpoint                     | Purpose                                                    |
-| ---------------------------- | ---------------------------------------------------------- |
-| `GET /api/v1/index`          | Versioned tuple index; banned and unresolved rows excluded |
-| `GET /api/v1/players/:puuid` | Timelines, counters, and identity evidence                 |
-| `GET /api/v1/status`         | Cookie jar freshness for the scan status bar               |
-| `GET /healthz`               | Database readiness                                         |
+| Endpoint                     | Purpose                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| `GET /api/v1/index`          | Capped tuple preview; banned and unresolved rows excluded |
+| `GET /api/v1/search`         | Grouped current and past name search over visible players |
+| `GET /api/v1/players/:puuid` | Timelines, counters, and identity evidence                |
+| `GET /api/v1/status`         | Cookie jar freshness for the scan status bar              |
+| `GET /healthz`               | Database readiness                                        |
 
 Responses are ETagged and support `If-None-Match`. The API never calls Riot.
 
