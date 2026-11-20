@@ -45,13 +45,14 @@ Mix: 100% index, 50 concurrent, 10 s.
 
 RSS after the runs: 202 MB. At ~230 index responses/s the test transfers about
 300 MB/s over loopback; p95 here is bandwidth-bound, not application-bound.
-Cloudflare caches the index (`s-maxage=300`) and the app limits it to 30/min/IP,
-so this endpoint is not on the p95 read path.
+Cloudflare proxies the site, but the index is `cf-cache-status: DYNAMIC`: no
+Cache Rule is configured, so every request in this test would reach the origin.
+The app limits it to 30/min/IP, and origin capacity is the real limiter.
 
-**Decision:** keep the full index (gzip under the 1.5 MB budget) and rely on the
-edge cache for bulk reads. Re-measure on the VPS after deployment; if origin
-p95 for cache misses exceeds 300 ms there, move the index behind a longer
-`s-maxage` or paginate it.
+**Decision:** keep the full index (gzip under the 1.5 MB budget) and add a
+Cloudflare Cache Rule for `/api/v1/index`; the response already sends
+`s-maxage=300`. Re-measure on the VPS through Cloudflare; if origin p95 for
+cache misses still exceeds 300 ms, paginate it.
 
 ## Reproduce
 

@@ -11,7 +11,8 @@ configuration see [configuration](configuration.md).
 flowchart TB
   subgraph Public
     B[Browser] --> CF[Cloudflare]
-    CF --> API[apps/api]
+    CF --> TR[Dokploy / Traefik]
+    TR --> API[apps/api]
     API -->|read-only| DB[(SQLite WAL)]
     API -->|serves| SPA[Built web SPA]
   end
@@ -32,6 +33,14 @@ never applied.
 
 The API only reads. It never calls Riot, never opens a write connection, and
 serves the built SPA from the same origin with a fallback for client routes.
+
+Cloudflare (orange cloud) terminates TLS and proxies `riotid.teyd.dev` to the
+Dokploy/Traefik origin on the Hetzner VPS. The API rate-limits by
+`cf-connecting-ip`, so the origin must not be reachable directly; keep the
+firewall restricted to Cloudflare ranges. No Cache Rule is configured today, so
+API responses are `cf-cache-status: DYNAMIC` and reach the origin. The index
+response already sends `s-maxage=300` so a Cache Rule can be added without an
+API change.
 
 ## App boundaries
 
@@ -65,8 +74,9 @@ serves the built SPA from the same origin with a fallback for client routes.
   `INDEX_PLAYER_LIMIT` (50k by default). The SPA no longer downloads it.
 - Index and detail responses carry `ETag` and honor `If-None-Match` with `304`.
 - Limits are 30 requests/min/IP for the index, 60 for the overview, and 120
-  for browse, search, and details. Cloudflare is expected to cache the index
-  and overview (`s-maxage=300`) in front of these.
+  for browse, search, and details. Responses carry `s-maxage` for Cloudflare,
+  but no Cache Rule is configured, so they are currently `DYNAMIC` and every
+  request hits the origin.
 - Search is an FTS5 trigram index (`player_search`) over current and closed
   `player_names` intervals. Triggers keep it in sync; the API only reads it.
   Results are grouped into current and past names, deduplicated within each

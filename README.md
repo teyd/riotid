@@ -102,10 +102,11 @@ the full operator flow and the in-container forms.
 
 ## Deployment
 
-Production runs on Dokploy from the repository `Dockerfile`, with a named volume
-at `/app/data` holding the database, cookie jar, and backups. The scheduler is
-the container entrypoint and starts the API as a child process. Deploy with
-`mise run deploy`; do not scale replicas or run two writers. Full procedure:
+Production runs on a Hetzner VPS with Dokploy, proxied by Cloudflare (orange
+cloud), with a named volume at `/app/data` holding the database, cookie jar, and
+backups. The scheduler is the container entrypoint and starts the API as a child
+process. Deploy with `mise run deploy`; do not scale replicas or run two writers.
+Full procedure:
 [runbook](docs/runbook.md#deployment-and-scheduler).
 
 ## Documentation
