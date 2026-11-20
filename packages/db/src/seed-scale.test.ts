@@ -11,7 +11,12 @@ import { checkDatabase } from './check.ts'
 import { Database, migrateDatabase, writeDatabase } from './client.ts'
 import { databaseStats } from './maintenance.ts'
 import { migrationsFolder } from './paths.ts'
-import { decodePlayerCursor, listPlayersPage, searchPlayers } from './read-model.ts'
+import {
+  decodePlayerCursor,
+  listPlayersPage,
+  loadPlayerDetail,
+  searchPlayers,
+} from './read-model.ts'
 import { seedScaleDatabase } from './seed-scale.ts'
 
 const withDatabase = async (prefix: string, run: (path: string) => Promise<void>) => {
@@ -40,6 +45,10 @@ const seedSummary = (path: string) =>
         unchanged: number
         public_players: number
         bad_names: number
+        linked_anonymous: number
+        flagged_anonymous: number
+        links: number
+        bad_links: number
       }>(sql`
         select
           count(distinct card_id) as cards,
@@ -50,7 +59,14 @@ const seedSummary = (path: string) =>
             then 1 else 0 end) as public_players,
           (select count(*) from player_names
             where length(name) > 16 or length(name) < 3 or length(tag) < 3 or length(tag) > 5
-          ) as bad_names
+          ) as bad_names,
+          (select count(*) from anonymous_rows where status = 'linked') as linked_anonymous,
+          sum(case when is_anonymized = 1 then 1 else 0 end) as flagged_anonymous,
+          (select count(*) from identity_links) as links,
+          (select count(*) from identity_links l
+            join anonymous_rows a on a.id = l.anonymous_row_id
+            where json_extract(l.evidence, '$.leaderboardRank') <> a.leaderboard_rank
+          ) as bad_links
         from players
       `)
     }),
@@ -84,6 +100,28 @@ describe('scale seed', () => {
       expect(summary?.unchanged ?? 0).toBeGreaterThan(0)
       expect(summary?.public_players ?? 0).toBeLessThan(40)
       expect(summary?.bad_names ?? 0).toBe(0)
+      expect(summary?.linked_anonymous).toBe(stats.linkedAnonymous)
+      expect(summary?.flagged_anonymous).toBe(stats.linkedAnonymous)
+      expect(summary?.links).toBe(stats.linkedAnonymous)
+      expect(summary?.bad_links).toBe(0)
+      expect(stats.linkedAnonymous / stats.players).toBeGreaterThanOrEqual(0.1)
+      expect(stats.linkedAnonymous / stats.players).toBeLessThanOrEqual(0.2)
+
+      const detail = await runDb(
+        path,
+        Effect.gen(function* () {
+          const db = yield* Database
+          const linked = yield* db.get<{ puuid: string }>(sql`
+            select puuid from identity_links limit 1
+          `)
+          return linked ? yield* loadPlayerDetail(linked.puuid) : null
+        }),
+      )
+      expect(detail?.player.isAnonymized).toBe(true)
+      expect(detail?.links).toHaveLength(1)
+      expect(detail?.links[0]?.evidence.leaderboardRank).toBe(
+        detail?.links[0]?.anonymous.leaderboardRank,
+      )
 
       const firstPage = await runDb(path, listPlayersPage({ sort: 'name', limit: 3 }))
       expect(firstPage.players).toHaveLength(3)
@@ -133,6 +171,8 @@ describe('scale seed', () => {
       expect(summary?.regions).toBe(4)
       expect(summary?.changes ?? 0).toBeGreaterThan(500)
       expect(summary?.unchanged ?? 0).toBeGreaterThan(500)
+      expect(summary?.linked_anonymous ?? 0).toBeGreaterThan(650)
+      expect(summary?.links).toBe(summary?.linked_anonymous)
       expect((await runDb(path, checkDatabase)).ok).toBe(true)
     })
   })
