@@ -161,8 +161,11 @@ Other windows:
 
 ## Deployment and scheduler
 
-Deploy with `mise run deploy`, which calls the Dokploy API. The build uses the
-repository `Dockerfile`; the container entrypoint is the scheduler:
+Deploy with `mise run deploy`, which calls the Dokploy API. Production runs on a
+Hetzner VPS behind Cloudflare (orange cloud), which terminates TLS and proxies
+`riotid.teyd.dev` to Dokploy/Traefik. Keep the origin closed to direct traffic so
+`cf-connecting-ip` cannot be spoofed. The build uses the repository `Dockerfile`;
+the container entrypoint is the scheduler:
 
 - It starts the API as a child process and exposes `PORT=3000`.
 - On boot it catches up a missed scan, refreshes auth, then scans every
@@ -185,8 +188,12 @@ Health check after deploy:
 
 ```bash
 curl -fsS https://riotid.teyd.dev/healthz
+curl -sI https://riotid.teyd.dev/api/v1/index | grep -i cf-cache-status
 node apps/cli/src/main.ts stats
 ```
+
+The second command reports `DYNAMIC` until a Cloudflare Cache Rule exists for
+`/api/v1/index`; `HIT` means edge caching is on.
 
 ## Incidents
 
