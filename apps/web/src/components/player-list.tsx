@@ -27,6 +27,7 @@ type Props = {
   readonly focusSelectedOnMount: boolean
   readonly searchRef: RefObject<HTMLInputElement | null>
   readonly onSelect: (puuid: string | null) => void
+  readonly onPrefetch: (puuid: string) => void
   readonly onEscape: () => void
 }
 
@@ -98,9 +99,17 @@ export const PlayerList = ({
   focusSelectedOnMount,
   searchRef,
   onSelect,
+  onPrefetch,
   onEscape,
 }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const hoverTimer = useRef<number | null>(null)
+  const cancelHover = () => {
+    if (hoverTimer.current === null) return
+    window.clearTimeout(hoverTimer.current)
+    hoverTimer.current = null
+  }
+  useEffect(() => cancelHover, [])
   const pendingFocus = useRef<string | null>(null)
   const focusedOnMount = useRef(false)
   const [keyboardNavigation, setKeyboardNavigation] = useState(false)
@@ -242,6 +251,7 @@ export const PlayerList = ({
     <>
       <div
         ref={scrollRef}
+        onScroll={cancelHover}
         onPointerDown={() => setKeyboardNavigation(false)}
         onPointerMove={() => setKeyboardNavigation(false)}
         className="h-full overflow-y-auto overscroll-contain"
@@ -304,6 +314,18 @@ export const PlayerList = ({
                 aria-current={active ? 'true' : undefined}
                 tabIndex={active || (selectedIndex < 0 && item.index === firstPlayerIndex) ? 0 : -1}
                 onClick={() => onSelect(player.puuid)}
+                onPointerEnter={(event) => {
+                  if (event.pointerType === 'touch') return
+                  cancelHover()
+                  hoverTimer.current = window.setTimeout(() => {
+                    hoverTimer.current = null
+                    onPrefetch(player.puuid)
+                  }, 120)
+                }}
+                onPointerLeave={cancelHover}
+                onPointerDown={(event) => {
+                  if (event.pointerType === 'mouse') onPrefetch(player.puuid)
+                }}
                 className={`absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left focus-visible:outline-none data-[selected=true]:bg-white/10 ${
                   keyboardNavigation ? '' : 'hover:bg-white/[0.035]'
                 }`}

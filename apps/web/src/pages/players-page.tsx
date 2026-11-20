@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@ui-sdk/react/select'
 import { Input } from '@ui-sdk/react/input'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
 import {
   SegmentedControl,
@@ -22,6 +22,7 @@ import { PlayerList } from '../components/player-list.tsx'
 import { EmptyState, LoadError, LoadingState } from '../components/ui.tsx'
 import {
   fetchOverview,
+  fetchPlayer,
   fetchPlayersPage,
   fetchSearch,
   fetchStatus,
@@ -183,6 +184,7 @@ const ScanStatus = ({
 export function PlayersPage({ selected }: { selected?: string }) {
   const p = selected ?? null
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const searchRef = useRef<HTMLInputElement>(null)
   const loadingMoreRef = useRef(false)
   const [query, setQueryState] = useState(lastQuery)
@@ -330,6 +332,15 @@ export function PlayersPage({ selected }: { selected?: string }) {
     }
 
     void navigate({ to: '/', replace: true })
+  }
+
+  const prefetch = (puuid: string) => {
+    void queryClient.prefetchQuery({
+      queryKey: ['player', puuid],
+      queryFn: ({ signal }) => fetchPlayer(puuid, signal),
+      staleTime: 60_000,
+      retry: false,
+    })
   }
 
   const backToList = () => {
@@ -553,6 +564,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   focusSelectedOnMount={selectionSource === 'list'}
                   searchRef={searchRef}
                   onSelect={select}
+                  onPrefetch={prefetch}
                   onEscape={escape}
                 />
               )}
