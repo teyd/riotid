@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 
 import {
   cardArt,
@@ -86,7 +86,7 @@ export const PlayerList = ({
   const pendingFocus = useRef<string | null>(null)
   const focusedOnMount = useRef(false)
   const [keyboardNavigation, setKeyboardNavigation] = useState(false)
-  const items = buildItems(sections)
+  const items = useMemo(() => buildItems(sections), [sections])
   const firstPlayerIndex = items.findIndex((item) => item.kind === 'player')
   // TanStack Virtual returns functions the compiler cannot safely memoize.
   // eslint-disable-next-line react/incompatible-library
