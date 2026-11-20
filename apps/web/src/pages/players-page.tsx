@@ -99,10 +99,12 @@ const RateLimitMeter = ({ now }: { now: number }) => {
       value={rate.remaining}
       max={rate.limit}
       format={(value) => `${value} / ${rate.limit} left`}
-      getValueLabel={(value) => `${value} of ${rate.limit} API requests left this minute`}
+      getValueLabel={(value) =>
+        `${value} of ${rate.limit} ${rate.scope} API requests left this minute`
+      }
       className="flex items-center gap-3"
     >
-      <MeterLabel className="shrink-0 tracking-wide">rate limit</MeterLabel>
+      <MeterLabel className="shrink-0 tracking-wide">rate limit · {rate.scope}</MeterLabel>
       <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
         <MeterIndicator
           className={`h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out ${low ? 'bg-amber-300' : 'bg-zinc-400'}`}

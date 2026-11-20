@@ -17,17 +17,17 @@ describe('rate limit meter', () => {
     expect(getRateLimit()).toBeNull()
 
     trackRateLimit('search', quota(120, 90))
-    expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 90 })
+    expect(getRateLimit()).toMatchObject({ scope: 'search', limit: 120, remaining: 90 })
     expect(getRateLimit()?.resetAt).toBeGreaterThan(Date.now() + 25_000)
 
     trackRateLimit('browse', quota(120, 20))
-    expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 20 })
+    expect(getRateLimit()).toMatchObject({ scope: 'browse', limit: 120, remaining: 20 })
 
     trackRateLimit('overview', quota(60, 50))
     expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 20 })
 
     trackRateLimit('browse', quota(120, 100))
-    expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 90 })
+    expect(getRateLimit()).toMatchObject({ scope: 'search', limit: 120, remaining: 90 })
 
     trackRateLimit('search', quota(120, 0, 0))
     expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 100 })
