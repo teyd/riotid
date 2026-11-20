@@ -5,6 +5,19 @@ export type RateLimit = {
   readonly resetAt: number
 }
 
+export type RateLimitTone = 'normal' | 'warning' | 'low' | 'critical'
+
+export const rateLimitTone = ({
+  remaining,
+  limit,
+}: Pick<RateLimit, 'remaining' | 'limit'>): RateLimitTone => {
+  const share = remaining / limit
+  if (share > 0.5) return 'normal'
+  if (share > 0.25) return 'warning'
+  if (share > 0.1) return 'low'
+  return 'critical'
+}
+
 const buckets = new Map<string, RateLimit>()
 const listeners = new Set<() => void>()
 let snapshot: RateLimit | null = null
