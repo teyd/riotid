@@ -99,7 +99,7 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
 
   if (!rate) {
     return (
-      <div className="flex w-52 items-center gap-3">
+      <div className="flex w-full items-center gap-3">
         <span className="shrink-0 tracking-wide">{label}</span>
         <div className="h-1 flex-1 rounded-full bg-white/10" />
         <span className="shrink-0 tabular-nums">—</span>
@@ -118,7 +118,7 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
       getValueLabel={(value) =>
         `${value} of ${current.limit} ${label} API requests left this minute`
       }
-      className="flex w-52 items-center gap-3"
+      className="flex w-full items-center gap-3"
     >
       <MeterLabel className="shrink-0 tracking-wide">{label}</MeterLabel>
       <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
@@ -132,7 +132,7 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
 }
 
 const RateLimits = ({ now }: { now: number }) => (
-  <div className="flex flex-wrap gap-x-6 gap-y-2">
+  <div className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-2 lg:w-[25rem]">
     <RateLimitMeter scope="overview" label="overview" now={now} />
     <RateLimitMeter scope="browse" label="list" now={now} />
     <RateLimitMeter scope="search" label="search" now={now} />
@@ -178,9 +178,9 @@ const ScanStatus = ({
   return (
     <footer
       role={error ? 'status' : undefined}
-      className="flex shrink-0 flex-col gap-2 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400"
+      className="flex shrink-0 flex-col gap-2 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
         {error ? (
           <>
             <span className="text-zinc-300">
@@ -218,7 +218,7 @@ const ScanStatus = ({
                 '—'
               )}
             </span>
-            <span className="sm:ms-auto">
+            <span>
               last scan{' '}
               {lastRunAt ? (
                 <time dateTime={new Date(lastRunAt).toISOString()} title={exact(lastRunAt)}>
