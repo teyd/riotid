@@ -58,9 +58,11 @@ The limiter is the database read path, not JSON: responses are at most 40
 results. Keep the candidate cap in mind before claiming an exact total; a full
 count is the slow path this design deliberately avoids.
 
-The search index adds disk: this synthetic database is 834 MB for 500k players,
-900k past names, indexes, and FTS. The migration's one-time FTS rebuild took
-5.6 s at 1.4M terms on the benchmark machine.
+The search index adds disk: the committed scale seed (500k players, 1M name
+intervals, 50k region changes) produced a 931 MB SQLite file in a worktree and
+took 61 s to generate, including the search/FTS triggers. The earlier 500k/900k
+benchmark database was 834 MB. The FTS rebuild itself took 5.6 s at 1.4M terms
+on the benchmark machine.
 
 ## Browse now pages too
 
