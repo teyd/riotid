@@ -68,5 +68,7 @@ on the benchmark machine.
 
 The SPA no longer downloads the index preview. It requests `/api/v1/overview`
 for counts and `/api/v1/players?sort=...&cursor=...` for 250-row keyset pages,
-with the full sort key plus puuid in the cursor. The capped index remains for
-API consumers; search stays independent and complete.
+with the full sort key plus puuid in the cursor and a total for the filtered
+set. The SPA prefetches the next page before the scroll reaches the end, so
+loading stays invisible. The capped index remains for API consumers; search
+stays independent and complete.

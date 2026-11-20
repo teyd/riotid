@@ -45,20 +45,15 @@ type PlayerItem = {
   readonly player: PlayerListItem
 }
 
-type FooterItem = {
-  readonly kind: 'footer'
-  readonly key: 'more'
-}
-
-type ListItem = HeaderItem | PlayerItem | FooterItem
+type ListItem = HeaderItem | PlayerItem
 
 const interactiveRoles =
   '[data-slot="select-trigger"],[role="combobox"],[role="radiogroup"],[role="toolbar"],[role="list"],[role="menu"],[role="listbox"],[role="dialog"],[role="separator"]'
 
 const navigationKeys = new Set(['ArrowDown', 'ArrowUp', 'j', 'k', 'Home', 'End'])
 
-const buildItems = (sections: ReadonlyArray<PlayerSection>, hasMore: boolean): ListItem[] => {
-  const items: ListItem[] = sections.flatMap((section) => [
+const buildItems = (sections: ReadonlyArray<PlayerSection>): ListItem[] =>
+  sections.flatMap((section) => [
     ...(section.label
       ? [
           {
@@ -77,13 +72,6 @@ const buildItems = (sections: ReadonlyArray<PlayerSection>, hasMore: boolean): L
       player,
     })),
   ])
-
-  if (hasMore && items.some((item) => item.kind === 'player')) {
-    items.push({ kind: 'footer', key: 'more' })
-  }
-
-  return items
-}
 
 export const PlayerList = ({
   sections,
@@ -104,7 +92,7 @@ export const PlayerList = ({
   const pendingFocus = useRef<string | null>(null)
   const focusedOnMount = useRef(false)
   const [keyboardNavigation, setKeyboardNavigation] = useState(false)
-  const items = useMemo(() => buildItems(sections, hasMore), [sections, hasMore])
+  const items = useMemo(() => buildItems(sections), [sections])
   const firstPlayerIndex = items.findIndex((item) => item.kind === 'player')
   // TanStack Virtual returns functions the compiler cannot safely memoize.
   // eslint-disable-next-line react/incompatible-library
@@ -115,6 +103,14 @@ export const PlayerList = ({
     getItemKey: (index) => items[index]?.key ?? index,
     overscan: 8,
   })
+
+  const virtualItems = virtualizer.getVirtualItems()
+
+  useEffect(() => {
+    if (!hasMore || loadingMore || items.length === 0) return
+    const last = virtualItems.at(-1)
+    if (last && last.index >= items.length - 80) onLoadMore()
+  }, [virtualItems, hasMore, loadingMore, items.length, onLoadMore])
 
   const selectedIndex = items.findIndex(
     (item) => item.kind === 'player' && item.player.puuid === selected,
@@ -238,28 +234,9 @@ export const PlayerList = ({
         className="h-full overflow-y-auto overscroll-contain"
       >
         <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
-          {virtualizer.getVirtualItems().map((item) => {
+          {virtualItems.map((item) => {
             const row = items[item.index]
             if (!row) return null
-
-            if (row.kind === 'footer') {
-              return (
-                <div
-                  key={row.key}
-                  className="absolute top-0 left-0 flex h-14 w-full items-center justify-center border-b border-white/[0.05]"
-                  style={{ transform: `translateY(${item.start}px)` }}
-                >
-                  <button
-                    type="button"
-                    onClick={onLoadMore}
-                    disabled={loadingMore}
-                    className="rounded border border-white/30 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-300 hover:bg-white/10 disabled:opacity-60"
-                  >
-                    {loadingMore ? 'Loading more…' : 'Load more players'}
-                  </button>
-                </div>
-              )
-            }
 
             if (row.kind === 'header') {
               const count = row.truncated
@@ -356,6 +333,9 @@ export const PlayerList = ({
           })}
         </div>
       </div>
+      <p role="status" className="sr-only">
+        {loadingMore ? 'Loading more players…' : ''}
+      </p>
       <p role="status" className="sr-only">
         {activePlayer
           ? activePlayer.former

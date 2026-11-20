@@ -116,6 +116,7 @@ export const siteOverview = (): SiteOverview => {
 export const playerPage = (): PlayerPage => ({
   sort: 'recentChanges',
   region: null,
+  total: PLAYERS,
   players: siteIndex().players.slice(0, 250).map(searchPlayer),
   nextCursor: null,
 })
