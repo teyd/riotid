@@ -135,7 +135,7 @@ export const makeApp = (options: AppOptions) => {
     browse: options.rateLimits?.browse ?? 120,
     overview: options.rateLimits?.overview ?? 60,
     players: options.rateLimits?.players ?? 120,
-    search: options.rateLimits?.search ?? 120,
+    search: options.rateLimits?.search ?? 60,
     status: options.rateLimits?.status ?? 60,
   }
   const cookieFile = options.cookieFile ?? './data/cookies.json'

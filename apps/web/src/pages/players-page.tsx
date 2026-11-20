@@ -99,7 +99,7 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
 
   if (!rate) {
     return (
-      <div className="flex items-center gap-3">
+      <div className="flex w-52 items-center gap-3">
         <span className="shrink-0 tracking-wide">{label}</span>
         <div className="h-1 flex-1 rounded-full bg-white/10" />
         <span className="shrink-0 tabular-nums">—</span>
@@ -118,7 +118,7 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
       getValueLabel={(value) =>
         `${value} of ${current.limit} ${label} API requests left this minute`
       }
-      className="flex items-center gap-3"
+      className="flex w-52 items-center gap-3"
     >
       <MeterLabel className="shrink-0 tracking-wide">{label}</MeterLabel>
       <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
@@ -132,9 +132,11 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
 }
 
 const RateLimits = ({ now }: { now: number }) => (
-  <div className="grid gap-2 sm:grid-cols-[20rem_14rem] sm:gap-6">
+  <div className="flex flex-wrap gap-x-6 gap-y-2">
+    <RateLimitMeter scope="overview" label="overview" now={now} />
     <RateLimitMeter scope="browse" label="list" now={now} />
     <RateLimitMeter scope="search" label="search" now={now} />
+    <RateLimitMeter scope="players" label="player" now={now} />
   </div>
 )
 
