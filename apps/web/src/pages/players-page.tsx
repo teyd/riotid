@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@ui-sdk/react/select'
 import { Input } from '@ui-sdk/react/input'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
 import {
   SegmentedControl,
@@ -21,23 +21,34 @@ import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
 import { EmptyState, LoadingState } from '../components/ui.tsx'
 import {
-  displayName,
-  fetchIndex,
+  fetchOverview,
   fetchPlayer,
+  fetchPlayersPage,
+  fetchSearch,
   fetchStatus,
   formatRelative,
   formatScanCountdown,
   formatScanTime,
-  P,
-  type IndexRow,
+  searchMatchToItem,
+  searchPlayerToItem,
+  searchToSections,
+  toPlayerPreview,
+  type PlayerListItem,
+  type PlayerSection,
   type Region,
 } from '../lib/api.ts'
+import { useDebouncedValue } from '../lib/use-debounced-value.ts'
 
 type Sort = 'recentChanges' | 'changes' | 'recent' | 'new' | 'name'
 
 let initialSelectionDone = false
 let restoreSearchFocus = false
 let selectionSource: 'list' | 'search' | null = null
+let lastQuery = ''
+let lastRegion: 'all' | Region = 'all'
+let lastSort: Sort = 'recentChanges'
+
+const playerPageSize = 250
 
 const sorts: Array<{ value: Sort; label: string; trigger: string }> = [
   { value: 'recentChanges', label: 'Recent name changes', trigger: 'renames' },
@@ -64,8 +75,6 @@ const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
     <path d="m20 20-3.5-3.5" strokeLinecap="round" />
   </svg>
 )
-
-const score = (row: IndexRow) => row[P.nameChanges] * 2 + row[P.regionChanges] * 3
 
 type ScanStatusProps = {
   players: number | null
@@ -174,10 +183,24 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const searchRef = useRef<HTMLInputElement>(null)
-  const [query, setQuery] = useState('')
-  const [region, setRegion] = useState<'all' | Region>('all')
-  const [sort, setSort] = useState<Sort>('recentChanges')
+  const loadingMoreRef = useRef(false)
+  const [query, setQueryState] = useState(lastQuery)
+  const [region, setRegionState] = useState<'all' | Region>(lastRegion)
+  const [sort, setSortState] = useState<Sort>(lastSort)
+  const [loadingMore, setLoadingMore] = useState(false)
   const deferredQuery = useDeferredValue(query)
+  const setQuery = (next: string) => {
+    lastQuery = next
+    setQueryState(next)
+  }
+  const setRegion = (next: 'all' | Region) => {
+    lastRegion = next
+    setRegionState(next)
+  }
+  const setSort = (next: Sort) => {
+    lastSort = next
+    setSortState(next)
+  }
 
   useEffect(() => {
     const preload = () => {
@@ -191,11 +214,28 @@ export function PlayersPage({ selected }: { selected?: string }) {
     return () => window.clearTimeout(timer)
   }, [])
 
-  const index = useQuery({
-    queryKey: ['index'],
-    queryFn: fetchIndex,
+  const overview = useQuery({
+    queryKey: ['overview'],
+    queryFn: ({ signal }) => fetchOverview(signal),
     staleTime: 60_000,
     refetchInterval: 120_000,
+  })
+
+  const browse = useInfiniteQuery({
+    queryKey: ['players', sort, region],
+    queryFn: ({ pageParam, signal }) =>
+      fetchPlayersPage(
+        {
+          sort,
+          region: region === 'all' ? null : region,
+          cursor: pageParam,
+          limit: playerPageSize,
+        },
+        signal,
+      ),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    staleTime: 60_000,
   })
 
   const status = useQuery({
@@ -206,64 +246,70 @@ export function PlayersPage({ selected }: { selected?: string }) {
     refetchIntervalInBackground: true,
   })
 
-  const rows = useMemo(() => {
-    const all = index.data?.players ?? []
-    const needle = deferredQuery.trim().toLowerCase()
-    const filtered = all.filter((row) => {
-      if (region !== 'all' && row[P.region] !== region) return false
-      if (!needle) return true
-      return (
-        row[P.name].toLowerCase().includes(needle) ||
-        row[P.tag].toLowerCase().includes(needle) ||
-        `${row[P.name]}#${row[P.tag]}`.toLowerCase().includes(needle) ||
-        row[P.puuid].toLowerCase().includes(needle)
-      )
-    })
+  const needle = deferredQuery.trim()
+  const searchMode = needle.length >= 3
+  const requestedQuery = useDebouncedValue(needle, 180)
+  const search = useQuery({
+    queryKey: ['search', requestedQuery, region],
+    queryFn: ({ signal }) => fetchSearch(requestedQuery, region === 'all' ? null : region, signal),
+    enabled: searchMode && requestedQuery.length >= 3,
+    staleTime: 30_000,
+  })
+  const searchData =
+    searchMode && requestedQuery === needle && search.data?.query === needle ? search.data : null
+  const searchFailed = searchMode && !searchData && search.isError
+  const typing = needle.length > 0 && !searchMode
+  const publicPlayers = overview.data?.stats.publicPlayers ?? 0
+  const browseTotal = browse.data?.pages[0]?.total ?? null
 
-    return [...filtered].sort((left, right) => {
-      switch (sort) {
-        case 'recentChanges':
-          return (
-            (right[P.lastNameChangeAt] ?? 0) - (left[P.lastNameChangeAt] ?? 0) ||
-            score(right) - score(left) ||
-            right[P.lastSeenAt] - left[P.lastSeenAt]
-          )
-        case 'changes':
-          return score(right) - score(left) || right[P.lastSeenAt] - left[P.lastSeenAt]
-        case 'new':
-          return right[P.firstSeenAt] - left[P.firstSeenAt]
-        case 'name':
-          return displayName(left).localeCompare(displayName(right))
-        default:
-          return right[P.lastSeenAt] - left[P.lastSeenAt]
-      }
-    })
-  }, [index.data, deferredQuery, region, sort])
-
-  const playersById = useMemo(
-    () => new Map((index.data?.players ?? []).map((row) => [row[P.puuid], row])),
-    [index.data],
+  const rows: PlayerListItem[] = useMemo(
+    () => browse.data?.pages.flatMap((page) => page.players.map(searchPlayerToItem)) ?? [],
+    [browse.data],
   )
 
+  const browseSections: PlayerSection[] = useMemo(
+    () => [{ id: 'all', label: '', total: rows.length, truncated: false, players: rows }],
+    [rows],
+  )
+
+  const searchSections = useMemo(
+    () => (searchData ? searchToSections(searchData) : []),
+    [searchData],
+  )
+
+  const sections = searchFailed ? [] : searchMode ? searchSections : typing ? [] : browseSections
+
+  const searchItems: PlayerListItem[] = useMemo(
+    () => [
+      ...(searchData?.current.players.map(searchPlayerToItem) ?? []),
+      ...(searchData?.past.matches.map(searchMatchToItem) ?? []),
+    ],
+    [searchData],
+  )
+
+  const playersById = useMemo(() => new Map(rows.map((player) => [player.puuid, player])), [rows])
+
   const selectedRow = p ? (playersById.get(p) ?? null) : null
-  const selectedCardIndex = selectedRow?.[P.cardId]
-  const selectedCard =
-    selectedCardIndex == null ? null : (index.data?.cards[selectedCardIndex] ?? null)
+  const selectedSearchPlayer = p ? (searchItems.find((item) => item.puuid === p) ?? null) : null
+  const selectedPlayer = selectedSearchPlayer ?? selectedRow
+  const selectedPreview = selectedPlayer ? toPlayerPreview(selectedPlayer) : null
+  const selectedCard = selectedPlayer?.cardId ?? null
 
   useEffect(() => {
     if (p) {
       initialSelectionDone = true
       return
     }
-    if (initialSelectionDone || index.isPending || rows.length === 0) return
+    if (initialSelectionDone || browse.isPending || rows.length === 0) return
+    if (searchMode || typing) return
     if (!window.matchMedia('(min-width: 1024px)').matches) return
 
-    const first = rows[0]?.[P.puuid]
+    const first = rows[0]?.puuid
     if (first) {
       initialSelectionDone = true
       void navigate({ to: '/puuid/$puuid', params: { puuid: first }, replace: true })
     }
-  }, [p, index.isPending, rows, navigate])
+  }, [p, browse.isPending, rows, navigate, searchMode, typing])
 
   useEffect(() => {
     if (!restoreSearchFocus) return
@@ -297,6 +343,49 @@ export function PlayersPage({ selected }: { selected?: string }) {
     restoreSearchFocus = true
     select(null)
   }
+
+  const loadMore = () => {
+    if (loadingMoreRef.current || !browse.hasNextPage || browse.isFetchNextPageError) return
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    void browse.fetchNextPage().finally(() => {
+      loadingMoreRef.current = false
+      setLoadingMore(false)
+    })
+  }
+
+  const firstResult = searchMode
+    ? (searchItems[0]?.puuid ?? null)
+    : typing
+      ? null
+      : (rows[0]?.puuid ?? null)
+  const groupCount = (total: number, truncated: boolean, shown: number) =>
+    truncated ? `${shown}+` : total.toLocaleString()
+  const countLabel = searchMode
+    ? searchData
+      ? `${groupCount(searchData.current.total, searchData.current.truncated, searchData.current.players.length)} current · ${groupCount(searchData.past.total, searchData.past.truncated, searchData.past.matches.length)} past`
+      : '—'
+    : typing
+      ? '0'
+      : browseTotal === null
+        ? '—'
+        : browseTotal.toLocaleString()
+  const browseFailed = !searchMode && !typing && browse.isError && rows.length === 0
+  const listLoading = searchMode ? !searchData && !searchFailed : browse.isPending
+  const emptyTitle = searchMode
+    ? 'No players match.'
+    : typing
+      ? 'Keep typing…'
+      : publicPlayers
+        ? 'No players match.'
+        : 'No players yet.'
+  const emptyHint = searchMode
+    ? 'Try a current or past name, tag, or another region.'
+    : typing
+      ? 'Search current and past names with at least 3 characters.'
+      : publicPlayers
+        ? 'Try another region.'
+        : 'Run a scan to populate the index.'
 
   const sortOption = sorts.find((item) => item.value === sort) ?? sorts[0]!
   const escape = () => {
@@ -337,13 +426,9 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   value={query}
                   onValueChange={setQuery}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' && rows[0]) {
+                    if ((event.key === 'Enter' || event.key === 'ArrowDown') && firstResult) {
                       event.preventDefault()
-                      select(rows[0][P.puuid], 'search')
-                    }
-                    if (event.key === 'ArrowDown' && rows[0]) {
-                      event.preventDefault()
-                      select(rows[0][P.puuid], 'search')
+                      select(firstResult, 'search')
                     }
                     if (event.key === 'Escape') {
                       event.preventDefault()
@@ -355,8 +440,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   type="text"
                   inputMode="search"
                   enterKeyHint="search"
-                  placeholder="Search players…"
-                  aria-label="Search players"
+                  placeholder="Search current or past names…"
+                  aria-label="Search current and past names"
                   spellCheck={false}
                   autoComplete="off"
                   className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
@@ -392,60 +477,98 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
-                    {rows.length.toLocaleString()}
+                    {countLabel}
                   </span>
-                  <Select
-                    items={sorts}
-                    value={sort}
-                    onValueChange={(value) => {
-                      if (value) setSort(value as Sort)
-                    }}
-                  >
-                    <SelectLabel className="sr-only">Sort players</SelectLabel>
-                    <SelectTrigger
-                      aria-label={`Sort players: ${sortOption?.label ?? sort}`}
-                      className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-400 hover:text-zinc-100"
+                  {searchMode ? (
+                    <span className="font-mono text-[11px] uppercase tracking-wide text-zinc-400">
+                      relevance
+                    </span>
+                  ) : (
+                    <Select
+                      items={sorts}
+                      value={sort}
+                      onValueChange={(value) => {
+                        if (value) setSort(value as Sort)
+                      }}
                     >
-                      <SelectValue>
-                        {(state) =>
-                          sorts.find((item) => item.value === state.value)?.trigger ??
-                          sortOption?.trigger ??
-                          sort
-                        }
-                      </SelectValue>
-                      <span aria-hidden className="text-[11px] leading-none text-zinc-400">
-                        ▼
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent className="z-50 rounded-lg border border-white/20 bg-panel p-1.5 text-sm shadow-2xl">
-                      {sorts.map((item) => (
-                        <SelectItem
-                          key={item.value}
-                          value={item.value}
-                          className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/40 data-[highlighted]:text-zinc-50 data-[selected]:text-zinc-50"
-                        >
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SelectLabel className="sr-only">Sort players</SelectLabel>
+                      <SelectTrigger
+                        aria-label={`Sort players: ${sortOption?.label ?? sort}`}
+                        className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-400 hover:text-zinc-100"
+                      >
+                        <SelectValue>
+                          {(state) =>
+                            sorts.find((item) => item.value === state.value)?.trigger ??
+                            sortOption?.trigger ??
+                            sort
+                          }
+                        </SelectValue>
+                        <span aria-hidden className="text-[11px] leading-none text-zinc-400">
+                          ▼
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent className="z-50 rounded-lg border border-white/20 bg-panel p-1.5 text-sm shadow-2xl">
+                        {sorts.map((item) => (
+                          <SelectItem
+                            key={item.value}
+                            value={item.value}
+                            className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/40 data-[highlighted]:text-zinc-50 data-[selected]:text-zinc-50"
+                          >
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="min-h-0 flex-1">
-              <PlayerList
-                rows={rows}
-                cards={index.data?.cards ?? []}
-                selected={p ?? null}
-                loading={index.isPending}
-                filtered={deferredQuery.trim() !== '' || region !== 'all'}
-                focusSelectedOnMount={selectionSource === 'list'}
-                searchRef={searchRef}
-                onSelect={select}
-                onPrefetch={prefetch}
-                onEscape={escape}
-              />
+              {searchFailed ? (
+                <div role="alert" className="flex flex-col items-start gap-3 p-6">
+                  <p className="text-base text-zinc-200">Could not search players.</p>
+                  <p className="font-mono text-xs text-zinc-400">{search.error?.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => void search.refetch()}
+                    className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : browseFailed ? (
+                <div role="alert" className="flex flex-col items-start gap-3 p-6">
+                  <p className="text-base text-zinc-200">Could not load players.</p>
+                  <p className="font-mono text-xs text-zinc-400">{browse.error?.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => void browse.refetch()}
+                    className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <PlayerList
+                  sections={sections}
+                  selected={p ?? null}
+                  loading={listLoading}
+                  emptyTitle={emptyTitle}
+                  emptyHint={emptyHint}
+                  hasMore={
+                    !searchMode && !typing && browse.hasNextPage && !browse.isFetchNextPageError
+                  }
+                  loadingMore={loadingMore}
+                  pendingCount={!searchMode && !typing && loadingMore ? playerPageSize : 0}
+                  onLoadMore={loadMore}
+                  focusSelectedOnMount={selectionSource === 'list'}
+                  searchRef={searchRef}
+                  onSelect={select}
+                  onPrefetch={prefetch}
+                  onEscape={escape}
+                />
+              )}
             </div>
           </section>
         </ResizablePanel>
@@ -469,27 +592,27 @@ export function PlayersPage({ selected }: { selected?: string }) {
             {p ? (
               <PlayerDetailLoader
                 puuid={p}
-                row={selectedRow}
+                preview={selectedPreview}
                 cardId={selectedCard}
                 focusOnMount={selectionSource !== null}
                 focusHeading={selectionSource === 'search'}
                 onBack={backToList}
               />
-            ) : index.isPending ? (
-              <LoadingState label="Loading index…" />
-            ) : index.isError ? (
+            ) : overview.isPending ? (
+              <LoadingState label="Loading overview…" />
+            ) : overview.isError ? (
               <div role="alert" className="flex flex-col items-start gap-3 p-8">
-                <p className="text-base text-zinc-200">Could not load the player index.</p>
-                <p className="font-mono text-xs text-zinc-400">{index.error.message}</p>
+                <p className="text-base text-zinc-200">Could not load the overview.</p>
+                <p className="font-mono text-xs text-zinc-400">{overview.error.message}</p>
                 <button
                   type="button"
-                  onClick={() => void index.refetch()}
+                  onClick={() => void overview.refetch()}
                   className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
                 >
                   Retry
                 </button>
               </div>
-            ) : (index.data?.players.length ?? 0) === 0 ? (
+            ) : publicPlayers === 0 ? (
               <div className="flex h-full items-center justify-center">
                 <EmptyState
                   title="No public players yet."
@@ -513,9 +636,9 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   </p>
                   <div className="mt-7 flex items-center justify-center gap-6 border-y border-white/[0.08] py-4">
                     {[
-                      ['players', index.data?.stats.players],
-                      ['linked anon', index.data?.stats.linked],
-                      ['name changes', index.data?.stats.nameChanges],
+                      ['players', overview.data?.stats.players],
+                      ['linked anon', overview.data?.stats.linked],
+                      ['name changes', overview.data?.stats.nameChanges],
                     ].map(([label, value]) => (
                       <div key={String(label)}>
                         <p className="text-lg font-semibold text-zinc-100 tabular-nums">
@@ -538,14 +661,17 @@ export function PlayersPage({ selected }: { selected?: string }) {
       </Resizable>
 
       <ScanStatus
-        players={index.data?.players.length ?? null}
-        nameChanges={index.data?.stats.nameChanges ?? null}
-        lastRunAt={index.data?.stats.lastRunAt ?? null}
-        nextRunAt={index.data?.stats.nextRunAt ?? null}
+        players={overview.data?.stats.publicPlayers ?? null}
+        nameChanges={overview.data?.stats.nameChanges ?? null}
+        lastRunAt={overview.data?.stats.lastRunAt ?? null}
+        nextRunAt={overview.data?.stats.nextRunAt ?? null}
         cookieUpdatedAt={status.data?.auth.updatedAt}
         cookieStaleAfterMs={status.data?.auth.staleAfterMs}
-        isError={index.isError}
-        onRetry={() => void index.refetch()}
+        isError={overview.isError || browseFailed}
+        onRetry={() => {
+          void overview.refetch()
+          void browse.refetch()
+        }}
       />
     </div>
   )

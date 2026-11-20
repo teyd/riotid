@@ -43,6 +43,7 @@ template that drifts from the contract is worse than none.
 | `MATCH_CACHE_AUTOTUNE`                 | `true`                  | Grow the cache while coverage stays under the target                        |
 | `MATCH_CACHE_DAYS`                     | `30`                    | Age after which cached match candidates are pruned                          |
 | `INDEX_RETENTION_DAYS`                 | `30`                    | Players seen within this window stay in the public index                    |
+| `INDEX_PLAYER_LIMIT`                   | `50000`                 | Public index preview cap; search still covers every visible player          |
 | `BACKUP_DIRECTORY`                     | `./data/backups`        | Destination for rotated SQLite backups                                      |
 | `BACKUP_KEEP_DAYS`                     | `7`                     | Backup retention window                                                     |
 | `RUN_RETENTION_DAYS`                   | `180`                   | Run evidence retention before `db:prune`                                    |

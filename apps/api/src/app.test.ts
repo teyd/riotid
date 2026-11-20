@@ -2,7 +2,7 @@ import { mkdtemp, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { ServiceStatus } from '@riotid/contracts'
+import type { PlayerPage, PlayerSearch, ServiceStatus, SiteOverview } from '@riotid/contracts'
 import { anonymousRows, Database, identityLinks, seedDatabase } from '@riotid/db'
 import { migrate, runDb, withDatabase } from '@riotid/test-utils'
 import { Effect } from 'effect'
@@ -85,6 +85,7 @@ describe('api', () => {
         players: Array<[string, string, string, string, number]>
         stats: {
           players: number
+          publicPlayers: number
           linked: number
           unresolved: number
           lastRunAt: number
@@ -95,6 +96,7 @@ describe('api', () => {
       expect(body.version).toBe(1)
       expect(body.players).toHaveLength(2)
       expect(body.players.map((row) => row[0])).not.toContain('seed-player-3')
+      expect(body.stats.publicPlayers).toBe(2)
       expect(body.stats.unresolved).toBe(1)
       expect(body.stats.nextRunAt - body.stats.lastRunAt).toBe(6 * 3_600_000)
 
@@ -108,6 +110,135 @@ describe('api', () => {
         headers: { 'if-none-match': etag ?? '' },
       })
       expect(cached.status).toBe(304)
+    })
+  })
+
+  it('searches current and past names without exposing hidden players', async () => {
+    await withApp(async (app) => {
+      const pastResponse = await request(app, '/api/v1/search?q=one%20old')
+      expect(pastResponse.status).toBe(200)
+      expect(pastResponse.headers.get('cache-control')).toContain('s-maxage=30')
+
+      const past = (await pastResponse.json()) as PlayerSearch
+      expect(past.query).toBe('one old')
+      expect(past.current).toMatchObject({ total: 0, players: [] })
+      expect(past.past.total).toBe(1)
+      expect(past.past.matches).toHaveLength(1)
+      expect(past.past.matches[0]).toMatchObject({
+        name: 'Seed One Old',
+        tag: '0001',
+        player: {
+          puuid: 'seed-player-1',
+          name: 'Seed One',
+          tag: '0001',
+          region: 'eu',
+        },
+      })
+
+      const current = (await (await request(app, '/api/v1/search?q=seed')).json()) as PlayerSearch
+      expect(current.current.total).toBe(2)
+      expect(current.current.players.map((player) => player.puuid)).not.toContain('seed-player-3')
+      expect(current.past.total).toBe(1)
+      expect(current.past.matches[0]?.player.puuid).toBe('seed-player-1')
+      expect(current.past.matches[0]?.name).toBe('Seed One Old')
+
+      const banned = (await (await request(app, '/api/v1/search?q=banned')).json()) as PlayerSearch
+      expect(banned.current.total).toBe(0)
+      expect(banned.past.total).toBe(0)
+
+      const otherRegion = (await (
+        await request(app, '/api/v1/search?q=seed&region=na')
+      ).json()) as PlayerSearch
+      expect(otherRegion.current.total).toBe(0)
+
+      const short = (await (await request(app, '/api/v1/search?q=se')).json()) as PlayerSearch
+      expect(short.minQueryLength).toBe(3)
+      expect(short.current.total).toBe(0)
+      expect(short.past.total).toBe(0)
+
+      const limited = (await (
+        await request(app, '/api/v1/search?q=seed&limit=1')
+      ).json()) as PlayerSearch
+      expect(limited.current.players).toHaveLength(1)
+      expect(limited.current.total).toBe(2)
+      expect(limited.current.truncated).toBe(true)
+    })
+  })
+
+  it('caps the index preview while reporting the public total', async () => {
+    await withApp(
+      async (app) => {
+        const body = (await (await request(app, '/api/v1/index')).json()) as {
+          players: unknown[]
+          stats: { publicPlayers: number }
+        }
+
+        expect(body.players).toHaveLength(1)
+        expect(body.stats.publicPlayers).toBe(2)
+      },
+      { indexPlayerLimit: 1 },
+    )
+  })
+
+  it('serves a small overview and cursor-paginated players', async () => {
+    await withApp(async (app) => {
+      const overviewResponse = await request(app, '/api/v1/overview')
+      expect(overviewResponse.status).toBe(200)
+      expect(overviewResponse.headers.get('cache-control')).toContain('s-maxage=300')
+      const overview = (await overviewResponse.json()) as SiteOverview
+      expect(overview.stats.publicPlayers).toBe(2)
+      expect(overview.season?.name).toBe('Seed Act')
+
+      const etag = overviewResponse.headers.get('etag') ?? ''
+      expect(
+        (await request(app, '/api/v1/overview', { headers: { 'if-none-match': etag } })).status,
+      ).toBe(304)
+
+      const firstResponse = await request(app, '/api/v1/players?sort=recentChanges&limit=1')
+      expect(firstResponse.status).toBe(200)
+      const first = (await firstResponse.json()) as PlayerPage
+      expect(first.sort).toBe('recentChanges')
+      expect(first.total).toBe(2)
+      expect(first.players).toHaveLength(1)
+      expect(first.players[0]?.puuid).toBe('seed-player-1')
+      expect(first.nextCursor).toBeTruthy()
+
+      const second = (await (
+        await request(
+          app,
+          `/api/v1/players?sort=recentChanges&limit=1&cursor=${encodeURIComponent(first.nextCursor ?? '')}`,
+        )
+      ).json()) as PlayerPage
+      expect(second.total).toBe(2)
+      expect(second.players).toHaveLength(1)
+      expect(second.players[0]?.puuid).toBe('seed-player-2')
+      expect(second.nextCursor).toBeNull()
+
+      const byName = (await (
+        await request(app, '/api/v1/players?sort=name&limit=1')
+      ).json()) as PlayerPage
+      expect(byName.players[0]?.name).toBe('Seed One')
+
+      const newest = (await (
+        await request(app, '/api/v1/players?sort=new&limit=1')
+      ).json()) as PlayerPage
+      expect(newest.players[0]?.puuid).toBe('seed-player-2')
+
+      const empty = (await (await request(app, '/api/v1/players?region=na')).json()) as PlayerPage
+      expect(empty.total).toBe(0)
+      expect(empty.players).toEqual([])
+      expect(empty.nextCursor).toBeNull()
+
+      expect((await request(app, '/api/v1/players?sort=nope')).status).toBe(400)
+      expect((await request(app, '/api/v1/players?cursor=nope')).status).toBe(400)
+      expect(
+        (
+          await request(
+            app,
+            `/api/v1/players?sort=name&cursor=${encodeURIComponent(first.nextCursor ?? '')}`,
+          )
+        ).status,
+      ).toBe(400)
     })
   })
 

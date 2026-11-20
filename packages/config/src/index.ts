@@ -29,6 +29,7 @@ export const AppConfig = Config.all({
   backupKeepDays: int('BACKUP_KEEP_DAYS', 7),
   runRetentionDays: int('RUN_RETENTION_DAYS', 180),
   indexRetentionDays: int('INDEX_RETENTION_DAYS', 30),
+  indexPlayerLimit: int('INDEX_PLAYER_LIMIT', 50_000),
   anonBudget: int('ANON_RESOLVE_BUDGET', 5000),
   anonSeeds: int('ANON_SEEDS', 20),
   anonCoverageTarget: number('ANON_COVERAGE_TARGET', 0.9),

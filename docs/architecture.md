@@ -50,15 +50,29 @@ serves the built SPA from the same origin with a fallback for client routes.
 
 ## Read-only API
 
-- Endpoints are `GET /api/v1/index`, `GET /api/v1/players/:puuid`,
-  `GET /api/v1/status`, and `GET /healthz`. Everything else is a `404` JSON
-  error or the SPA fallback. Status exposes only the cookie jar mtime and the
-  staleness threshold; it never reads cookie values.
-- The index is versioned by `meta.indexVersion`, built in memory, and
-  pre-compressed. `index:rebuild` bumps the version; the next request rebuilds.
+- Endpoints are `GET /api/v1/overview`, `GET /api/v1/players`,
+  `GET /api/v1/search`, `GET /api/v1/players/:puuid`,
+  `GET /api/v1/index`, `GET /api/v1/status`, and `GET /healthz`.
+  Everything else is a `404` JSON error or the SPA fallback. Status exposes
+  only the cookie jar mtime and the staleness threshold; it never reads cookie
+  values.
+- The overview is versioned by `meta.indexVersion` and cached in memory; it
+  carries counts, season, and scan timing without the player rows.
+- Browse uses keyset pagination on `/api/v1/players` with 250-row pages and an
+  opaque cursor containing the sort keys plus puuid. Indexes on each sort keep
+  deep pages cheap; search is independent of the page cursor.
+- The legacy tuple index is still versioned, pre-compressed, and capped at
+  `INDEX_PLAYER_LIMIT` (50k by default). The SPA no longer downloads it.
 - Index and detail responses carry `ETag` and honor `If-None-Match` with `304`.
-- Limits are 30 requests/min/IP for the index and 120/min/IP for details.
-  Cloudflare is expected to cache the index (`s-maxage=300`) in front of these.
+- Limits are 30 requests/min/IP for the index, 60 for the overview, and 120
+  for browse, search, and details. Cloudflare is expected to cache the index
+  and overview (`s-maxage=300`) in front of these.
+- Search is an FTS5 trigram index (`player_search`) over current and closed
+  `player_names` intervals. Triggers keep it in sync; the API only reads it.
+  Results are grouped into current and past names, deduplicated within each
+  group, and filtered by the same public/retention predicate as the index. A
+  player can appear in both groups when the query matches both names. Counts are
+  lower bounds because each group returns a capped top set.
 - Errors use `{ "error": { "code", "message", "requestId" } }`.
 - The index excludes banned players and unresolved anonymous rows, and only
   includes players seen within `INDEX_RETENTION_DAYS`.
@@ -140,7 +154,8 @@ active. `SCHEDULER_DRY_RUN=true` logs jobs instead of spawning them;
 ## Contracts
 
 `packages/contracts` defines the wire shapes with Effect schemas: the tuple index,
-player detail with timelines and identity evidence, health, and API errors. The
+search groups, player detail with timelines and identity evidence, health, and
+API errors. The
 API and web both type against those shapes, so a change to a field name or tuple
 position is a breaking API change. Bump `meta.indexVersion` or coordinate
 the change; never silently reshape the index.
@@ -153,4 +168,6 @@ the change; never silently reshape the index.
 - Do not hand-edit migrations; generate and commit them with Drizzle Kit.
 - Do not drop run provenance or rewrite interval history during retention.
 - Do not add pages or endpoints for removed crawler, stats, or status screens.
-- Do not grow the full index past the 1.5 MB gzip budget without a decision.
+- Do not grow the index preview past the 1.5 MB gzip budget without a decision.
+  Keep browse cap and search in sync; search must remain complete when the
+  preview is capped.

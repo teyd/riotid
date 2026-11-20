@@ -23,6 +23,7 @@ import {
   readDatabase,
   recoverInterruptedRuns,
   seedDemoDatabase,
+  seedScaleDatabase,
   setMeta,
   writeDatabase,
 } from '@riotid/db'
@@ -202,6 +203,46 @@ const dbSeed: Command = {
         result.seeded
           ? `seeded demo data at ${config.databasePath} (run ${result.runId})`
           : 'demo seed already applied',
+      )
+      return result
+    }),
+}
+
+const dbSeedScale: Command = {
+  summary: 'Seed a large synthetic dataset: [players] [names] [region-changes] [seed]',
+  run: ({ config, positionals }) =>
+    Effect.gen(function* () {
+      if (config.nodeEnv === 'production') {
+        return yield* failure('refusing to seed a production database')
+      }
+
+      const players = Number(positionals[0] ?? 500_000)
+      const names = Number(positionals[1] ?? 1_000_000)
+      const regionChanges = Number(positionals[2] ?? 50_000)
+      const seed = Number(positionals[3] ?? 42)
+
+      if (
+        !Number.isInteger(players) ||
+        !Number.isInteger(names) ||
+        !Number.isInteger(regionChanges) ||
+        !Number.isInteger(seed) ||
+        players < 1 ||
+        names < players ||
+        regionChanges < 0
+      ) {
+        return yield* usageError(
+          'usage: db:seed:scale [players] [names] [region-changes] [seed] with names >= players',
+        )
+      }
+
+      yield* migrate(config)
+      const result = yield* withWrite(
+        config,
+        seedScaleDatabase({ players, names, regionChanges, seed }),
+      )
+
+      yield* Effect.logInfo(
+        `seeded scale data at ${config.databasePath}: ${result.players} players, ${result.names} names, ${result.regionChanges} region changes in ${Math.round(result.elapsedMs / 1000)}s`,
       )
       return result
     }),
@@ -536,6 +577,7 @@ const commands: Record<string, Command> = {
   probe,
   'db:migrate': dbMigrate,
   'db:seed': dbSeed,
+  'db:seed:scale': dbSeedScale,
   'db:check': dbCheck,
   'db:recover': dbRecover,
   'db:prune': dbPrune,
