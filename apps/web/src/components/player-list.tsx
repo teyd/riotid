@@ -65,7 +65,7 @@ const buildItems = (sections: ReadonlyArray<PlayerSection>): ListItem[] =>
       : []),
     ...section.players.map((player) => ({
       kind: 'player' as const,
-      key: player.puuid,
+      key: `${section.id}:${player.puuid}`,
       player,
     })),
   ])
