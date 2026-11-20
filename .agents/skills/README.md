@@ -6,6 +6,7 @@ Installed with `npx skills@latest` and pinned in `skills-lock.json`. Refresh wit
 | Skill | Use when |
 | --- | --- |
 | `drizzle` | Schema, migrations, drizzle-kit, or anything importing `drizzle-orm/*` |
+| `github-actions-efficiency` | CI/CD workflow cost, caching, triggers, and runtime audits |
 | `ui-sdk` | Any `@ui-sdk/*` component work, behavior, or tests |
 | `vercel-composition-patterns` | Component API and composition design |
 | `vercel-react-best-practices` | React and Next.js performance work |
