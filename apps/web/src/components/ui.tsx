@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import { isRateLimited } from '../lib/api.ts'
+
 export const Badge = ({
   children,
   tone = 'neutral',
@@ -55,3 +57,35 @@ export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
     {label}
   </div>
 )
+
+export const LoadError = ({
+  title,
+  error,
+  onRetry,
+  className = '',
+}: {
+  title: string
+  error: Error
+  onRetry: () => void
+  className?: string
+}) => {
+  const limited = isRateLimited(error)
+
+  return (
+    <div role="alert" className={`flex flex-col items-start gap-3 ${className}`}>
+      <p className="text-base text-zinc-200">{limited ? 'Too many requests (429).' : title}</p>
+      <p className="font-mono text-xs text-zinc-400">
+        {limited
+          ? `The API rate limit was reached.${error.retryAfter ? ` Try again in ${error.retryAfter}s.` : ' Try again shortly.'}`
+          : error.message}
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
+      >
+        {limited ? 'Try again' : 'Retry'}
+      </button>
+    </div>
+  )
+}

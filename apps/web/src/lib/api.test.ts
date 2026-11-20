@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vite-plus/test'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 
-import { formatScanCountdown, playerUrl, trackerProfileUrl, vtlProfileUrl } from './api.ts'
+import {
+  ApiRequestError,
+  fetchPlayer,
+  formatScanCountdown,
+  isRateLimited,
+  playerUrl,
+  trackerProfileUrl,
+  vtlProfileUrl,
+} from './api.ts'
 
 describe('profile links', () => {
   it('encodes a Riot ID for tracker.gg', () => {
@@ -40,5 +48,53 @@ describe('scan countdown', () => {
 
   it('stays empty when no scan is planned', () => {
     expect(formatScanCountdown(null, now)).toBe('')
+  })
+})
+
+describe('request errors', () => {
+  const respond = (status: number, body: unknown, headers: Record<string, string> = {}) => {
+    vi.stubGlobal(
+      'fetch',
+      async () => new Response(body === null ? null : JSON.stringify(body), { status, headers }),
+    )
+  }
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('marks a 429 as rate limited and keeps the retry delay', async () => {
+    respond(
+      429,
+      { error: { code: 'rate_limited', message: 'Too many requests.', requestId: 'req-1' } },
+      { 'Retry-After': '60' },
+    )
+
+    const error = await fetchPlayer('puuid').catch((error: unknown) => error)
+
+    expect(error).toBeInstanceOf(ApiRequestError)
+    expect(error).toMatchObject({
+      status: 429,
+      retryAfter: 60,
+      message: 'Too many requests.',
+    })
+    expect(isRateLimited(error)).toBe(true)
+  })
+
+  it('reads a Retry-After date', async () => {
+    respond(429, null, { 'Retry-After': new Date(Date.now() + 30_000).toUTCString() })
+
+    const error = await fetchPlayer('puuid').catch((error: unknown) => error)
+
+    expect(error).toBeInstanceOf(ApiRequestError)
+    expect((error as ApiRequestError).retryAfter).toBeGreaterThanOrEqual(28)
+    expect((error as ApiRequestError).retryAfter).toBeLessThanOrEqual(30)
+  })
+
+  it('keeps other failures out of the rate limit path', async () => {
+    respond(404, { error: { code: 'not_found', message: 'Player not found.', requestId: 'r' } })
+
+    const error = await fetchPlayer('puuid').catch((error: unknown) => error)
+
+    expect(error).toMatchObject({ status: 404, message: 'Player not found.' })
+    expect(isRateLimited(error)).toBe(false)
   })
 })
