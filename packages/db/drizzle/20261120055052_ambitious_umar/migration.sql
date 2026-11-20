@@ -1,0 +1,1 @@
+CREATE INDEX `player_search_name_fk_idx` ON `player_search` (`player_name_id`);
