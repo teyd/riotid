@@ -104,7 +104,9 @@ const RateLimitMeter = ({ now }: { now: number }) => {
     >
       <MeterLabel className="shrink-0 tracking-wide">rate limit</MeterLabel>
       <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
-        <MeterIndicator className={`h-full rounded-full ${low ? 'bg-amber-300' : 'bg-zinc-400'}`} />
+        <MeterIndicator
+          className={`h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out ${low ? 'bg-amber-300' : 'bg-zinc-400'}`}
+        />
       </MeterTrack>
       <MeterValue className={`shrink-0 tabular-nums ${low ? 'text-amber-300' : ''}`} />
     </Meter>
