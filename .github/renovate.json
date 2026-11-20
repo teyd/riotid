@@ -8,6 +8,7 @@
     ":disablePeerDependencies"
   ],
   "configMigration": true,
+  "pinDigests": false,
   "timezone": "Europe/Berlin",
   "rangeStrategy": "pin",
   "separateMajorMinor": false,
