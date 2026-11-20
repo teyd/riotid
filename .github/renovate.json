@@ -36,8 +36,12 @@
       "enabled": false
     },
     {
-      "matchPackageNames": ["@ui-sdk/**", "drizzle-kit", "drizzle-orm"],
+      "matchPackageNames": ["@ui-sdk/**"],
       "ignoreUnstable": false
+    },
+    {
+      "matchPackageNames": ["drizzle-kit", "drizzle-orm"],
+      "allowedVersions": "/^1\\.0\\.0$/"
     }
   ]
 }
