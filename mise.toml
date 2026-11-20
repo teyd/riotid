@@ -122,6 +122,9 @@ run = "pnpm exec varlock run -- node apps/cli/src/main.ts player:remove"
 [tasks."db:seed"]
 run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:seed"
 
+[tasks."db:seed:scale"]
+run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:seed:scale"
+
 [tasks."db:check"]
 run = "pnpm exec varlock run -- node apps/cli/src/main.ts db:check"
 

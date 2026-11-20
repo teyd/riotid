@@ -24,7 +24,10 @@ mise run dev          # API + web dev servers
 
 The web app runs at <http://localhost:5173> and the API at
 <http://localhost:8787>. An empty development database is auto-seeded; run
-`mise run db:seed` for the deterministic synthetic dataset.
+`mise run db:seed` for the deterministic synthetic dataset. For scale tests,
+`mise run db:seed:scale` creates 500k players, 1M name intervals, and 50k
+region changes; pass counts as `mise run db:seed:scale -- 100000 200000 10000`.
+Rerunning replaces the previous scale rows (`seed-scale-*`) in one transaction.
 
 Worktrees get isolated dependencies, a database snapshot, credentials, and
 hashed ports:
@@ -78,12 +81,12 @@ Responses are ETagged and support `If-None-Match`. The API never calls Riot.
 
 ## Commands
 
-| Group   | Task                                                                                                       |
-| ------- | ---------------------------------------------------------------------------------------------------------- |
-| Develop | `mise run dev` · `mise run install` · `mise run check` · `mise run test` · `mise run build`                |
-| Perf    | `mise run perf:web` · `mise run perf:compare` · `mise run perf`                                            |
-| Data    | `mise run scan` · `mise run stats` · `mise run db:seed` · `mise run db:migrate` · `mise run backup`        |
-| Operate | `mise run serve` · `mise run scheduler` · `mise run cli` · `mise run auth:login` · `mise run anon:resolve` |
+| Group   | Task                                                                                                                           |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Develop | `mise run dev` · `mise run install` · `mise run check` · `mise run test` · `mise run build`                                    |
+| Perf    | `mise run perf:web` · `mise run perf:compare` · `mise run perf`                                                                |
+| Data    | `mise run scan` · `mise run stats` · `mise run db:seed` · `mise run db:seed:scale` · `mise run db:migrate` · `mise run backup` |
+| Operate | `mise run serve` · `mise run scheduler` · `mise run cli` · `mise run auth:login` · `mise run anon:resolve`                     |
 
 Run any CLI command through mise, for example
 `mise run cli -- player:show <puuid>`. See the [runbook](docs/runbook.md) for
