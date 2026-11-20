@@ -2,7 +2,7 @@ import { mkdtemp, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { ServiceStatus } from '@riotid/contracts'
+import type { PlayerSearch, ServiceStatus } from '@riotid/contracts'
 import { anonymousRows, Database, identityLinks, seedDatabase } from '@riotid/db'
 import { migrate, runDb, withDatabase } from '@riotid/test-utils'
 import { Effect } from 'effect'
@@ -108,6 +108,53 @@ describe('api', () => {
         headers: { 'if-none-match': etag ?? '' },
       })
       expect(cached.status).toBe(304)
+    })
+  })
+
+  it('searches current and past names without exposing hidden players', async () => {
+    await withApp(async (app) => {
+      const pastResponse = await request(app, '/api/v1/search?q=one%20old')
+      expect(pastResponse.status).toBe(200)
+      expect(pastResponse.headers.get('cache-control')).toContain('s-maxage=30')
+
+      const past = (await pastResponse.json()) as PlayerSearch
+      expect(past.query).toBe('one old')
+      expect(past.current).toMatchObject({ total: 0, players: [] })
+      expect(past.past.total).toBe(1)
+      expect(past.past.matches).toHaveLength(1)
+      expect(past.past.matches[0]).toMatchObject({
+        name: 'Seed One Old',
+        tag: '0001',
+        player: {
+          puuid: 'seed-player-1',
+          name: 'Seed One',
+          tag: '0001',
+          region: 'eu',
+        },
+      })
+
+      const current = (await (
+        await request(app, '/api/v1/search?q=seed')
+      ).json()) as PlayerSearch
+      expect(current.current.total).toBe(2)
+      expect(current.current.players.map((player) => player.puuid)).not.toContain('seed-player-3')
+      expect(current.past.total).toBe(0)
+
+      const banned = (await (
+        await request(app, '/api/v1/search?q=banned')
+      ).json()) as PlayerSearch
+      expect(banned.current.total).toBe(0)
+      expect(banned.past.total).toBe(0)
+
+      const otherRegion = (await (
+        await request(app, '/api/v1/search?q=seed&region=na')
+      ).json()) as PlayerSearch
+      expect(otherRegion.current.total).toBe(0)
+
+      const short = (await (await request(app, '/api/v1/search?q=se')).json()) as PlayerSearch
+      expect(short.minQueryLength).toBe(3)
+      expect(short.current.total).toBe(0)
+      expect(short.past.total).toBe(0)
     })
   })
 

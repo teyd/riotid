@@ -16,6 +16,7 @@ const nameSources = ['name_service', 'match_link'] as const
 const regionEvidence = ['leaderboard', 'mmr_probe'] as const
 const anonymousStatuses = ['unresolved', 'linked', 'ignored'] as const
 const identityMethods = ['direct_puuid', 'mmr_fingerprint', 'match_graph'] as const
+const searchKinds = ['current', 'past'] as const
 
 const timestamps = {
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
@@ -176,6 +177,36 @@ export const playerNames = sqliteTable(
       .on(table.puuid)
       .where(sql`${table.endedAt} IS NULL`),
     index('player_names_puuid_idx').on(table.puuid, table.startedAt),
+  ],
+)
+
+export const playerSearch = sqliteTable(
+  'player_search',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    puuid: text('puuid')
+      .notNull()
+      .references(() => players.puuid, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: searchKinds }).notNull(),
+    playerNameId: integer('player_name_id').references(() => playerNames.id, {
+      onDelete: 'cascade',
+    }),
+    name: text('name').notNull(),
+    tag: text('tag').notNull(),
+    nameFolded: text('name_folded').notNull(),
+    tagFolded: text('tag_folded').notNull(),
+    combinedFolded: text('combined_folded').notNull(),
+    endedAt: integer('ended_at', { mode: 'timestamp_ms' }),
+  },
+  (table) => [
+    check('player_search_kind_check', sql`${table.kind} IN ('current', 'past')`),
+    uniqueIndex('player_search_current_idx')
+      .on(table.puuid)
+      .where(sql`${table.kind} = 'current'`),
+    uniqueIndex('player_search_past_idx')
+      .on(table.playerNameId)
+      .where(sql`${table.kind} = 'past'`),
+    index('player_search_puuid_idx').on(table.puuid),
   ],
 )
 

@@ -4,13 +4,17 @@ import { existsSync, promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 
-import type { ApiError, Health, ServiceStatus } from '@riotid/contracts'
+import type { ApiError, Health, PlayerSearch, Region, ServiceStatus } from '@riotid/contracts'
 import {
   buildSiteIndex,
   Database,
   loadPlayerDetail,
   readDatabase,
   readIndexVersion,
+  searchDefaultLimit,
+  searchMaxLimit,
+  searchMinQueryLength,
+  searchPlayers,
 } from '@riotid/db'
 import { repoRoot } from '@riotid/config'
 import { getConnInfo } from '@hono/node-server/conninfo'
@@ -30,6 +34,7 @@ export type AppOptions = {
   readonly rateLimits?: {
     readonly index?: number
     readonly players?: number
+    readonly search?: number
     readonly status?: number
   }
 }
@@ -90,6 +95,13 @@ const normalizeEtag = (value: string): string => value.trim().replace(/^W\//, ''
 const parseIfNoneMatch = (header: string | undefined, etag: string): boolean =>
   header?.split(',').some((value) => normalizeEtag(value) === normalizeEtag(etag)) ?? false
 
+const searchRegions: ReadonlySet<string> = new Set<Region>(['na', 'eu', 'ap', 'kr'])
+
+const parseRegion = (value: string | undefined): Region | null | undefined => {
+  if (value === undefined || value === 'all') return null
+  return searchRegions.has(value) ? (value as Region) : undefined
+}
+
 export const makeApp = (options: AppOptions) => {
   const app = new Hono<{ Variables: { requestId: string } }>()
   const runtime = ManagedRuntime.make(readDatabase(options.databasePath))
@@ -97,6 +109,7 @@ export const makeApp = (options: AppOptions) => {
   const limits = {
     index: options.rateLimits?.index ?? 30,
     players: options.rateLimits?.players ?? 120,
+    search: options.rateLimits?.search ?? 120,
     status: options.rateLimits?.status ?? 60,
   }
   const cookieFile = options.cookieFile ?? './data/cookies.json'
@@ -229,6 +242,40 @@ export const makeApp = (options: AppOptions) => {
     }
 
     return c.body(index.json, 200, { 'Content-Type': 'application/json; charset=utf-8' })
+  })
+
+  app.get('/api/v1/search', async (c) => {
+    if (await rateLimit(c, 'search', limits.search)) return rateLimited(c)
+
+    const query = (c.req.query('q') ?? '').trim()
+
+    if (query.length > 64) {
+      return c.json(errorBody(c, 'invalid_query', 'Search query is too long.'), 400)
+    }
+
+    const limitValue = c.req.query('limit')
+    const limit = limitValue === undefined ? searchDefaultLimit : Number(limitValue)
+
+    if (!Number.isInteger(limit) || limit < 1 || limit > searchMaxLimit) {
+      return c.json(
+        errorBody(c, 'invalid_limit', `Limit must be between 1 and ${searchMaxLimit}.`),
+        400,
+      )
+    }
+
+    const region = parseRegion(c.req.query('region'))
+
+    if (region === undefined) {
+      return c.json(errorBody(c, 'invalid_region', 'Invalid region.'), 400)
+    }
+
+    const results = await runDb(
+      searchPlayers(query, { region, limit, now: Date.now(), indexWindowDays }),
+    )
+
+    return c.json(results satisfies PlayerSearch, 200, {
+      'Cache-Control': 'public, max-age=30, s-maxage=30',
+    })
   })
 
   app.get('/api/v1/status', async (c) => {
