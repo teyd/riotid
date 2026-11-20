@@ -562,6 +562,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     >
                       <SelectLabel className="sr-only">Sort players</SelectLabel>
                       <SelectTrigger
+                        id="player-sort"
                         aria-label={`Sort players: ${sortOption?.label ?? sort}`}
                         className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-400 hover:text-zinc-100"
                       >

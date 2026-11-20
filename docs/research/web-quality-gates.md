@@ -59,7 +59,7 @@ of this plan.
 | Static checks    | `mise run check`        | Passes; `effect-tsgo vp check` + `tsc`                                                                                     |
 | Unit tests       | `mise run test`         | 16 files, 98 tests, 8/8 workspaces pass                                                                                    |
 | Web build        | `mise run build`        | Passes; `apps/web/dist` is 876 KB                                                                                          |
-| Strobe check     | `mise run perf:web`     | 2/3 cases pass; `search` fails `ResetIncomplete`                                                                           |
+| Strobe check     | `mise run perf:web`     | 3/3 cases pass after the stable id and mock fixes                                                                          |
 | Strobe A/B       | `mise run perf:compare` | Not re-run here; check mode proves the build/serve/browser path                                                            |
 | Production check | `mise run perf`         | Fails by default (browser missing); works with `CHROMIUM_PATH`, but `searchMs` is `-1`. Delete; no production perf script. |
 | E2E              | —                       | No config, no tests, no CI job                                                                                             |
@@ -308,6 +308,9 @@ These are cold check values, not a verdict. They include first-run work such as
 shader compiles.
 
 ### What is broken
+
+Items 1, 5, and 6 are fixed as of 2026-11-20; `mise run perf:web` now passes all
+three cases. Items 2–4 are reasons to retire the production script.
 
 1. **Search fails `ResetIncomplete`.** The search run types into the filter,
    which replaces the sort `Select` with the text “relevance”. Clearing the
@@ -563,11 +566,10 @@ mise run test
 
 mise run perf:web
   pass load   launch.ready 221 ms
-  pass scroll main.work 129 ms · dom.nodes 518
-  FAIL search ResetIncomplete: #ui-sdk-_r_i_-trigger vs #ui-sdk-_r_b_-trigger
+  pass scroll main.work 123 ms · dom.nodes 518
+  pass search main.work 40.8 ms · dom.nodes 391
 
-strobe bench perf/app.bench.ts --head . --check --headless --filter search
-  (with id="player-sort") pass search main.work 38.3 ms · dom.nodes 391
+  (before the fixes: search failed ResetIncomplete)
 
 CHROMIUM_PATH=…/chromium-1248/… node apps/web/perf-check.mjs
   ready 1201 ms · LCP 320 ms · CLS 0.0018 · nodes 430 · rows 21 · searchMs -1

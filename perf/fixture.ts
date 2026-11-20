@@ -3,6 +3,7 @@ import type {
   PlayerPage,
   PlayerSearch,
   Region,
+  ServiceStatus,
   SiteIndex,
   SiteOverview,
 } from '../packages/contracts/src/index.ts'
@@ -112,6 +113,10 @@ export const siteOverview = (): SiteOverview => {
     stats: index.stats,
   }
 }
+
+export const serviceStatus = (): ServiceStatus => ({
+  auth: { updatedAt: NOW - 3_600_000, staleAfterMs: 5_400_000 },
+})
 
 export const playerPage = (): PlayerPage => ({
   sort: 'recentChanges',

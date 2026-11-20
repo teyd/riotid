@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer'
 
 import { bench, web } from '@hona/strobe'
 
-import { playerDetail, playerPage, playerSearch, siteOverview } from './fixture.ts'
+import { playerDetail, playerPage, playerSearch, serviceStatus, siteOverview } from './fixture.ts'
 
 // The virtualized list's scroll container; the page has no stable id for it.
 const list = 'section[aria-labelledby="player-list-heading"] .overflow-y-auto'
@@ -21,6 +21,7 @@ export default bench({
       prepare: async (ctx) => {
         const origin = new URL(ctx.url).origin
         await ctx.mock(`${origin}/api/v1/overview`, () => ({ body: siteOverview() }))
+        await ctx.mock(`${origin}/api/v1/status`, () => ({ body: serviceStatus() }))
         await ctx.mock(`${origin}/api/v1/players?*`, () => ({ body: playerPage() }))
         await ctx.mock(`${origin}/api/v1/search?*`, () => ({ body: playerSearch() }))
         await ctx.mock(`${origin}/api/v1/players/*`, (request) => ({
@@ -29,6 +30,10 @@ export default bench({
         await ctx.mock('https://media.valorant-api.com/*', () => ({
           headers: { 'content-type': 'image/png' },
           body: PIXEL,
+        }))
+        await ctx.mock('https://umami.teyd.dev/*', () => ({
+          headers: { 'content-type': 'application/javascript' },
+          body: '',
         }))
       },
     }),
