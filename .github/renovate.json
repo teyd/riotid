@@ -8,6 +8,7 @@
     ":disablePeerDependencies"
   ],
   "configMigration": true,
+  "gitAuthor": "teyd <48223730+teyd@users.noreply.github.com>",
   "pinDigests": false,
   "timezone": "Europe/Berlin",
   "rangeStrategy": "pin",
