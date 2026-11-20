@@ -78,6 +78,15 @@ export const SiteIndex = Schema.Struct({
 
 export type SiteIndex = typeof SiteIndex.Type
 
+export const SiteOverview = Schema.Struct({
+  version: Schema.Finite,
+  generatedAt: Schema.Finite,
+  season: Schema.NullOr(IndexSeason),
+  stats: IndexStats,
+})
+
+export type SiteOverview = typeof SiteOverview.Type
+
 export const NameInterval = Schema.Struct({
   name: Schema.String,
   tag: Schema.String,
@@ -172,6 +181,18 @@ export const SearchPlayer = Schema.Struct({
 })
 
 export type SearchPlayer = typeof SearchPlayer.Type
+
+export const PlayerSort = Schema.Literals(['recentChanges', 'changes', 'recent', 'new', 'name'])
+export type PlayerSort = typeof PlayerSort.Type
+
+export const PlayerPage = Schema.Struct({
+  sort: PlayerSort,
+  region: Schema.NullOr(Region),
+  players: Schema.Array(SearchPlayer),
+  nextCursor: Schema.NullOr(Schema.String),
+})
+
+export type PlayerPage = typeof PlayerPage.Type
 
 export const SearchMatch = Schema.Struct({
   player: SearchPlayer,

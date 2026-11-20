@@ -4,12 +4,15 @@ import type {
   IndexPlayer,
   NameInterval,
   PlayerDetail,
+  PlayerPage,
   PlayerSearch,
+  PlayerSort,
   Region,
   RegionInterval,
   SearchMatch,
   SearchPlayer,
   SiteIndex,
+  SiteOverview,
 } from '@riotid/contracts'
 import { sql } from 'drizzle-orm'
 import { Effect } from 'effect'
@@ -20,19 +23,22 @@ const dayMs = 86_400_000
 const hourMs = 3_600_000
 export const defaultIndexPlayerLimit = 50_000
 
-type PlayerRow = {
+type PlayerSummaryRow = {
   puuid: string
   name: string | null
   tag: string | null
   card_id: string | null
   region: Region | null
-  is_anonymized: number
   name_changes: number
   region_changes: number
-  ban_count: number
-  unban_count: number
   first_seen_at: number
   last_seen_at: number
+}
+
+type PlayerRow = PlayerSummaryRow & {
+  is_anonymized: number
+  ban_count: number
+  unban_count: number
   last_name_change_at: number | null
   last_region_change_at: number | null
 }
@@ -45,12 +51,11 @@ export const readIndexVersion: Effect.Effect<number, unknown, Database> = Effect
   return Number(row?.value ?? '0')
 })
 
-export const buildSiteIndex = (
-  now = Date.now(),
-  indexWindowDays = 30,
-  scanIntervalHours = 6,
-  playerLimit = defaultIndexPlayerLimit,
-): Effect.Effect<SiteIndex, unknown, Database> =>
+const readSiteOverview = (
+  now: number,
+  indexWindowDays: number,
+  scanIntervalHours: number,
+): Effect.Effect<SiteOverview, unknown, Database> =>
   Effect.gen(function* () {
     const db = yield* Database
     const version = yield* readIndexVersion
@@ -91,6 +96,48 @@ export const buildSiteIndex = (
     const latestRun = yield* db.get<{ finished_at: number | null }>(sql`
       select finished_at from runs where status = 'succeeded' order by finished_at desc limit 1
     `)
+
+    return {
+      version,
+      generatedAt: now,
+      season: season
+        ? { id: season.uuid, name: season.display_name, endsAt: season.ends_at }
+        : null,
+      stats: {
+        players: totals?.players ?? 0,
+        publicPlayers: publicTotals?.total ?? 0,
+        nameChanges: totals?.name_changes ?? 0,
+        regionChanges: totals?.region_changes ?? 0,
+        bans: totals?.bans ?? 0,
+        unbans: totals?.unbans ?? 0,
+        anonymous: anonymous?.total ?? 0,
+        linked: anonymous?.linked ?? 0,
+        unresolved: anonymous?.unresolved ?? 0,
+        lastRunAt: latestRun?.finished_at ?? null,
+        nextRunAt: latestRun?.finished_at
+          ? latestRun.finished_at + scanIntervalHours * hourMs
+          : null,
+      },
+    }
+  })
+
+export const buildSiteOverview = (
+  now = Date.now(),
+  indexWindowDays = 30,
+  scanIntervalHours = 6,
+): Effect.Effect<SiteOverview, unknown, Database> =>
+  readSiteOverview(now, indexWindowDays, scanIntervalHours)
+
+export const buildSiteIndex = (
+  now = Date.now(),
+  indexWindowDays = 30,
+  scanIntervalHours = 6,
+  playerLimit = defaultIndexPlayerLimit,
+): Effect.Effect<SiteIndex, unknown, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database
+    const overview = yield* readSiteOverview(now, indexWindowDays, scanIntervalHours)
+    const cutoff = now - indexWindowDays * dayMs
     const rows = yield* db.all<PlayerRow>(sql`
       select
         puuid, name, tag, card_id, region, is_anonymized,
@@ -136,30 +183,7 @@ export const buildSiteIndex = (
       ]
     })
 
-    return {
-      version,
-      generatedAt: now,
-      season: season
-        ? { id: season.uuid, name: season.display_name, endsAt: season.ends_at }
-        : null,
-      stats: {
-        players: totals?.players ?? 0,
-        publicPlayers: publicTotals?.total ?? 0,
-        nameChanges: totals?.name_changes ?? 0,
-        regionChanges: totals?.region_changes ?? 0,
-        bans: totals?.bans ?? 0,
-        unbans: totals?.unbans ?? 0,
-        anonymous: anonymous?.total ?? 0,
-        linked: anonymous?.linked ?? 0,
-        unresolved: anonymous?.unresolved ?? 0,
-        lastRunAt: latestRun?.finished_at ?? null,
-        nextRunAt: latestRun?.finished_at
-          ? latestRun.finished_at + scanIntervalHours * hourMs
-          : null,
-      },
-      cards,
-      players,
-    }
+    return { ...overview, cards, players }
   })
 
 export const searchMinQueryLength = 3
@@ -174,16 +198,7 @@ export type SearchOptions = {
   readonly indexWindowDays?: number
 }
 
-type SearchRow = {
-  puuid: string
-  name: string
-  tag: string
-  region: Region | null
-  card_id: string | null
-  name_changes: number
-  region_changes: number
-  first_seen_at: number
-  last_seen_at: number
+type SearchRow = PlayerSummaryRow & {
   match_name: string
   match_tag: string
   started_at: number | null
@@ -207,10 +222,10 @@ const emptySearch = (query: string, limit: number): PlayerSearch => ({
   past: { total: 0, truncated: false, matches: [] },
 })
 
-const toSearchPlayer = (row: SearchRow): SearchPlayer => ({
+const toSearchPlayer = (row: PlayerSummaryRow): SearchPlayer => ({
   puuid: row.puuid,
-  name: row.name,
-  tag: row.tag,
+  name: row.name ?? '',
+  tag: row.tag ?? '',
   region: row.region,
   cardId: row.card_id,
   nameChanges: row.name_changes,
@@ -428,6 +443,228 @@ export const searchPlayers = (
             }) satisfies SearchMatch,
         ),
       },
+    }
+  })
+
+export const defaultPlayerPageSize = 250
+export const maxPlayerPageSize = 250
+
+type PlayerCursorBase = { readonly v: 1; readonly sort: PlayerSort }
+
+export type PlayerCursor =
+  | (PlayerCursorBase & { sort: 'recent'; lastSeenAt: number; puuid: string })
+  | (PlayerCursorBase & { sort: 'new'; firstSeenAt: number; puuid: string })
+  | (PlayerCursorBase & {
+      sort: 'recentChanges'
+      lastNameChangeAt: number
+      lastSeenAt: number
+      puuid: string
+    })
+  | (PlayerCursorBase & { sort: 'changes'; score: number; lastSeenAt: number; puuid: string })
+  | (PlayerCursorBase & { sort: 'name'; name: string; tag: string; puuid: string })
+
+export type PlayerPageOptions = {
+  readonly sort: PlayerSort
+  readonly region?: Region | null
+  readonly cursor?: PlayerCursor | null
+  readonly limit?: number
+  readonly now?: number
+  readonly indexWindowDays?: number
+}
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value)
+const isText = (value: unknown): value is string => typeof value === 'string'
+
+export const decodePlayerCursor = (value: string): PlayerCursor | null => {
+  try {
+    const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as Record<
+      string,
+      unknown
+    >
+
+    if (parsed.v !== 1 || !isText(parsed.sort) || !isText(parsed.puuid)) return null
+
+    switch (parsed.sort) {
+      case 'recent':
+        return isFiniteNumber(parsed.lastSeenAt)
+          ? { v: 1, sort: 'recent', lastSeenAt: parsed.lastSeenAt, puuid: parsed.puuid }
+          : null
+      case 'new':
+        return isFiniteNumber(parsed.firstSeenAt)
+          ? { v: 1, sort: 'new', firstSeenAt: parsed.firstSeenAt, puuid: parsed.puuid }
+          : null
+      case 'recentChanges':
+        return isFiniteNumber(parsed.lastNameChangeAt) && isFiniteNumber(parsed.lastSeenAt)
+          ? {
+              v: 1,
+              sort: 'recentChanges',
+              lastNameChangeAt: parsed.lastNameChangeAt,
+              lastSeenAt: parsed.lastSeenAt,
+              puuid: parsed.puuid,
+            }
+          : null
+      case 'changes':
+        return isFiniteNumber(parsed.score) && isFiniteNumber(parsed.lastSeenAt)
+          ? {
+              v: 1,
+              sort: 'changes',
+              score: parsed.score,
+              lastSeenAt: parsed.lastSeenAt,
+              puuid: parsed.puuid,
+            }
+          : null
+      case 'name':
+        return isText(parsed.name) && isText(parsed.tag)
+          ? { v: 1, sort: 'name', name: parsed.name, tag: parsed.tag, puuid: parsed.puuid }
+          : null
+      default:
+        return null
+    }
+  } catch {
+    return null
+  }
+}
+
+const encodePlayerCursor = (sort: PlayerSort, row: PlayerRow): string => {
+  let payload: PlayerCursor
+
+  switch (sort) {
+    case 'recent':
+      payload = { v: 1, sort, lastSeenAt: row.last_seen_at, puuid: row.puuid }
+      break
+    case 'new':
+      payload = { v: 1, sort, firstSeenAt: row.first_seen_at, puuid: row.puuid }
+      break
+    case 'recentChanges':
+      payload = {
+        v: 1,
+        sort,
+        lastNameChangeAt: row.last_name_change_at ?? 0,
+        lastSeenAt: row.last_seen_at,
+        puuid: row.puuid,
+      }
+      break
+    case 'changes':
+      payload = {
+        v: 1,
+        sort,
+        score: row.name_changes * 2 + row.region_changes * 3,
+        lastSeenAt: row.last_seen_at,
+        puuid: row.puuid,
+      }
+      break
+    case 'name':
+      payload = {
+        v: 1,
+        sort,
+        name: (row.name ?? '').toLowerCase(),
+        tag: (row.tag ?? '').toLowerCase(),
+        puuid: row.puuid,
+      }
+      break
+  }
+
+  return Buffer.from(JSON.stringify(payload)).toString('base64url')
+}
+
+export const listPlayersPage = (
+  options: PlayerPageOptions,
+): Effect.Effect<PlayerPage, unknown, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database
+    const sort = options.sort
+    const limit = Math.max(1, Math.min(options.limit ?? defaultPlayerPageSize, maxPlayerPageSize))
+    const cutoff = (options.now ?? Date.now()) - (options.indexWindowDays ?? 30) * dayMs
+    const region = options.region ?? null
+    const cursor = options.cursor ?? null
+    let after = sql``
+    let order = sql`last_seen_at desc, puuid desc`
+
+    if (sort === 'new') {
+      order = sql`first_seen_at desc, puuid desc`
+    } else if (sort === 'recentChanges') {
+      order = sql`coalesce(last_name_change_at, 0) desc, last_seen_at desc, puuid desc`
+    } else if (sort === 'changes') {
+      order = sql`(name_changes * 2 + region_changes * 3) desc, last_seen_at desc, puuid desc`
+    } else if (sort === 'name') {
+      order = sql`lower(coalesce(name, '')) asc, lower(coalesce(tag, '')) asc, puuid asc`
+    }
+
+    if (cursor?.sort === 'recent') {
+      after = sql`and (
+        last_seen_at < ${cursor.lastSeenAt}
+        or (last_seen_at = ${cursor.lastSeenAt} and puuid < ${cursor.puuid})
+      )`
+    } else if (cursor?.sort === 'new') {
+      after = sql`and (
+        first_seen_at < ${cursor.firstSeenAt}
+        or (first_seen_at = ${cursor.firstSeenAt} and puuid < ${cursor.puuid})
+      )`
+    } else if (cursor?.sort === 'recentChanges') {
+      after = sql`and (
+        coalesce(last_name_change_at, 0) < ${cursor.lastNameChangeAt}
+        or (
+          coalesce(last_name_change_at, 0) = ${cursor.lastNameChangeAt}
+          and last_seen_at < ${cursor.lastSeenAt}
+        )
+        or (
+          coalesce(last_name_change_at, 0) = ${cursor.lastNameChangeAt}
+          and last_seen_at = ${cursor.lastSeenAt}
+          and puuid < ${cursor.puuid}
+        )
+      )`
+    } else if (cursor?.sort === 'changes') {
+      after = sql`and (
+        (name_changes * 2 + region_changes * 3) < ${cursor.score}
+        or (
+          (name_changes * 2 + region_changes * 3) = ${cursor.score}
+          and last_seen_at < ${cursor.lastSeenAt}
+        )
+        or (
+          (name_changes * 2 + region_changes * 3) = ${cursor.score}
+          and last_seen_at = ${cursor.lastSeenAt}
+          and puuid < ${cursor.puuid}
+        )
+      )`
+    } else if (cursor?.sort === 'name') {
+      after = sql`and (
+        lower(coalesce(name, '')) > ${cursor.name}
+        or (
+          lower(coalesce(name, '')) = ${cursor.name}
+          and lower(coalesce(tag, '')) > ${cursor.tag}
+        )
+        or (
+          lower(coalesce(name, '')) = ${cursor.name}
+          and lower(coalesce(tag, '')) = ${cursor.tag}
+          and puuid > ${cursor.puuid}
+        )
+      )`
+    }
+
+    const rows = yield* db.all<PlayerRow>(sql`
+      select
+        puuid, name, tag, card_id, region, is_anonymized,
+        name_changes, region_changes, ban_count, unban_count,
+        first_seen_at, last_seen_at, last_name_change_at, last_region_change_at
+      from players
+      where is_banned = 0
+        and last_seen_at >= ${cutoff}
+        and (${region} is null or region = ${region})
+        ${after}
+      order by ${order}
+      limit ${limit + 1}
+    `)
+
+    const hasMore = rows.length > limit
+    const pageRows = rows.slice(0, limit)
+    const last = pageRows.at(-1)
+
+    return {
+      sort,
+      region,
+      players: pageRows.map(toSearchPlayer),
+      nextCursor: hasMore && last ? encodePlayerCursor(sort, last) : null,
     }
   })
 

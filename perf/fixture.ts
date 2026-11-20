@@ -1,4 +1,11 @@
-import type { PlayerDetail, Region, SiteIndex } from '../packages/contracts/src/index.ts'
+import type {
+  PlayerDetail,
+  PlayerPage,
+  PlayerSearch,
+  Region,
+  SiteIndex,
+  SiteOverview,
+} from '../packages/contracts/src/index.ts'
 
 const PLAYERS = 35_000
 const CARDS = 24
@@ -83,6 +90,46 @@ const index = (): SiteIndex => {
 let cached: SiteIndex | undefined
 
 export const siteIndex = (): SiteIndex => (cached ??= index())
+
+const searchPlayer = (row: SiteIndex['players'][number]) => ({
+  puuid: row[0],
+  name: row[1],
+  tag: row[2],
+  region: row[3],
+  cardId: row[9] == null ? null : (cards[row[9]] ?? null),
+  nameChanges: row[5],
+  regionChanges: row[6],
+  firstSeenAt: row[7],
+  lastSeenAt: row[8],
+})
+
+export const siteOverview = (): SiteOverview => {
+  const index = siteIndex()
+  return {
+    version: index.version,
+    generatedAt: index.generatedAt,
+    season: index.season,
+    stats: index.stats,
+  }
+}
+
+export const playerPage = (): PlayerPage => ({
+  sort: 'recentChanges',
+  region: null,
+  players: siteIndex().players.slice(0, 250).map(searchPlayer),
+  nextCursor: null,
+})
+
+export const playerSearch = (): PlayerSearch => {
+  const players = siteIndex().players.slice(0, 20).map(searchPlayer)
+  return {
+    query: 'player 0',
+    minQueryLength: 3,
+    limit: 20,
+    current: { total: players.length, truncated: false, players },
+    past: { total: 0, truncated: false, matches: [] },
+  }
+}
 
 export const playerDetail = (puuid: string): PlayerDetail => {
   const row = siteIndex().players.find((candidate) => candidate[0] === puuid)

@@ -5,7 +5,6 @@ import type { PlayerSearch } from '@riotid/contracts'
 import {
   displayName,
   formatScanCountdown,
-  indexRowToPlayer,
   playerUrl,
   searchToSections,
   trackerProfileUrl,
@@ -33,32 +32,6 @@ describe('profile links', () => {
 })
 
 describe('player rows', () => {
-  it('maps index tuples through the card dictionary', () => {
-    const row: import('@riotid/contracts').SiteIndex['players'][number] = [
-      'player-1',
-      'Current Name',
-      'TAG',
-      'na',
-      0,
-      1,
-      0,
-      10,
-      20,
-      0,
-      null,
-    ]
-
-    expect(indexRowToPlayer(row, ['card-id'])).toMatchObject({
-      puuid: 'player-1',
-      name: 'Current Name',
-      tag: 'TAG',
-      region: 'na',
-      cardId: 'card-id',
-      lastSeenAt: 20,
-      former: null,
-    })
-  })
-
   it('groups search results and attaches the matched past name', () => {
     const result: PlayerSearch = {
       query: 'old',

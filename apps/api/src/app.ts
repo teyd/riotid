@@ -4,12 +4,26 @@ import { existsSync, promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib'
 
-import type { ApiError, Health, PlayerSearch, Region, ServiceStatus } from '@riotid/contracts'
+import type {
+  ApiError,
+  Health,
+  PlayerPage,
+  PlayerSearch,
+  PlayerSort,
+  Region,
+  ServiceStatus,
+  SiteOverview,
+} from '@riotid/contracts'
 import {
   buildSiteIndex,
+  buildSiteOverview,
   Database,
+  decodePlayerCursor,
   defaultIndexPlayerLimit,
+  defaultPlayerPageSize,
+  listPlayersPage,
   loadPlayerDetail,
+  maxPlayerPageSize,
   readDatabase,
   readIndexVersion,
   searchDefaultLimit,
@@ -34,6 +48,8 @@ export type AppOptions = {
   readonly scanIntervalHours?: number
   readonly rateLimits?: {
     readonly index?: number
+    readonly browse?: number
+    readonly overview?: number
     readonly players?: number
     readonly search?: number
     readonly status?: number
@@ -97,6 +113,13 @@ const parseIfNoneMatch = (header: string | undefined, etag: string): boolean =>
   header?.split(',').some((value) => normalizeEtag(value) === normalizeEtag(etag)) ?? false
 
 const searchRegions: ReadonlySet<string> = new Set<Region>(['na', 'eu', 'ap', 'kr'])
+const playerSorts: ReadonlySet<string> = new Set<PlayerSort>([
+  'recentChanges',
+  'changes',
+  'recent',
+  'new',
+  'name',
+])
 
 const parseRegion = (value: string | undefined): Region | null | undefined => {
   if (value === undefined || value === 'all') return null
@@ -109,6 +132,8 @@ export const makeApp = (options: AppOptions) => {
   const runDb = <A, E>(effect: Effect.Effect<A, E, Database>) => runtime.runPromise(effect)
   const limits = {
     index: options.rateLimits?.index ?? 30,
+    browse: options.rateLimits?.browse ?? 120,
+    overview: options.rateLimits?.overview ?? 60,
     players: options.rateLimits?.players ?? 120,
     search: options.rateLimits?.search ?? 120,
     status: options.rateLimits?.status ?? 60,
@@ -122,6 +147,7 @@ export const makeApp = (options: AppOptions) => {
   const scanIntervalHours = options.scanIntervalHours ?? 6
   const buckets = new Map<string, Bucket>()
   let cachedIndex: CachedJson | null = null
+  let cachedOverview: { key: string; body: string; etag: string } | null = null
 
   const hitLimit = (key: string, limit: number, windowMs = 60_000): boolean => {
     const now = Date.now()
@@ -163,6 +189,22 @@ export const makeApp = (options: AppOptions) => {
       `"${indexFormat}-${value.version}-${value.players.length}"`,
     )
     cachedIndex = cached
+    return cached
+  })
+
+  const getOverview = Effect.gen(function* () {
+    const version = yield* readIndexVersion
+    const key = `${options.databasePath}:${indexWindowDays}:${scanIntervalHours}:${version}`
+
+    if (cachedOverview?.key === key) return cachedOverview
+
+    const value = yield* buildSiteOverview(Date.now(), indexWindowDays, scanIntervalHours)
+    const cached = {
+      key,
+      body: JSON.stringify(value satisfies SiteOverview),
+      etag: `"overview-${version}"`,
+    }
+    cachedOverview = cached
     return cached
   })
 
@@ -282,6 +324,69 @@ export const makeApp = (options: AppOptions) => {
 
     return c.json(results satisfies PlayerSearch, 200, {
       'Cache-Control': 'public, max-age=30, s-maxage=30',
+    })
+  })
+
+  app.get('/api/v1/overview', async (c) => {
+    if (await rateLimit(c, 'overview', limits.overview)) return rateLimited(c)
+
+    const overview = await runDb(getOverview)
+    c.header('ETag', overview.etag)
+    c.header('Cache-Control', 'public, max-age=60, s-maxage=300')
+
+    if (parseIfNoneMatch(c.req.header('if-none-match'), overview.etag)) {
+      return c.body(null, 304)
+    }
+
+    return c.body(overview.body, 200, { 'Content-Type': 'application/json; charset=utf-8' })
+  })
+
+  app.get('/api/v1/players', async (c) => {
+    if (await rateLimit(c, 'browse', limits.browse)) return rateLimited(c)
+
+    const sortValue = c.req.query('sort') ?? 'recentChanges'
+
+    if (!playerSorts.has(sortValue)) {
+      return c.json(errorBody(c, 'invalid_sort', 'Invalid player sort.'), 400)
+    }
+
+    const sort = sortValue as PlayerSort
+    const region = parseRegion(c.req.query('region'))
+
+    if (region === undefined) {
+      return c.json(errorBody(c, 'invalid_region', 'Invalid region.'), 400)
+    }
+
+    const limitValue = c.req.query('limit')
+    const limit = limitValue === undefined ? defaultPlayerPageSize : Number(limitValue)
+
+    if (!Number.isInteger(limit) || limit < 1 || limit > maxPlayerPageSize) {
+      return c.json(
+        errorBody(c, 'invalid_limit', `Limit must be between 1 and ${maxPlayerPageSize}.`),
+        400,
+      )
+    }
+
+    const cursorValue = c.req.query('cursor')
+    const cursor = cursorValue === undefined ? null : decodePlayerCursor(cursorValue)
+
+    if (cursorValue !== undefined && (cursor === null || cursor.sort !== sort)) {
+      return c.json(errorBody(c, 'invalid_cursor', 'Invalid player cursor.'), 400)
+    }
+
+    const page = await runDb(
+      listPlayersPage({
+        sort,
+        region,
+        cursor,
+        limit,
+        now: Date.now(),
+        indexWindowDays,
+      }),
+    )
+
+    return c.json(page satisfies PlayerPage, 200, {
+      'Cache-Control': 'public, max-age=30, s-maxage=60',
     })
   })
 

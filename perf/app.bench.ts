@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer'
 
 import { bench, web } from '@hona/strobe'
 
-import { playerDetail, siteIndex } from './fixture.ts'
+import { playerDetail, playerPage, playerSearch, siteOverview } from './fixture.ts'
 
 // The virtualized list's scroll container; the page has no stable id for it.
 const list = 'section[aria-labelledby="player-list-heading"] .overflow-y-auto'
@@ -20,9 +20,9 @@ export default bench({
       url: '/',
       prepare: async (ctx) => {
         const origin = new URL(ctx.url).origin
-        const index = siteIndex()
-
-        await ctx.mock(`${origin}/api/v1/index`, () => ({ body: index }))
+        await ctx.mock(`${origin}/api/v1/overview`, () => ({ body: siteOverview() }))
+        await ctx.mock(`${origin}/api/v1/players?*`, () => ({ body: playerPage() }))
+        await ctx.mock(`${origin}/api/v1/search?*`, () => ({ body: playerSearch() }))
         await ctx.mock(`${origin}/api/v1/players/*`, (request) => ({
           body: playerDetail(request.url.split('/').pop() ?? ''),
         }))
@@ -51,9 +51,12 @@ export default bench({
     search: {
       primary: 'main.work',
       metrics: ['dom.nodes'],
-      run: ({ page }) => page.type('input[aria-label="Search players"]', 'player 0', { delay: 0 }),
+      run: ({ page }) =>
+        page.type('input[aria-label="Search current and past names"]', 'player 0', { delay: 0 }),
       reset: async ({ page }) => {
-        await page.press('ControlOrMeta+a', { selector: 'input[aria-label="Search players"]' })
+        await page.press('ControlOrMeta+a', {
+          selector: 'input[aria-label="Search current and past names"]',
+        })
         await page.press('Backspace')
         await page.waitFor('[data-player-row]')
       },

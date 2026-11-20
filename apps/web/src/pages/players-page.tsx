@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@ui-sdk/react/select'
 import { Input } from '@ui-sdk/react/input'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
 import {
   SegmentedControl,
@@ -21,20 +21,18 @@ import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
 import { EmptyState, LoadingState } from '../components/ui.tsx'
 import {
-  fetchIndex,
+  fetchOverview,
   fetchPlayer,
+  fetchPlayersPage,
   fetchSearch,
   fetchStatus,
   formatRelative,
   formatScanCountdown,
   formatScanTime,
-  indexRowToPlayer,
-  P,
   searchMatchToItem,
   searchPlayerToItem,
   searchToSections,
   toPlayerPreview,
-  type IndexRow,
   type PlayerListItem,
   type PlayerSection,
   type Region,
@@ -49,6 +47,8 @@ let selectionSource: 'list' | 'search' | null = null
 let lastQuery = ''
 let lastRegion: 'all' | Region = 'all'
 let lastSort: Sort = 'recentChanges'
+
+const playerPageSize = 250
 
 const sorts: Array<{ value: Sort; label: string; trigger: string }> = [
   { value: 'recentChanges', label: 'Recent name changes', trigger: 'renames' },
@@ -76,11 +76,8 @@ const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
-const score = (row: IndexRow) => row[P.nameChanges] * 2 + row[P.regionChanges] * 3
-
 type ScanStatusProps = {
   players: number | null
-  shownPlayers: number | null
   nameChanges: number | null
   lastRunAt: number | null
   nextRunAt: number | null
@@ -92,7 +89,6 @@ type ScanStatusProps = {
 
 const ScanStatus = ({
   players,
-  shownPlayers,
   nameChanges,
   lastRunAt,
   nextRunAt,
@@ -133,12 +129,7 @@ const ScanStatus = ({
         </>
       ) : (
         <>
-          <span>
-            {players?.toLocaleString() ?? '—'} public players
-            {shownPlayers !== null && players !== null && shownPlayers < players
-              ? ` · ${shownPlayers.toLocaleString()} shown`
-              : ''}
-          </span>
+          <span>{players?.toLocaleString() ?? '—'} public players</span>
           <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
           <span className={cookieWarning ? 'text-amber-300' : undefined}>
             cookie{' '}
@@ -221,11 +212,28 @@ export function PlayersPage({ selected }: { selected?: string }) {
     return () => window.clearTimeout(timer)
   }, [])
 
-  const index = useQuery({
-    queryKey: ['index'],
-    queryFn: fetchIndex,
+  const overview = useQuery({
+    queryKey: ['overview'],
+    queryFn: ({ signal }) => fetchOverview(signal),
     staleTime: 60_000,
     refetchInterval: 120_000,
+  })
+
+  const browse = useInfiniteQuery({
+    queryKey: ['players', sort, region],
+    queryFn: ({ pageParam, signal }) =>
+      fetchPlayersPage(
+        {
+          sort,
+          region: region === 'all' ? null : region,
+          cursor: pageParam,
+          limit: playerPageSize,
+        },
+        signal,
+      ),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    staleTime: 60_000,
   })
 
   const status = useQuery({
@@ -241,7 +249,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const requestedQuery = useDebouncedValue(needle, 180)
   const search = useQuery({
     queryKey: ['search', requestedQuery, region],
-    queryFn: () => fetchSearch(requestedQuery, region === 'all' ? null : region),
+    queryFn: ({ signal }) => fetchSearch(requestedQuery, region === 'all' ? null : region, signal),
     enabled: searchMode && requestedQuery.length >= 3,
     staleTime: 30_000,
   })
@@ -249,48 +257,16 @@ export function PlayersPage({ selected }: { selected?: string }) {
     searchMode && requestedQuery === needle && search.data?.query === needle ? search.data : null
   const searchFailed = searchMode && !searchData && search.isError
   const typing = needle.length > 0 && !searchMode
-  const publicPlayers = index.data?.stats.publicPlayers ?? 0
-  const previewTruncated = (index.data?.players.length ?? 0) < publicPlayers
+  const publicPlayers = overview.data?.stats.publicPlayers ?? 0
 
-  const rows = useMemo(() => {
-    const all = index.data?.players ?? []
-    const filtered = all.filter((row) => region === 'all' || row[P.region] === region)
-
-    return [...filtered].sort((left, right) => {
-      switch (sort) {
-        case 'recentChanges':
-          return (
-            (right[P.lastNameChangeAt] ?? 0) - (left[P.lastNameChangeAt] ?? 0) ||
-            score(right) - score(left) ||
-            right[P.lastSeenAt] - left[P.lastSeenAt]
-          )
-        case 'changes':
-          return score(right) - score(left) || right[P.lastSeenAt] - left[P.lastSeenAt]
-        case 'new':
-          return right[P.firstSeenAt] - left[P.firstSeenAt]
-        case 'name':
-          return (
-            left[P.name].localeCompare(right[P.name]) ||
-            left[P.tag].localeCompare(right[P.tag]) ||
-            left[P.puuid].localeCompare(right[P.puuid])
-          )
-        default:
-          return right[P.lastSeenAt] - left[P.lastSeenAt]
-      }
-    })
-  }, [index.data, region, sort])
+  const rows: PlayerListItem[] = useMemo(
+    () => browse.data?.pages.flatMap((page) => page.players.map(searchPlayerToItem)) ?? [],
+    [browse.data],
+  )
 
   const browseSections: PlayerSection[] = useMemo(
-    () => [
-      {
-        id: 'all',
-        label: '',
-        total: rows.length,
-        truncated: false,
-        players: rows.map((row) => indexRowToPlayer(row, index.data?.cards ?? [])),
-      },
-    ],
-    [rows, index.data],
+    () => [{ id: 'all', label: '', total: rows.length, truncated: false, players: rows }],
+    [rows],
   )
 
   const searchSections = useMemo(
@@ -308,18 +284,11 @@ export function PlayersPage({ selected }: { selected?: string }) {
     [searchData],
   )
 
-  const playersById = useMemo(
-    () => new Map((index.data?.players ?? []).map((row) => [row[P.puuid], row])),
-    [index.data],
-  )
+  const playersById = useMemo(() => new Map(rows.map((player) => [player.puuid, player])), [rows])
 
   const selectedRow = p ? (playersById.get(p) ?? null) : null
   const selectedSearchPlayer = p ? (searchItems.find((item) => item.puuid === p) ?? null) : null
-  const selectedPlayer = selectedSearchPlayer
-    ? selectedSearchPlayer
-    : selectedRow
-      ? indexRowToPlayer(selectedRow, index.data?.cards ?? [])
-      : null
+  const selectedPlayer = selectedSearchPlayer ?? selectedRow
   const selectedPreview = selectedPlayer ? toPlayerPreview(selectedPlayer) : null
   const selectedCard = selectedPlayer?.cardId ?? null
 
@@ -328,16 +297,16 @@ export function PlayersPage({ selected }: { selected?: string }) {
       initialSelectionDone = true
       return
     }
-    if (initialSelectionDone || index.isPending || rows.length === 0) return
+    if (initialSelectionDone || browse.isPending || rows.length === 0) return
     if (searchMode || typing) return
     if (!window.matchMedia('(min-width: 1024px)').matches) return
 
-    const first = rows[0]?.[P.puuid]
+    const first = rows[0]?.puuid
     if (first) {
       initialSelectionDone = true
       void navigate({ to: '/puuid/$puuid', params: { puuid: first }, replace: true })
     }
-  }, [p, index.isPending, rows, navigate, searchMode, typing])
+  }, [p, browse.isPending, rows, navigate, searchMode, typing])
 
   useEffect(() => {
     if (!restoreSearchFocus) return
@@ -376,7 +345,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
     ? (searchItems[0]?.puuid ?? null)
     : typing
       ? null
-      : (rows[0]?.[P.puuid] ?? null)
+      : (rows[0]?.puuid ?? null)
   const groupCount = (total: number, truncated: boolean, shown: number) =>
     truncated ? `${shown}+` : total.toLocaleString()
   const countLabel = searchMode
@@ -385,20 +354,23 @@ export function PlayersPage({ selected }: { selected?: string }) {
       : '—'
     : typing
       ? '0'
-      : rows.length.toLocaleString()
-  const listLoading = searchMode ? !searchData && !searchFailed : index.isPending
+      : overview.isPending
+        ? '—'
+        : publicPlayers.toLocaleString()
+  const browseFailed = !searchMode && !typing && browse.isError && rows.length === 0
+  const listLoading = searchMode ? !searchData && !searchFailed : browse.isPending
   const emptyTitle = searchMode
     ? 'No players match.'
     : typing
       ? 'Keep typing…'
-      : index.data?.players.length
+      : publicPlayers
         ? 'No players match.'
         : 'No players yet.'
   const emptyHint = searchMode
     ? 'Try a current or past name, tag, or another region.'
     : typing
       ? 'Search current and past names with at least 3 characters.'
-      : index.data?.players.length
+      : publicPlayers
         ? 'Try another region.'
         : 'Run a scan to populate the index.'
 
@@ -539,13 +511,6 @@ export function PlayersPage({ selected }: { selected?: string }) {
               </div>
             </div>
 
-            {previewTruncated && !searchMode ? (
-              <p className="border-b border-white/[0.06] px-4 py-2 font-mono text-[11px] text-zinc-400">
-                Showing the {(index.data?.players.length ?? 0).toLocaleString()} most recently seen.
-                Search covers all {publicPlayers.toLocaleString()} players.
-              </p>
-            ) : null}
-
             <div className="min-h-0 flex-1">
               {searchFailed ? (
                 <div role="alert" className="flex flex-col items-start gap-3 p-6">
@@ -559,6 +524,18 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     Retry
                   </button>
                 </div>
+              ) : browseFailed ? (
+                <div role="alert" className="flex flex-col items-start gap-3 p-6">
+                  <p className="text-base text-zinc-200">Could not load players.</p>
+                  <p className="font-mono text-xs text-zinc-400">{browse.error?.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => void browse.refetch()}
+                    className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
+                  >
+                    Retry
+                  </button>
+                </div>
               ) : (
                 <PlayerList
                   sections={sections}
@@ -566,6 +543,11 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   loading={listLoading}
                   emptyTitle={emptyTitle}
                   emptyHint={emptyHint}
+                  hasMore={!searchMode && !typing && browse.hasNextPage}
+                  loadingMore={browse.isFetchingNextPage}
+                  onLoadMore={() => {
+                    if (!browse.isFetchingNextPage) void browse.fetchNextPage()
+                  }}
                   focusSelectedOnMount={selectionSource === 'list'}
                   searchRef={searchRef}
                   onSelect={select}
@@ -602,21 +584,21 @@ export function PlayersPage({ selected }: { selected?: string }) {
                 focusHeading={selectionSource === 'search'}
                 onBack={backToList}
               />
-            ) : index.isPending ? (
-              <LoadingState label="Loading index…" />
-            ) : index.isError ? (
+            ) : overview.isPending ? (
+              <LoadingState label="Loading overview…" />
+            ) : overview.isError ? (
               <div role="alert" className="flex flex-col items-start gap-3 p-8">
-                <p className="text-base text-zinc-200">Could not load the player index.</p>
-                <p className="font-mono text-xs text-zinc-400">{index.error.message}</p>
+                <p className="text-base text-zinc-200">Could not load the overview.</p>
+                <p className="font-mono text-xs text-zinc-400">{overview.error.message}</p>
                 <button
                   type="button"
-                  onClick={() => void index.refetch()}
+                  onClick={() => void overview.refetch()}
                   className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
                 >
                   Retry
                 </button>
               </div>
-            ) : (index.data?.players.length ?? 0) === 0 ? (
+            ) : publicPlayers === 0 ? (
               <div className="flex h-full items-center justify-center">
                 <EmptyState
                   title="No public players yet."
@@ -640,9 +622,9 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   </p>
                   <div className="mt-7 flex items-center justify-center gap-6 border-y border-white/[0.08] py-4">
                     {[
-                      ['players', index.data?.stats.players],
-                      ['linked anon', index.data?.stats.linked],
-                      ['name changes', index.data?.stats.nameChanges],
+                      ['players', overview.data?.stats.players],
+                      ['linked anon', overview.data?.stats.linked],
+                      ['name changes', overview.data?.stats.nameChanges],
                     ].map(([label, value]) => (
                       <div key={String(label)}>
                         <p className="text-lg font-semibold text-zinc-100 tabular-nums">
@@ -665,15 +647,17 @@ export function PlayersPage({ selected }: { selected?: string }) {
       </Resizable>
 
       <ScanStatus
-        players={index.data?.stats.publicPlayers ?? null}
-        shownPlayers={index.data?.players.length ?? null}
-        nameChanges={index.data?.stats.nameChanges ?? null}
-        lastRunAt={index.data?.stats.lastRunAt ?? null}
-        nextRunAt={index.data?.stats.nextRunAt ?? null}
+        players={overview.data?.stats.publicPlayers ?? null}
+        nameChanges={overview.data?.stats.nameChanges ?? null}
+        lastRunAt={overview.data?.stats.lastRunAt ?? null}
+        nextRunAt={overview.data?.stats.nextRunAt ?? null}
         cookieUpdatedAt={status.data?.auth.updatedAt}
         cookieStaleAfterMs={status.data?.auth.staleAfterMs}
-        isError={index.isError}
-        onRetry={() => void index.refetch()}
+        isError={overview.isError || browseFailed}
+        onRetry={() => {
+          void overview.refetch()
+          void browse.refetch()
+        }}
       />
     </div>
   )
