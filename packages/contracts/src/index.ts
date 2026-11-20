@@ -158,6 +158,46 @@ export const PlayerDetail = Schema.Struct({
 
 export type PlayerDetail = typeof PlayerDetail.Type
 
+export const SearchPlayer = Schema.Struct({
+  puuid: Schema.String,
+  name: Schema.String,
+  tag: Schema.String,
+  region: Schema.NullOr(Region),
+  cardId: Schema.NullOr(Schema.String),
+  nameChanges: Schema.Finite,
+  regionChanges: Schema.Finite,
+  firstSeenAt: Schema.Finite,
+  lastSeenAt: Schema.Finite,
+})
+
+export type SearchPlayer = typeof SearchPlayer.Type
+
+export const SearchMatch = Schema.Struct({
+  player: SearchPlayer,
+  name: Schema.String,
+  tag: Schema.String,
+  startedAt: Schema.Finite,
+  endedAt: Schema.Finite,
+})
+
+export type SearchMatch = typeof SearchMatch.Type
+
+export const PlayerSearch = Schema.Struct({
+  query: Schema.String,
+  minQueryLength: Schema.Finite,
+  limit: Schema.Finite,
+  current: Schema.Struct({
+    total: Schema.Finite,
+    players: Schema.Array(SearchPlayer),
+  }),
+  past: Schema.Struct({
+    total: Schema.Finite,
+    matches: Schema.Array(SearchMatch),
+  }),
+})
+
+export type PlayerSearch = typeof PlayerSearch.Type
+
 export const ApiError = Schema.Struct({
   error: Schema.Struct({
     code: Schema.String,

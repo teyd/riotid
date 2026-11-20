@@ -4,8 +4,11 @@ import type {
   IndexPlayer,
   NameInterval,
   PlayerDetail,
+  PlayerSearch,
   Region,
   RegionInterval,
+  SearchMatch,
+  SearchPlayer,
   SiteIndex,
 } from '@riotid/contracts'
 import { sql } from 'drizzle-orm'
@@ -146,6 +149,181 @@ export const buildSiteIndex = (
       },
       cards,
       players,
+    }
+  })
+
+export const searchMinQueryLength = 3
+export const searchDefaultLimit = 20
+export const searchMaxLimit = 50
+
+export type SearchOptions = {
+  readonly region?: Region | null
+  readonly limit?: number
+  readonly now?: number
+  readonly indexWindowDays?: number
+}
+
+type CurrentSearchRow = {
+  puuid: string
+  name: string
+  tag: string
+  region: Region | null
+  card_id: string | null
+  name_changes: number
+  region_changes: number
+  first_seen_at: number
+  last_seen_at: number
+  total: number
+}
+
+type PastSearchRow = CurrentSearchRow & {
+  match_name: string
+  match_tag: string
+  started_at: number
+  ended_at: number
+}
+
+const emptySearch = (
+  query: string,
+  limit: number,
+): PlayerSearch => ({
+  query,
+  minQueryLength: searchMinQueryLength,
+  limit,
+  current: { total: 0, players: [] },
+  past: { total: 0, matches: [] },
+})
+
+const toSearchPlayer = (row: CurrentSearchRow): SearchPlayer => ({
+  puuid: row.puuid,
+  name: row.name,
+  tag: row.tag,
+  region: row.region,
+  cardId: row.card_id,
+  nameChanges: row.name_changes,
+  regionChanges: row.region_changes,
+  firstSeenAt: row.first_seen_at,
+  lastSeenAt: row.last_seen_at,
+})
+
+export const searchPlayers = (
+  query: string,
+  options: SearchOptions = {},
+): Effect.Effect<PlayerSearch, unknown, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database
+    const trimmed = query.trim()
+    const limit = Math.max(1, Math.min(options.limit ?? searchDefaultLimit, searchMaxLimit))
+
+    if (trimmed.length < searchMinQueryLength) {
+      return emptySearch(trimmed, limit)
+    }
+
+    const needle = trimmed.toLowerCase()
+    const escapeLike = (value: string) =>
+      value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')
+    const contains = `%${escapeLike(needle)}%`
+    const prefix = `${escapeLike(needle)}%`
+    const fts = `"${needle.replaceAll('"', '""')}"`
+    const cutoff = (options.now ?? Date.now()) - (options.indexWindowDays ?? 30) * dayMs
+    const region = options.region ?? null
+
+    const currentRows = yield* db.all<CurrentSearchRow>(sql`
+      with hits as (
+        select
+          p.puuid, p.name, p.tag, p.region, p.card_id,
+          p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
+          case
+            when s.combined_folded = ${needle} then 0
+            when s.name_folded = ${needle} then 1
+            when s.tag_folded = ${needle} then 2
+            when s.combined_folded like ${prefix} escape '\\' then 3
+            when s.name_folded like ${prefix} escape '\\' then 4
+            else 5
+          end as bucket
+        from player_search_fts
+        join player_search s on s.id = player_search_fts.rowid and s.kind = 'current'
+        join players p on p.puuid = s.puuid
+        where player_search_fts match ${fts}
+          and p.is_banned = 0
+          and p.last_seen_at >= ${cutoff}
+          and (${region} is null or p.region = ${region})
+      )
+      select *, count(*) over () as total
+      from hits
+      order by bucket, last_seen_at desc, puuid
+      limit ${limit}
+    `)
+
+    const pastRows = yield* db.all<PastSearchRow>(sql`
+      with hits as (
+        select
+          p.puuid, p.name, p.tag, p.region, p.card_id,
+          p.name_changes, p.region_changes, p.first_seen_at, p.last_seen_at,
+          s.id as search_id,
+          s.name as match_name, s.tag as match_tag,
+          n.started_at, s.ended_at,
+          case
+            when s.combined_folded = ${needle} then 0
+            when s.name_folded = ${needle} then 1
+            when s.tag_folded = ${needle} then 2
+            when s.combined_folded like ${prefix} escape '\\' then 3
+            when s.name_folded like ${prefix} escape '\\' then 4
+            else 5
+          end as bucket
+        from player_search_fts
+        join player_search s on s.id = player_search_fts.rowid and s.kind = 'past'
+        join player_names n on n.id = s.player_name_id
+        join players p on p.puuid = s.puuid
+        where player_search_fts match ${fts}
+          and p.is_banned = 0
+          and p.last_seen_at >= ${cutoff}
+          and (${region} is null or p.region = ${region})
+          and s.ended_at is not null
+          and not (
+            s.name_folded = lower(coalesce(p.name, ''))
+            and s.tag_folded = lower(coalesce(p.tag, ''))
+          )
+          and not (
+            lower(coalesce(p.name, '')) like ${contains} escape '\\'
+            or lower(coalesce(p.tag, '')) like ${contains} escape '\\'
+            or lower(coalesce(p.name, '') || '#' || coalesce(p.tag, '')) like ${contains} escape '\\'
+          )
+      ),
+      ranked as (
+        select *, row_number() over (partition by puuid order by bucket, ended_at desc, search_id desc) as rn
+        from hits
+      ),
+      deduped as (
+        select * from ranked where rn = 1
+      )
+      select *, count(*) over () as total
+      from deduped
+      order by bucket, ended_at desc, puuid
+      limit ${limit}
+    `)
+
+    const current: SearchPlayer[] = currentRows.map(toSearchPlayer)
+    const past: SearchMatch[] = pastRows.map((row) => ({
+      player: toSearchPlayer(row),
+      name: row.match_name,
+      tag: row.match_tag,
+      startedAt: row.started_at,
+      endedAt: row.ended_at,
+    }))
+
+    return {
+      query: trimmed,
+      minQueryLength: searchMinQueryLength,
+      limit,
+      current: {
+        total: currentRows[0]?.total ?? 0,
+        players: current,
+      },
+      past: {
+        total: pastRows[0]?.total ?? 0,
+        matches: past,
+      },
     }
   })
 
