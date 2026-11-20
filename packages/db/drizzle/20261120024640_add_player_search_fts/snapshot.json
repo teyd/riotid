@@ -1,8 +1,6 @@
 {
   "id": "3483574d-a52b-4266-8dc9-103b5f1835da",
-  "prevIds": [
-    "94b69cb3-53a6-414d-9102-1c0fa9cb14d8"
-  ],
+  "prevIds": ["94b69cb3-53a6-414d-9102-1c0fa9cb14d8"],
   "version": "7",
   "dialect": "sqlite",
   "ddl": [
@@ -1969,13 +1967,9 @@
     {
       "table": "anonymous_rows",
       "name": "fk_anonymous_rows_resolved_puuid_players_puuid_fk",
-      "columns": [
-        "resolved_puuid"
-      ],
+      "columns": ["resolved_puuid"],
       "tableTo": "players",
-      "columnsTo": [
-        "puuid"
-      ],
+      "columnsTo": ["puuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -1984,13 +1978,9 @@
     {
       "table": "banned_players",
       "name": "fk_banned_players_puuid_players_puuid_fk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "tableTo": "players",
-      "columnsTo": [
-        "puuid"
-      ],
+      "columnsTo": ["puuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -1999,13 +1989,9 @@
     {
       "table": "banned_players",
       "name": "fk_banned_players_started_run_id_runs_id_fk",
-      "columns": [
-        "started_run_id"
-      ],
+      "columns": ["started_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2014,13 +2000,9 @@
     {
       "table": "banned_players",
       "name": "fk_banned_players_ended_run_id_runs_id_fk",
-      "columns": [
-        "ended_run_id"
-      ],
+      "columns": ["ended_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2029,13 +2011,9 @@
     {
       "table": "identity_links",
       "name": "fk_identity_links_anonymous_row_id_anonymous_rows_id_fk",
-      "columns": [
-        "anonymous_row_id"
-      ],
+      "columns": ["anonymous_row_id"],
       "tableTo": "anonymous_rows",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2044,13 +2022,9 @@
     {
       "table": "identity_links",
       "name": "fk_identity_links_puuid_players_puuid_fk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "tableTo": "players",
-      "columnsTo": [
-        "puuid"
-      ],
+      "columnsTo": ["puuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2059,13 +2033,9 @@
     {
       "table": "leaderboard_seeds",
       "name": "fk_leaderboard_seeds_puuid_players_puuid_fk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "tableTo": "players",
-      "columnsTo": [
-        "puuid"
-      ],
+      "columnsTo": ["puuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2074,13 +2044,9 @@
     {
       "table": "player_names",
       "name": "fk_player_names_puuid_players_puuid_fk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "tableTo": "players",
-      "columnsTo": [
-        "puuid"
-      ],
+      "columnsTo": ["puuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2089,13 +2055,9 @@
     {
       "table": "player_names",
       "name": "fk_player_names_started_run_id_runs_id_fk",
-      "columns": [
-        "started_run_id"
-      ],
+      "columns": ["started_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2104,13 +2066,9 @@
     {
       "table": "player_names",
       "name": "fk_player_names_ended_run_id_runs_id_fk",
-      "columns": [
-        "ended_run_id"
-      ],
+      "columns": ["ended_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2119,13 +2077,9 @@
     {
       "table": "player_regions",
       "name": "fk_player_regions_puuid_players_puuid_fk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "tableTo": "players",
-      "columnsTo": [
-        "puuid"
-      ],
+      "columnsTo": ["puuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2134,13 +2088,9 @@
     {
       "table": "player_regions",
       "name": "fk_player_regions_started_run_id_runs_id_fk",
-      "columns": [
-        "started_run_id"
-      ],
+      "columns": ["started_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2149,13 +2099,9 @@
     {
       "table": "player_regions",
       "name": "fk_player_regions_ended_run_id_runs_id_fk",
-      "columns": [
-        "ended_run_id"
-      ],
+      "columns": ["ended_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2164,13 +2110,9 @@
     {
       "table": "player_search",
       "name": "fk_player_search_puuid_players_puuid_fk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "tableTo": "players",
-      "columnsTo": [
-        "puuid"
-      ],
+      "columnsTo": ["puuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2179,13 +2121,9 @@
     {
       "table": "player_search",
       "name": "fk_player_search_player_name_id_player_names_id_fk",
-      "columns": [
-        "player_name_id"
-      ],
+      "columns": ["player_name_id"],
       "tableTo": "player_names",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2194,13 +2132,9 @@
     {
       "table": "players",
       "name": "fk_players_first_seen_run_id_runs_id_fk",
-      "columns": [
-        "first_seen_run_id"
-      ],
+      "columns": ["first_seen_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2209,13 +2143,9 @@
     {
       "table": "players",
       "name": "fk_players_last_seen_run_id_runs_id_fk",
-      "columns": [
-        "last_seen_run_id"
-      ],
+      "columns": ["last_seen_run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2224,13 +2154,9 @@
     {
       "table": "run_regions",
       "name": "fk_run_regions_run_id_runs_id_fk",
-      "columns": [
-        "run_id"
-      ],
+      "columns": ["run_id"],
       "tableTo": "runs",
-      "columnsTo": [
-        "id"
-      ],
+      "columnsTo": ["id"],
       "onUpdate": "NO ACTION",
       "onDelete": "CASCADE",
       "nameExplicit": false,
@@ -2239,13 +2165,9 @@
     {
       "table": "runs",
       "name": "fk_runs_season_id_seasons_uuid_fk",
-      "columns": [
-        "season_id"
-      ],
+      "columns": ["season_id"],
       "tableTo": "seasons",
-      "columnsTo": [
-        "uuid"
-      ],
+      "columnsTo": ["uuid"],
       "onUpdate": "NO ACTION",
       "onDelete": "SET NULL",
       "nameExplicit": false,
@@ -2254,119 +2176,91 @@
     {
       "table": "match_candidates",
       "name": "match_candidates_pk",
-      "columns": [
-        "match_id",
-        "puuid"
-      ],
+      "columns": ["match_id", "puuid"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "run_regions",
       "name": "run_regions_pk",
-      "columns": [
-        "run_id",
-        "region"
-      ],
+      "columns": ["run_id", "region"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "anonymous_rows",
       "name": "anonymous_rows_pk",
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "banned_players",
       "name": "banned_players_pk",
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "identity_links",
       "name": "identity_links_pk",
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "leaderboard_seeds",
       "name": "leaderboard_seeds_pk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "meta",
       "name": "meta_pk",
-      "columns": [
-        "key"
-      ],
+      "columns": ["key"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "player_names",
       "name": "player_names_pk",
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "player_regions",
       "name": "player_regions_pk",
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "player_search",
       "name": "player_search_pk",
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "players",
       "name": "players_pk",
-      "columns": [
-        "puuid"
-      ],
+      "columns": ["puuid"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "runs",
       "name": "runs_pk",
-      "columns": [
-        "id"
-      ],
+      "columns": ["id"],
       "nameExplicit": false,
       "entityType": "pks"
     },
     {
       "table": "seasons",
       "name": "seasons_pk",
-      "columns": [
-        "uuid"
-      ],
+      "columns": ["uuid"],
       "nameExplicit": false,
       "entityType": "pks"
     },

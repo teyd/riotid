@@ -85,6 +85,7 @@ describe('api', () => {
         players: Array<[string, string, string, string, number]>
         stats: {
           players: number
+          publicPlayers: number
           linked: number
           unresolved: number
           lastRunAt: number
@@ -95,6 +96,7 @@ describe('api', () => {
       expect(body.version).toBe(1)
       expect(body.players).toHaveLength(2)
       expect(body.players.map((row) => row[0])).not.toContain('seed-player-3')
+      expect(body.stats.publicPlayers).toBe(2)
       expect(body.stats.unresolved).toBe(1)
       expect(body.stats.nextRunAt - body.stats.lastRunAt).toBe(6 * 3_600_000)
 
@@ -133,16 +135,12 @@ describe('api', () => {
         },
       })
 
-      const current = (await (
-        await request(app, '/api/v1/search?q=seed')
-      ).json()) as PlayerSearch
+      const current = (await (await request(app, '/api/v1/search?q=seed')).json()) as PlayerSearch
       expect(current.current.total).toBe(2)
       expect(current.current.players.map((player) => player.puuid)).not.toContain('seed-player-3')
       expect(current.past.total).toBe(0)
 
-      const banned = (await (
-        await request(app, '/api/v1/search?q=banned')
-      ).json()) as PlayerSearch
+      const banned = (await (await request(app, '/api/v1/search?q=banned')).json()) as PlayerSearch
       expect(banned.current.total).toBe(0)
       expect(banned.past.total).toBe(0)
 
@@ -155,7 +153,29 @@ describe('api', () => {
       expect(short.minQueryLength).toBe(3)
       expect(short.current.total).toBe(0)
       expect(short.past.total).toBe(0)
+
+      const limited = (await (
+        await request(app, '/api/v1/search?q=seed&limit=1')
+      ).json()) as PlayerSearch
+      expect(limited.current.players).toHaveLength(1)
+      expect(limited.current.total).toBe(2)
+      expect(limited.current.truncated).toBe(true)
     })
+  })
+
+  it('caps the index preview while reporting the public total', async () => {
+    await withApp(
+      async (app) => {
+        const body = (await (await request(app, '/api/v1/index')).json()) as {
+          players: unknown[]
+          stats: { publicPlayers: number }
+        }
+
+        expect(body.players).toHaveLength(1)
+        expect(body.stats.publicPlayers).toBe(2)
+      },
+      { indexPlayerLimit: 1 },
+    )
   })
 
   it('plans the next scan from the configured interval', async () => {

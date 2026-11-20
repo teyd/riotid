@@ -55,6 +55,7 @@ export const IndexSeason = Schema.Struct({
 
 export const IndexStats = Schema.Struct({
   players: Schema.Finite,
+  publicPlayers: Schema.Finite,
   nameChanges: Schema.Finite,
   regionChanges: Schema.Finite,
   bans: Schema.Finite,
@@ -188,10 +189,12 @@ export const PlayerSearch = Schema.Struct({
   limit: Schema.Finite,
   current: Schema.Struct({
     total: Schema.Finite,
+    truncated: Schema.Boolean,
     players: Schema.Array(SearchPlayer),
   }),
   past: Schema.Struct({
     total: Schema.Finite,
+    truncated: Schema.Boolean,
     matches: Schema.Array(SearchMatch),
   }),
 })
