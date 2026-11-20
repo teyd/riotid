@@ -23,8 +23,8 @@ describe('profile links', () => {
   })
 
   it('builds a vtl.lol profile from the puuid', () => {
-    expect(vtlProfileUrl('00000000-0000-4000-8000-000000000001')).toBe(
-      'https://vtl.lol/id/00000000-0000-4000-8000-000000000001',
+    expect(vtlProfileUrl('d62bd2f9-8f2e-5f38-8056-b5296dad82d4')).toBe(
+      'https://vtl.lol/id/d62bd2f9-8f2e-5f38-8056-b5296dad82d4',
     )
   })
 
