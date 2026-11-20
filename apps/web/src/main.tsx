@@ -6,8 +6,11 @@ import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import { trackPageview } from './lib/analytics.ts'
 import { isRateLimited } from './lib/api.ts'
 import { router } from './router.tsx'
+
+router.subscribe('onResolved', trackPageview)
 
 const queryClient = new QueryClient({
   defaultOptions: {
