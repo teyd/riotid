@@ -10,6 +10,8 @@ import type {
   SiteOverview,
 } from '@riotid/contracts'
 
+import { trackRateLimit } from './rate-limit.ts'
+
 export type {
   PlayerDetail,
   PlayerPage,
@@ -212,11 +214,20 @@ const parseRetryAfter = (value: string | null): number | null => {
   return Number.isNaN(at) ? null : Math.max(0, Math.ceil((at - Date.now()) / 1000))
 }
 
+const rateLimitScope = (path: string): string => {
+  const pathname = path.split('?')[0] ?? path
+  if (pathname.startsWith('/api/v1/players/')) return 'players'
+  if (pathname === '/api/v1/players') return 'browse'
+  return pathname.slice('/api/v1/'.length)
+}
+
 const fetchJson = async <A>(path: string, signal?: AbortSignal): Promise<A> => {
   const response = await fetch(path, {
     headers: { accept: 'application/json' },
     ...(signal ? { signal } : {}),
   })
+
+  trackRateLimit(rateLimitScope(path), response.headers)
 
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as ApiError | null
