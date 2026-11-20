@@ -94,15 +94,17 @@ const meterTones = {
   critical: { bar: 'bg-red-500', text: 'text-red-400' },
 }
 
+const meterRow = 'grid w-full grid-cols-[4rem_1fr_3.25rem] items-center gap-2'
+
 const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; now: number }) => {
   const rate = useSyncExternalStore(subscribeRateLimit, () => getRateLimit(scope))
 
   if (!rate) {
     return (
-      <div className="flex w-full items-center gap-3">
-        <span className="shrink-0 tracking-wide">{label}</span>
-        <div className="h-1 flex-1 rounded-full bg-white/10" />
-        <span className="shrink-0 tabular-nums">—</span>
+      <div className={meterRow}>
+        <span className="tracking-wide">{label}</span>
+        <div className="h-1 rounded-full bg-white/10" />
+        <span className="text-end tabular-nums">—</span>
       </div>
     )
   }
@@ -118,21 +120,21 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
       getValueLabel={(value) =>
         `${value} of ${current.limit} ${label} API requests left this minute`
       }
-      className="flex w-full items-center gap-3"
+      className={meterRow}
     >
-      <MeterLabel className="shrink-0 tracking-wide">{label}</MeterLabel>
-      <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
+      <MeterLabel className="tracking-wide">{label}</MeterLabel>
+      <MeterTrack className="h-1 rounded-full bg-white/10">
         <MeterIndicator
           className={`h-full rounded-full motion-safe:transition-[width,background-color] motion-safe:duration-300 motion-safe:ease-out ${meterTones[tone].bar}`}
         />
       </MeterTrack>
-      <MeterValue className={`shrink-0 tabular-nums ${meterTones[tone].text}`} />
+      <MeterValue className={`text-end tabular-nums ${meterTones[tone].text}`} />
     </Meter>
   )
 }
 
 const RateLimits = ({ now }: { now: number }) => (
-  <div className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-2 lg:w-[25rem]">
+  <div className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-2 lg:w-[28rem]">
     <RateLimitMeter scope="overview" label="overview" now={now} />
     <RateLimitMeter scope="browse" label="list" now={now} />
     <RateLimitMeter scope="search" label="search" now={now} />
