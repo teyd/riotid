@@ -180,7 +180,7 @@ const ScanStatus = ({
       role={error ? 'status' : undefined}
       className="flex shrink-0 flex-col gap-2 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
     >
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex min-w-0 flex-col items-start gap-0.5">
         {error ? (
           <>
             <span className="text-zinc-300">
