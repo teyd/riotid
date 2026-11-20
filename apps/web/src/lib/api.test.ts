@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { formatScanCountdown, playerUrl, trackerProfileUrl, vtlProfileUrl } from './api.ts'
+import type { PlayerSearch } from '@riotid/contracts'
+
+import {
+  displayName,
+  formatScanCountdown,
+  indexRowToPlayer,
+  playerUrl,
+  searchToSections,
+  trackerProfileUrl,
+  vtlProfileUrl,
+} from './api.ts'
 
 describe('profile links', () => {
   it('encodes a Riot ID for tracker.gg', () => {
@@ -19,6 +29,95 @@ describe('profile links', () => {
     expect(playerUrl('https://riotid.example', 'a/b c')).toBe(
       'https://riotid.example/puuid/a%2Fb%20c',
     )
+  })
+})
+
+describe('player rows', () => {
+  it('maps index tuples through the card dictionary', () => {
+    const row: import('@riotid/contracts').SiteIndex['players'][number] = [
+      'player-1',
+      'Current Name',
+      'TAG',
+      'na',
+      0,
+      1,
+      0,
+      10,
+      20,
+      0,
+      null,
+    ]
+
+    expect(indexRowToPlayer(row, ['card-id'])).toMatchObject({
+      puuid: 'player-1',
+      name: 'Current Name',
+      tag: 'TAG',
+      region: 'na',
+      cardId: 'card-id',
+      lastSeenAt: 20,
+      former: null,
+    })
+  })
+
+  it('groups search results and attaches the matched past name', () => {
+    const result: PlayerSearch = {
+      query: 'old',
+      minQueryLength: 3,
+      limit: 20,
+      current: {
+        total: 1,
+        truncated: false,
+        players: [
+          {
+            puuid: 'current-player',
+            name: 'Current',
+            tag: 'ONE',
+            region: 'eu',
+            cardId: null,
+            nameChanges: 1,
+            regionChanges: 0,
+            firstSeenAt: 10,
+            lastSeenAt: 20,
+          },
+        ],
+      },
+      past: {
+        total: 2,
+        truncated: false,
+        matches: [
+          {
+            player: {
+              puuid: 'past-player',
+              name: 'Now',
+              tag: 'TWO',
+              region: 'ap',
+              cardId: 'card',
+              nameChanges: 2,
+              regionChanges: 1,
+              firstSeenAt: 5,
+              lastSeenAt: 30,
+            },
+            name: 'Old Name',
+            tag: 'TWO',
+            startedAt: 1,
+            endedAt: 4,
+          },
+        ],
+      },
+    }
+
+    const sections = searchToSections(result)
+
+    expect(sections.map((section) => section.label)).toEqual(['Current names', 'Past names'])
+    expect(sections[0]?.total).toBe(1)
+    expect(sections[1]?.total).toBe(2)
+    expect(sections[1]?.players[0]).toMatchObject({
+      puuid: 'past-player',
+      name: 'Now',
+      tag: 'TWO',
+      former: { name: 'Old Name', tag: 'TWO', endedAt: 4 },
+    })
+    expect(displayName(sections[1]?.players[0] ?? { name: 'Now', tag: 'TWO' })).toBe('Now#TWO')
   })
 })
 

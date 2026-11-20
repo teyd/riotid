@@ -18,12 +18,11 @@ import {
   formatDate,
   formatDateTime,
   formatRelative,
-  P,
   playerUrl,
   regionLabel,
   regionShort,
   trackerProfileUrl,
-  type IndexRow,
+  type PlayerPreview,
   type PlayerDetail,
   vtlProfileUrl,
 } from '../lib/api.ts'
@@ -34,7 +33,7 @@ import { Badge, LoadingState, Section } from './ui.tsx'
 
 type Props = {
   readonly puuid: string
-  readonly row: IndexRow | null
+  readonly preview: PlayerPreview | null
   readonly cardId: string | null
   readonly focusOnMount: boolean
   readonly focusHeading: boolean
@@ -241,7 +240,7 @@ const CopyLink = ({ puuid }: { puuid: string }) => {
 
 export const PlayerDetailPanel = ({
   puuid,
-  row,
+  preview,
   cardId,
   focusOnMount,
   focusHeading,
@@ -256,9 +255,9 @@ export const PlayerDetailPanel = ({
   const headingRef = useRef<HTMLHeadingElement>(null)
 
   const detail = query.data
-  const name = detail?.player.name ?? row?.[P.name] ?? ''
-  const tag = detail?.player.tag ?? row?.[P.tag] ?? ''
-  const region = detail?.player.region ?? row?.[P.region] ?? null
+  const name = detail?.player.name ?? preview?.name ?? ''
+  const tag = detail?.player.tag ?? preview?.tag ?? ''
+  const region = detail?.player.region ?? preview?.region ?? null
   const resolvedCardId = detail?.player.cardId ?? cardId
   const cardHref = cardLargeArt(resolvedCardId) ?? cardArt(resolvedCardId)
 
@@ -363,11 +362,11 @@ export const PlayerDetailPanel = ({
         <dl className="mt-5 grid grid-cols-3 divide-x divide-white/[0.06] rounded-md border border-white/[0.07] bg-white/[0.02] font-mono text-[12px]">
           <HeaderStat
             label="first seen"
-            value={formatDate(detail?.player.firstSeenAt ?? row?.[P.firstSeenAt] ?? null)}
+            value={formatDate(detail?.player.firstSeenAt ?? preview?.firstSeenAt ?? null)}
           />
           <HeaderStat
             label="last seen"
-            value={formatRelative(detail?.player.lastSeenAt ?? row?.[P.lastSeenAt] ?? null)}
+            value={formatRelative(detail?.player.lastSeenAt ?? preview?.lastSeenAt ?? null)}
           />
           <HeaderStat label="observations" value={String(detail?.player.timesSeen ?? '—')} />
         </dl>
