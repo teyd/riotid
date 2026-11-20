@@ -20,9 +20,40 @@ export const PlayerListSkeleton = () => (
   </div>
 )
 
+export const DetailBodySkeleton = () => (
+  <div role="status" aria-label="Loading player history…" className="divide-y divide-white/[0.06]">
+    {Array.from({ length: 3 }, (_, section) => (
+      <div key={section} className="px-6 py-6">
+        <Skeleton className="h-3 w-28" />
+        <div className="mt-5 space-y-5">
+          {Array.from({ length: 2 }, (_, item) => (
+            <div key={item} className="grid grid-cols-[12px_1fr] gap-x-4">
+              <div className="flex justify-center">
+                <Skeleton className="mt-1.5 size-2 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-3.5 w-48 max-w-full" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+    <div className="px-6 py-6">
+      <Skeleton className="h-3 w-20" />
+      <div className="mt-5 grid grid-cols-4 gap-6">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className="h-7 w-16" />
+        ))}
+      </div>
+    </div>
+  </div>
+)
+
 export const DetailSkeleton = () => (
-  <div className="flex h-full flex-col" role="status" aria-label="Loading player history…">
-    <div className="border-b border-white/[0.06] px-6 py-5">
+  <div className="flex h-full flex-col">
+    <div className="border-b border-white/[0.06] px-6 py-5" aria-hidden="true">
       <div className="flex items-center gap-4">
         <Skeleton className="h-14 w-11" />
         <div className="space-y-2">
@@ -36,13 +67,6 @@ export const DetailSkeleton = () => (
         <Skeleton className="h-8 w-28" />
       </div>
     </div>
-    <div className="space-y-4 px-6 py-6">
-      {Array.from({ length: 4 }, (_, index) => (
-        <div key={index} className="space-y-2 border-b border-white/[0.05] pb-4">
-          <Skeleton className="h-3.5 w-56" />
-          <Skeleton className="h-2.5 w-40" />
-        </div>
-      ))}
-    </div>
+    <DetailBodySkeleton />
   </div>
 )

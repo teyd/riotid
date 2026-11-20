@@ -19,7 +19,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState, type SVGProps }
 
 import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
-import { EmptyState, LoadingState } from '../components/ui.tsx'
+import { EmptyState, LoadError, LoadingState } from '../components/ui.tsx'
 import {
   fetchOverview,
   fetchPlayer,
@@ -29,6 +29,7 @@ import {
   formatRelative,
   formatScanCountdown,
   formatScanTime,
+  isRateLimited,
   searchMatchToItem,
   searchPlayerToItem,
   searchToSections,
@@ -83,7 +84,7 @@ type ScanStatusProps = {
   nextRunAt: number | null
   cookieUpdatedAt: number | null | undefined
   cookieStaleAfterMs: number | undefined
-  isError: boolean
+  error: Error | null
   onRetry: () => void
 }
 
@@ -94,7 +95,7 @@ const ScanStatus = ({
   nextRunAt,
   cookieUpdatedAt,
   cookieStaleAfterMs,
-  isError,
+  error,
   onRetry,
 }: ScanStatusProps) => {
   const [now, setNow] = useState(() => Date.now())
@@ -113,12 +114,14 @@ const ScanStatus = ({
 
   return (
     <footer
-      role={isError ? 'status' : undefined}
+      role={error ? 'status' : undefined}
       className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400"
     >
-      {isError ? (
+      {error ? (
         <>
-          <span className="text-zinc-300">API offline — retrying</span>
+          <span className="text-zinc-300">
+            {isRateLimited(error) ? 'API rate limited (429) — retrying' : 'API offline — retrying'}
+          </span>
           <button
             type="button"
             onClick={onRetry}
@@ -537,18 +540,13 @@ export function PlayersPage({ selected }: { selected?: string }) {
                     Retry
                   </button>
                 </div>
-              ) : browseFailed ? (
-                <div role="alert" className="flex flex-col items-start gap-3 p-6">
-                  <p className="text-base text-zinc-200">Could not load players.</p>
-                  <p className="font-mono text-xs text-zinc-400">{browse.error?.message}</p>
-                  <button
-                    type="button"
-                    onClick={() => void browse.refetch()}
-                    className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
-                  >
-                    Retry
-                  </button>
-                </div>
+              ) : browseFailed && browse.error ? (
+                <LoadError
+                  title="Could not load players."
+                  error={browse.error}
+                  onRetry={() => void browse.refetch()}
+                  className="p-6"
+                />
               ) : (
                 <PlayerList
                   sections={sections}
@@ -601,17 +599,12 @@ export function PlayersPage({ selected }: { selected?: string }) {
             ) : overview.isPending ? (
               <LoadingState label="Loading overview…" />
             ) : overview.isError ? (
-              <div role="alert" className="flex flex-col items-start gap-3 p-8">
-                <p className="text-base text-zinc-200">Could not load the overview.</p>
-                <p className="font-mono text-xs text-zinc-400">{overview.error.message}</p>
-                <button
-                  type="button"
-                  onClick={() => void overview.refetch()}
-                  className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
-                >
-                  Retry
-                </button>
-              </div>
+              <LoadError
+                title="Could not load the overview."
+                error={overview.error}
+                onRetry={() => void overview.refetch()}
+                className="p-8"
+              />
             ) : publicPlayers === 0 ? (
               <div className="flex h-full items-center justify-center">
                 <EmptyState
@@ -667,7 +660,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
         nextRunAt={overview.data?.stats.nextRunAt ?? null}
         cookieUpdatedAt={status.data?.auth.updatedAt}
         cookieStaleAfterMs={status.data?.auth.staleAfterMs}
-        isError={overview.isError || browseFailed}
+        error={overview.error ?? (browseFailed ? browse.error : null)}
         onRetry={() => {
           void overview.refetch()
           void browse.refetch()

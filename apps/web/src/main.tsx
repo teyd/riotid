@@ -6,13 +6,14 @@ import { RouterProvider } from '@tanstack/react-router'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+import { isRateLimited } from './lib/api.ts'
 import { router } from './router.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (failureCount, error) => failureCount < 1 && !isRateLimited(error),
     },
   },
 })
