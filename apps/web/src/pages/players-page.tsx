@@ -48,7 +48,7 @@ import {
   type Region,
 } from '../lib/api.ts'
 import { useDebouncedValue } from '../lib/use-debounced-value.ts'
-import { getRateLimit, subscribeRateLimit } from '../lib/rate-limit.ts'
+import { getRateLimit, rateLimitTone, subscribeRateLimit } from '../lib/rate-limit.ts'
 
 type Sort = 'recentChanges' | 'changes' | 'recent' | 'new' | 'name'
 
@@ -87,12 +87,19 @@ const SearchIcon = (props: SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+const meterTones = {
+  normal: { bar: 'bg-zinc-100', text: '' },
+  warning: { bar: 'bg-yellow-300', text: 'text-yellow-300' },
+  low: { bar: 'bg-orange-400', text: 'text-orange-400' },
+  critical: { bar: 'bg-red-500', text: 'text-red-400' },
+}
+
 const RateLimitMeter = ({ now }: { now: number }) => {
   const rate = useSyncExternalStore(subscribeRateLimit, getRateLimit)
 
   if (!rate || now >= rate.resetAt) return null
 
-  const low = rate.remaining / rate.limit <= 0.2
+  const tone = rateLimitTone(rate)
 
   return (
     <Meter
@@ -107,10 +114,10 @@ const RateLimitMeter = ({ now }: { now: number }) => {
       <MeterLabel className="shrink-0 tracking-wide">rate limit · {rate.scope}</MeterLabel>
       <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
         <MeterIndicator
-          className={`h-full rounded-full motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out ${low ? 'bg-amber-300' : 'bg-zinc-400'}`}
+          className={`h-full rounded-full motion-safe:transition-[width,background-color] motion-safe:duration-300 motion-safe:ease-out ${meterTones[tone].bar}`}
         />
       </MeterTrack>
-      <MeterValue className={`shrink-0 tabular-nums ${low ? 'text-amber-300' : ''}`} />
+      <MeterValue className={`shrink-0 tabular-nums ${meterTones[tone].text}`} />
     </Meter>
   )
 }
