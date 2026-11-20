@@ -18,6 +18,12 @@ export type CliRunner = {
   readonly run: <A>(args: ReadonlyArray<string>) => Effect.Effect<A | null, JobError>
 }
 
+export type TickResult = {
+  readonly job: string | null
+  readonly reason: string
+  readonly ok: boolean
+}
+
 const jsonError = (command: string, cause: unknown) =>
   new JobError({
     message: `cannot parse ${command} output: ${String(cause)}`,
