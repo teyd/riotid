@@ -21,23 +21,34 @@ import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
 import { EmptyState, LoadingState } from '../components/ui.tsx'
 import {
-  displayName,
   fetchIndex,
   fetchPlayer,
+  fetchSearch,
   fetchStatus,
   formatRelative,
   formatScanCountdown,
   formatScanTime,
+  indexRowToPlayer,
   P,
+  searchMatchToItem,
+  searchPlayerToItem,
+  searchToSections,
+  toPlayerPreview,
   type IndexRow,
+  type PlayerListItem,
+  type PlayerSection,
   type Region,
 } from '../lib/api.ts'
+import { useDebouncedValue } from '../lib/use-debounced-value.ts'
 
 type Sort = 'recentChanges' | 'changes' | 'recent' | 'new' | 'name'
 
 let initialSelectionDone = false
 let restoreSearchFocus = false
 let selectionSource: 'list' | 'search' | null = null
+let lastQuery = ''
+let lastRegion: 'all' | Region = 'all'
+let lastSort: Sort = 'recentChanges'
 
 const sorts: Array<{ value: Sort; label: string; trigger: string }> = [
   { value: 'recentChanges', label: 'Recent name changes', trigger: 'renames' },
@@ -69,6 +80,7 @@ const score = (row: IndexRow) => row[P.nameChanges] * 2 + row[P.regionChanges] *
 
 type ScanStatusProps = {
   players: number | null
+  shownPlayers: number | null
   nameChanges: number | null
   lastRunAt: number | null
   nextRunAt: number | null
@@ -80,6 +92,7 @@ type ScanStatusProps = {
 
 const ScanStatus = ({
   players,
+  shownPlayers,
   nameChanges,
   lastRunAt,
   nextRunAt,
@@ -120,7 +133,12 @@ const ScanStatus = ({
         </>
       ) : (
         <>
-          <span>{players?.toLocaleString() ?? '—'} public players</span>
+          <span>
+            {players?.toLocaleString() ?? '—'} public players
+            {shownPlayers !== null && players !== null && shownPlayers < players
+              ? ` · ${shownPlayers.toLocaleString()} shown`
+              : ''}
+          </span>
           <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
           <span className={cookieWarning ? 'text-amber-300' : undefined}>
             cookie{' '}
@@ -174,10 +192,22 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const searchRef = useRef<HTMLInputElement>(null)
-  const [query, setQuery] = useState('')
-  const [region, setRegion] = useState<'all' | Region>('all')
-  const [sort, setSort] = useState<Sort>('recentChanges')
+  const [query, setQueryState] = useState(lastQuery)
+  const [region, setRegionState] = useState<'all' | Region>(lastRegion)
+  const [sort, setSortState] = useState<Sort>(lastSort)
   const deferredQuery = useDeferredValue(query)
+  const setQuery = (next: string) => {
+    lastQuery = next
+    setQueryState(next)
+  }
+  const setRegion = (next: 'all' | Region) => {
+    lastRegion = next
+    setRegionState(next)
+  }
+  const setSort = (next: Sort) => {
+    lastSort = next
+    setSortState(next)
+  }
 
   useEffect(() => {
     const preload = () => {
@@ -206,19 +236,25 @@ export function PlayersPage({ selected }: { selected?: string }) {
     refetchIntervalInBackground: true,
   })
 
+  const needle = deferredQuery.trim()
+  const searchMode = needle.length >= 3
+  const requestedQuery = useDebouncedValue(needle, 180)
+  const search = useQuery({
+    queryKey: ['search', requestedQuery, region],
+    queryFn: () => fetchSearch(requestedQuery, region === 'all' ? null : region),
+    enabled: searchMode && requestedQuery.length >= 3,
+    staleTime: 30_000,
+  })
+  const searchData =
+    searchMode && requestedQuery === needle && search.data?.query === needle ? search.data : null
+  const searchFailed = searchMode && !searchData && search.isError
+  const typing = needle.length > 0 && !searchMode
+  const publicPlayers = index.data?.stats.publicPlayers ?? 0
+  const previewTruncated = (index.data?.players.length ?? 0) < publicPlayers
+
   const rows = useMemo(() => {
     const all = index.data?.players ?? []
-    const needle = deferredQuery.trim().toLowerCase()
-    const filtered = all.filter((row) => {
-      if (region !== 'all' && row[P.region] !== region) return false
-      if (!needle) return true
-      return (
-        row[P.name].toLowerCase().includes(needle) ||
-        row[P.tag].toLowerCase().includes(needle) ||
-        `${row[P.name]}#${row[P.tag]}`.toLowerCase().includes(needle) ||
-        row[P.puuid].toLowerCase().includes(needle)
-      )
-    })
+    const filtered = all.filter((row) => region === 'all' || row[P.region] === region)
 
     return [...filtered].sort((left, right) => {
       switch (sort) {
@@ -233,12 +269,44 @@ export function PlayersPage({ selected }: { selected?: string }) {
         case 'new':
           return right[P.firstSeenAt] - left[P.firstSeenAt]
         case 'name':
-          return displayName(left).localeCompare(displayName(right))
+          return (
+            left[P.name].localeCompare(right[P.name]) ||
+            left[P.tag].localeCompare(right[P.tag]) ||
+            left[P.puuid].localeCompare(right[P.puuid])
+          )
         default:
           return right[P.lastSeenAt] - left[P.lastSeenAt]
       }
     })
-  }, [index.data, deferredQuery, region, sort])
+  }, [index.data, region, sort])
+
+  const browseSections: PlayerSection[] = useMemo(
+    () => [
+      {
+        id: 'all',
+        label: '',
+        total: rows.length,
+        truncated: false,
+        players: rows.map((row) => indexRowToPlayer(row, index.data?.cards ?? [])),
+      },
+    ],
+    [rows, index.data],
+  )
+
+  const searchSections = useMemo(
+    () => (searchData ? searchToSections(searchData) : []),
+    [searchData],
+  )
+
+  const sections = searchFailed ? [] : searchMode ? searchSections : typing ? [] : browseSections
+
+  const searchItems: PlayerListItem[] = useMemo(
+    () => [
+      ...(searchData?.current.players.map(searchPlayerToItem) ?? []),
+      ...(searchData?.past.matches.map(searchMatchToItem) ?? []),
+    ],
+    [searchData],
+  )
 
   const playersById = useMemo(
     () => new Map((index.data?.players ?? []).map((row) => [row[P.puuid], row])),
@@ -246,9 +314,14 @@ export function PlayersPage({ selected }: { selected?: string }) {
   )
 
   const selectedRow = p ? (playersById.get(p) ?? null) : null
-  const selectedCardIndex = selectedRow?.[P.cardId]
-  const selectedCard =
-    selectedCardIndex == null ? null : (index.data?.cards[selectedCardIndex] ?? null)
+  const selectedSearchPlayer = p ? (searchItems.find((item) => item.puuid === p) ?? null) : null
+  const selectedPlayer = selectedSearchPlayer
+    ? selectedSearchPlayer
+    : selectedRow
+      ? indexRowToPlayer(selectedRow, index.data?.cards ?? [])
+      : null
+  const selectedPreview = selectedPlayer ? toPlayerPreview(selectedPlayer) : null
+  const selectedCard = selectedPlayer?.cardId ?? null
 
   useEffect(() => {
     if (p) {
@@ -256,6 +329,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
       return
     }
     if (initialSelectionDone || index.isPending || rows.length === 0) return
+    if (searchMode || typing) return
     if (!window.matchMedia('(min-width: 1024px)').matches) return
 
     const first = rows[0]?.[P.puuid]
@@ -263,7 +337,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
       initialSelectionDone = true
       void navigate({ to: '/puuid/$puuid', params: { puuid: first }, replace: true })
     }
-  }, [p, index.isPending, rows, navigate])
+  }, [p, index.isPending, rows, navigate, searchMode, typing])
 
   useEffect(() => {
     if (!restoreSearchFocus) return
@@ -297,6 +371,36 @@ export function PlayersPage({ selected }: { selected?: string }) {
     restoreSearchFocus = true
     select(null)
   }
+
+  const firstResult = searchMode
+    ? (searchItems[0]?.puuid ?? null)
+    : typing
+      ? null
+      : (rows[0]?.[P.puuid] ?? null)
+  const groupCount = (total: number, truncated: boolean, shown: number) =>
+    truncated ? `${shown}+` : total.toLocaleString()
+  const countLabel = searchMode
+    ? searchData
+      ? `${groupCount(searchData.current.total, searchData.current.truncated, searchData.current.players.length)} current · ${groupCount(searchData.past.total, searchData.past.truncated, searchData.past.matches.length)} past`
+      : '—'
+    : typing
+      ? '0'
+      : rows.length.toLocaleString()
+  const listLoading = searchMode ? !searchData && !searchFailed : index.isPending
+  const emptyTitle = searchMode
+    ? 'No players match.'
+    : typing
+      ? 'Keep typing…'
+      : index.data?.players.length
+        ? 'No players match.'
+        : 'No players yet.'
+  const emptyHint = searchMode
+    ? 'Try a current or past name, tag, or another region.'
+    : typing
+      ? 'Search current and past names with at least 3 characters.'
+      : index.data?.players.length
+        ? 'Try another region.'
+        : 'Run a scan to populate the index.'
 
   const sortOption = sorts.find((item) => item.value === sort) ?? sorts[0]!
   const escape = () => {
@@ -337,13 +441,9 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   value={query}
                   onValueChange={setQuery}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' && rows[0]) {
+                    if ((event.key === 'Enter' || event.key === 'ArrowDown') && firstResult) {
                       event.preventDefault()
-                      select(rows[0][P.puuid], 'search')
-                    }
-                    if (event.key === 'ArrowDown' && rows[0]) {
-                      event.preventDefault()
-                      select(rows[0][P.puuid], 'search')
+                      select(firstResult, 'search')
                     }
                     if (event.key === 'Escape') {
                       event.preventDefault()
@@ -355,8 +455,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   type="text"
                   inputMode="search"
                   enterKeyHint="search"
-                  placeholder="Search players…"
-                  aria-label="Search players"
+                  placeholder="Search current or past names…"
+                  aria-label="Search current and past names"
                   spellCheck={false}
                   autoComplete="off"
                   className="min-w-0 flex-1 bg-transparent font-mono text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none"
@@ -392,60 +492,87 @@ export function PlayersPage({ selected }: { selected?: string }) {
 
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
-                    {rows.length.toLocaleString()}
+                    {countLabel}
                   </span>
-                  <Select
-                    items={sorts}
-                    value={sort}
-                    onValueChange={(value) => {
-                      if (value) setSort(value as Sort)
-                    }}
-                  >
-                    <SelectLabel className="sr-only">Sort players</SelectLabel>
-                    <SelectTrigger
-                      aria-label={`Sort players: ${sortOption?.label ?? sort}`}
-                      className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-400 hover:text-zinc-100"
+                  {searchMode ? (
+                    <span className="font-mono text-[11px] uppercase tracking-wide text-zinc-400">
+                      relevance
+                    </span>
+                  ) : (
+                    <Select
+                      items={sorts}
+                      value={sort}
+                      onValueChange={(value) => {
+                        if (value) setSort(value as Sort)
+                      }}
                     >
-                      <SelectValue>
-                        {(state) =>
-                          sorts.find((item) => item.value === state.value)?.trigger ??
-                          sortOption?.trigger ??
-                          sort
-                        }
-                      </SelectValue>
-                      <span aria-hidden className="text-[11px] leading-none text-zinc-400">
-                        ▼
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent className="z-50 rounded-lg border border-white/20 bg-panel p-1.5 text-sm shadow-2xl">
-                      {sorts.map((item) => (
-                        <SelectItem
-                          key={item.value}
-                          value={item.value}
-                          className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/40 data-[highlighted]:text-zinc-50 data-[selected]:text-zinc-50"
-                        >
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                      <SelectLabel className="sr-only">Sort players</SelectLabel>
+                      <SelectTrigger
+                        aria-label={`Sort players: ${sortOption?.label ?? sort}`}
+                        className="flex h-7 items-center gap-1.5 font-mono text-[11px] uppercase tracking-wide text-zinc-400 hover:text-zinc-100"
+                      >
+                        <SelectValue>
+                          {(state) =>
+                            sorts.find((item) => item.value === state.value)?.trigger ??
+                            sortOption?.trigger ??
+                            sort
+                          }
+                        </SelectValue>
+                        <span aria-hidden className="text-[11px] leading-none text-zinc-400">
+                          ▼
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent className="z-50 rounded-lg border border-white/20 bg-panel p-1.5 text-sm shadow-2xl">
+                        {sorts.map((item) => (
+                          <SelectItem
+                            key={item.value}
+                            value={item.value}
+                            className="rounded px-3 py-2 text-zinc-300 data-[highlighted]:bg-white/40 data-[highlighted]:text-zinc-50 data-[selected]:text-zinc-50"
+                          >
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
             </div>
 
+            {previewTruncated && !searchMode ? (
+              <p className="border-b border-white/[0.06] px-4 py-2 font-mono text-[11px] text-zinc-400">
+                Showing the {(index.data?.players.length ?? 0).toLocaleString()} most recently seen.
+                Search covers all {publicPlayers.toLocaleString()} players.
+              </p>
+            ) : null}
+
             <div className="min-h-0 flex-1">
-              <PlayerList
-                rows={rows}
-                cards={index.data?.cards ?? []}
-                selected={p ?? null}
-                loading={index.isPending}
-                filtered={deferredQuery.trim() !== '' || region !== 'all'}
-                focusSelectedOnMount={selectionSource === 'list'}
-                searchRef={searchRef}
-                onSelect={select}
-                onPrefetch={prefetch}
-                onEscape={escape}
-              />
+              {searchFailed ? (
+                <div role="alert" className="flex flex-col items-start gap-3 p-6">
+                  <p className="text-base text-zinc-200">Could not search players.</p>
+                  <p className="font-mono text-xs text-zinc-400">{search.error?.message}</p>
+                  <button
+                    type="button"
+                    onClick={() => void search.refetch()}
+                    className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <PlayerList
+                  sections={sections}
+                  selected={p ?? null}
+                  loading={listLoading}
+                  emptyTitle={emptyTitle}
+                  emptyHint={emptyHint}
+                  focusSelectedOnMount={selectionSource === 'list'}
+                  searchRef={searchRef}
+                  onSelect={select}
+                  onPrefetch={prefetch}
+                  onEscape={escape}
+                />
+              )}
             </div>
           </section>
         </ResizablePanel>
@@ -469,7 +596,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
             {p ? (
               <PlayerDetailLoader
                 puuid={p}
-                row={selectedRow}
+                preview={selectedPreview}
                 cardId={selectedCard}
                 focusOnMount={selectionSource !== null}
                 focusHeading={selectionSource === 'search'}
@@ -538,7 +665,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
       </Resizable>
 
       <ScanStatus
-        players={index.data?.players.length ?? null}
+        players={index.data?.stats.publicPlayers ?? null}
+        shownPlayers={index.data?.players.length ?? null}
         nameChanges={index.data?.stats.nameChanges ?? null}
         lastRunAt={index.data?.stats.lastRunAt ?? null}
         nextRunAt={index.data?.stats.nextRunAt ?? null}
