@@ -29,7 +29,8 @@ import {
 import { copyText } from '../lib/clipboard.ts'
 import { banHistoryItems, intervalRange, type HistoryItem } from '../lib/history.ts'
 import { CardArt } from './card-art.tsx'
-import { Badge, LoadingState, Section } from './ui.tsx'
+import { DetailBodySkeleton } from './skeleton.tsx'
+import { Badge, LoadError, Section } from './ui.tsx'
 
 type Props = {
   readonly puuid: string
@@ -372,19 +373,14 @@ export const PlayerDetailPanel = ({
         </dl>
       </div>
 
-      {query.isPending ? <LoadingState label="Loading history…" /> : null}
+      {query.isPending ? <DetailBodySkeleton /> : null}
       {query.isError ? (
-        <div role="alert" className="flex flex-col items-start gap-3 px-6 py-6">
-          <p className="text-base text-zinc-200">Could not load this player.</p>
-          <p className="font-mono text-xs text-zinc-400">{query.error.message}</p>
-          <button
-            type="button"
-            onClick={() => void query.refetch()}
-            className="rounded border border-white/40 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-100 hover:bg-white/10"
-          >
-            Retry
-          </button>
-        </div>
+        <LoadError
+          title="Could not load this player."
+          error={query.error}
+          onRetry={() => void query.refetch()}
+          className="px-6 py-6"
+        />
       ) : null}
 
       {detail ? (

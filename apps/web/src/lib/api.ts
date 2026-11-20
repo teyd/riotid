@@ -1,4 +1,5 @@
 import type {
+  ApiError,
   PlayerDetail,
   PlayerPage,
   PlayerSearch,
@@ -19,6 +20,21 @@ export type {
   ServiceStatus,
   SiteOverview,
 }
+
+export class ApiRequestError extends Error {
+  readonly status: number
+  readonly retryAfter: number | null
+
+  constructor(status: number, message: string, retryAfter: number | null) {
+    super(message)
+    this.name = 'ApiRequestError'
+    this.status = status
+    this.retryAfter = retryAfter
+  }
+}
+
+export const isRateLimited = (error: unknown): error is ApiRequestError =>
+  error instanceof ApiRequestError && error.status === 429
 
 export type Region = 'na' | 'eu' | 'ap' | 'kr'
 
@@ -186,6 +202,16 @@ export const displayName = (player: Pick<PlayerListItem, 'name' | 'tag'>): strin
   return player.tag ? `${player.name}#${player.tag}` : player.name
 }
 
+const parseRetryAfter = (value: string | null): number | null => {
+  if (!value) return null
+
+  const seconds = Number(value)
+  if (Number.isFinite(seconds)) return Math.max(0, Math.ceil(seconds))
+
+  const at = Date.parse(value)
+  return Number.isNaN(at) ? null : Math.max(0, Math.ceil((at - Date.now()) / 1000))
+}
+
 const fetchJson = async <A>(path: string, signal?: AbortSignal): Promise<A> => {
   const response = await fetch(path, {
     headers: { accept: 'application/json' },
@@ -193,7 +219,12 @@ const fetchJson = async <A>(path: string, signal?: AbortSignal): Promise<A> => {
   })
 
   if (!response.ok) {
-    throw new Error(`API ${response.status} ${response.statusText}`)
+    const body = (await response.json().catch(() => null)) as ApiError | null
+    throw new ApiRequestError(
+      response.status,
+      body?.error.message ?? `API ${response.status} ${response.statusText}`,
+      parseRetryAfter(response.headers.get('retry-after')),
+    )
   }
 
   return response.json() as Promise<A>
