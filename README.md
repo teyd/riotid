@@ -8,7 +8,7 @@ Track Riot ID, region, and ban changes for competitive VALORANT leaderboard play
 
 ## What it does
 
-Riot anonymizes most high-rank leaderboard entries, which hides who changed their
+Riot anonymizes many high-rank leaderboard entries, which hides who changed their
 name, switched region, or got banned. This service scans the leaderboard, builds a
 match-graph fingerprint for anonymous rows, and links a row only when the
 fingerprint matches exactly. The result is a public, read-only history with
