@@ -33,6 +33,12 @@ wt switch --create <branch>  # isolated worktree with its own ports and data
 Use `mise run fmt` and `mise run lint` for formatting and linting only. Static
 checks must go through `effect-tsgo`; never call plain `vp check` in scripts.
 
+## Git workflow
+
+Never commit on `main`. Start every change with `wt switch --create <branch>`,
+commit inside that worktree, then land it with `wt merge`. `wt` comes from
+`worktrunk`, pinned in `mise.toml`; run `mise install` if it is missing.
+
 ## Invariants
 
 - The API is read-only: use `readDatabase()` only and never import ingest or Riot
