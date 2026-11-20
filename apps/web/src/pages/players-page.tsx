@@ -94,15 +94,17 @@ const meterTones = {
   critical: { bar: 'bg-red-500', text: 'text-red-400' },
 }
 
+const meterRow = 'grid w-full grid-cols-[4rem_1fr_3.25rem] items-center gap-2'
+
 const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; now: number }) => {
   const rate = useSyncExternalStore(subscribeRateLimit, () => getRateLimit(scope))
 
   if (!rate) {
     return (
-      <div className="flex w-full items-center gap-3">
-        <span className="shrink-0 tracking-wide">{label}</span>
-        <div className="h-1 flex-1 rounded-full bg-white/10" />
-        <span className="shrink-0 tabular-nums">—</span>
+      <div className={meterRow}>
+        <span className="tracking-wide">{label}</span>
+        <div className="h-1 rounded-full bg-white/10" />
+        <span className="text-end tabular-nums">—</span>
       </div>
     )
   }
@@ -118,21 +120,21 @@ const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; n
       getValueLabel={(value) =>
         `${value} of ${current.limit} ${label} API requests left this minute`
       }
-      className="flex w-full items-center gap-3"
+      className={meterRow}
     >
-      <MeterLabel className="shrink-0 tracking-wide">{label}</MeterLabel>
-      <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
+      <MeterLabel className="tracking-wide">{label}</MeterLabel>
+      <MeterTrack className="h-1 rounded-full bg-white/10">
         <MeterIndicator
           className={`h-full rounded-full motion-safe:transition-[width,background-color] motion-safe:duration-300 motion-safe:ease-out ${meterTones[tone].bar}`}
         />
       </MeterTrack>
-      <MeterValue className={`shrink-0 tabular-nums ${meterTones[tone].text}`} />
+      <MeterValue className={`text-end tabular-nums ${meterTones[tone].text}`} />
     </Meter>
   )
 }
 
 const RateLimits = ({ now }: { now: number }) => (
-  <div className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-2 lg:w-[25rem]">
+  <div className="grid shrink-0 grid-cols-2 gap-x-4 gap-y-2 lg:w-[28rem]">
     <RateLimitMeter scope="overview" label="overview" now={now} />
     <RateLimitMeter scope="browse" label="list" now={now} />
     <RateLimitMeter scope="search" label="search" now={now} />
@@ -180,9 +182,9 @@ const ScanStatus = ({
       role={error ? 'status' : undefined}
       className="flex shrink-0 flex-col gap-2 border-t border-white/[0.06] px-4 py-2.5 font-mono text-[11px] text-zinc-400 lg:flex-row lg:items-center lg:justify-between lg:gap-8"
     >
-      <div className="flex min-w-0 flex-col items-start gap-0.5">
+      <div className="flex min-w-0 flex-col gap-1">
         {error ? (
-          <>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="text-zinc-300">
               {isRateLimited(error)
                 ? 'API rate limited (429) — retrying'
@@ -195,52 +197,56 @@ const ScanStatus = ({
             >
               Retry now
             </button>
-          </>
+          </div>
         ) : (
           <>
-            <span>{players?.toLocaleString() ?? '—'} public players</span>
-            <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
-            <span className={cookieWarning ? 'text-amber-300' : undefined}>
-              cookie{' '}
-              {typeof cookieUpdatedAt === 'number' ? (
-                <>
-                  {cookieStale ? 'stale · ' : ''}
-                  <time
-                    dateTime={new Date(cookieUpdatedAt).toISOString()}
-                    title={exact(cookieUpdatedAt)}
-                  >
-                    {formatRelative(cookieUpdatedAt)}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>{players?.toLocaleString() ?? '—'} public players</span>
+              <span>{nameChanges?.toLocaleString() ?? '—'} name changes</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>
+                last scan{' '}
+                {lastRunAt ? (
+                  <time dateTime={new Date(lastRunAt).toISOString()} title={exact(lastRunAt)}>
+                    {formatScanTime(lastRunAt)}
                   </time>
-                </>
-              ) : cookieUpdatedAt === null ? (
-                'missing'
-              ) : (
-                '—'
-              )}
-            </span>
-            <span>
-              last scan{' '}
-              {lastRunAt ? (
-                <time dateTime={new Date(lastRunAt).toISOString()} title={exact(lastRunAt)}>
-                  {formatScanTime(lastRunAt)}
-                </time>
-              ) : (
-                'never'
-              )}
-            </span>
-            <span>
-              next scan{' '}
-              {nextRunAt ? (
-                <>
-                  <time dateTime={new Date(nextRunAt).toISOString()} title={exact(nextRunAt)}>
-                    {formatScanTime(nextRunAt)}
-                  </time>{' '}
-                  <span>({formatScanCountdown(nextRunAt, now)})</span>
-                </>
-              ) : (
-                '—'
-              )}
-            </span>
+                ) : (
+                  'never'
+                )}
+              </span>
+              <span>
+                next scan{' '}
+                {nextRunAt ? (
+                  <>
+                    <time dateTime={new Date(nextRunAt).toISOString()} title={exact(nextRunAt)}>
+                      {formatScanTime(nextRunAt)}
+                    </time>{' '}
+                    <span>({formatScanCountdown(nextRunAt, now)})</span>
+                  </>
+                ) : (
+                  '—'
+                )}
+              </span>
+              <span className={cookieWarning ? 'text-amber-300' : undefined}>
+                cookie{' '}
+                {typeof cookieUpdatedAt === 'number' ? (
+                  <>
+                    {cookieStale ? 'stale · ' : ''}
+                    <time
+                      dateTime={new Date(cookieUpdatedAt).toISOString()}
+                      title={exact(cookieUpdatedAt)}
+                    >
+                      {formatRelative(cookieUpdatedAt)}
+                    </time>
+                  </>
+                ) : cookieUpdatedAt === null ? (
+                  'missing'
+                ) : (
+                  '—'
+                )}
+              </span>
+            </div>
           </>
         )}
       </div>
