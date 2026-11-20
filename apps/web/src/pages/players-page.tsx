@@ -187,6 +187,7 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const [query, setQueryState] = useState(lastQuery)
   const [region, setRegionState] = useState<'all' | Region>(lastRegion)
   const [sort, setSortState] = useState<Sort>(lastSort)
+  const [loadingMore, setLoadingMore] = useState(false)
   const deferredQuery = useDeferredValue(query)
   const setQuery = (next: string) => {
     lastQuery = next
@@ -346,8 +347,10 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const loadMore = () => {
     if (loadingMoreRef.current || !browse.hasNextPage || browse.isFetchNextPageError) return
     loadingMoreRef.current = true
+    setLoadingMore(true)
     void browse.fetchNextPage().finally(() => {
       loadingMoreRef.current = false
+      setLoadingMore(false)
     })
   }
 
@@ -556,7 +559,8 @@ export function PlayersPage({ selected }: { selected?: string }) {
                   hasMore={
                     !searchMode && !typing && browse.hasNextPage && !browse.isFetchNextPageError
                   }
-                  loadingMore={browse.isFetchingNextPage}
+                  loadingMore={loadingMore}
+                  pendingCount={!searchMode && !typing && loadingMore ? playerPageSize : 0}
                   onLoadMore={loadMore}
                   focusSelectedOnMount={selectionSource === 'list'}
                   searchRef={searchRef}

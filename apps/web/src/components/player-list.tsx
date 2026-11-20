@@ -12,7 +12,7 @@ import {
 } from '../lib/api.ts'
 import { CardArt } from './card-art.tsx'
 import { EmptyState } from './ui.tsx'
-import { PlayerListSkeleton } from './skeleton.tsx'
+import { PlayerListSkeleton, Skeleton } from './skeleton.tsx'
 
 type Props = {
   readonly sections: ReadonlyArray<PlayerSection>
@@ -22,6 +22,7 @@ type Props = {
   readonly emptyHint: string
   readonly hasMore: boolean
   readonly loadingMore: boolean
+  readonly pendingCount: number
   readonly onLoadMore: () => void
   readonly focusSelectedOnMount: boolean
   readonly searchRef: RefObject<HTMLInputElement | null>
@@ -45,15 +46,20 @@ type PlayerItem = {
   readonly player: PlayerListItem
 }
 
-type ListItem = HeaderItem | PlayerItem
+type PlaceholderItem = {
+  readonly kind: 'placeholder'
+  readonly key: string
+}
+
+type ListItem = HeaderItem | PlayerItem | PlaceholderItem
 
 const interactiveRoles =
   '[data-slot="select-trigger"],[role="combobox"],[role="radiogroup"],[role="toolbar"],[role="list"],[role="menu"],[role="listbox"],[role="dialog"],[role="separator"]'
 
 const navigationKeys = new Set(['ArrowDown', 'ArrowUp', 'j', 'k', 'Home', 'End'])
 
-const buildItems = (sections: ReadonlyArray<PlayerSection>): ListItem[] =>
-  sections.flatMap((section) => [
+const buildItems = (sections: ReadonlyArray<PlayerSection>, pendingCount: number): ListItem[] => {
+  const items: ListItem[] = sections.flatMap((section) => [
     ...(section.label
       ? [
           {
@@ -73,6 +79,13 @@ const buildItems = (sections: ReadonlyArray<PlayerSection>): ListItem[] =>
     })),
   ])
 
+  for (let index = 0; index < pendingCount; index += 1) {
+    items.push({ kind: 'placeholder', key: `placeholder-${index}` })
+  }
+
+  return items
+}
+
 export const PlayerList = ({
   sections,
   selected,
@@ -81,6 +94,7 @@ export const PlayerList = ({
   emptyHint,
   hasMore,
   loadingMore,
+  pendingCount,
   onLoadMore,
   focusSelectedOnMount,
   searchRef,
@@ -92,7 +106,7 @@ export const PlayerList = ({
   const pendingFocus = useRef<string | null>(null)
   const focusedOnMount = useRef(false)
   const [keyboardNavigation, setKeyboardNavigation] = useState(false)
-  const items = useMemo(() => buildItems(sections), [sections])
+  const items = useMemo(() => buildItems(sections, pendingCount), [sections, pendingCount])
   const firstPlayerIndex = items.findIndex((item) => item.kind === 'player')
   // TanStack Virtual returns functions the compiler cannot safely memoize.
   // eslint-disable-next-line react/incompatible-library
@@ -105,12 +119,13 @@ export const PlayerList = ({
   })
 
   const virtualItems = virtualizer.getVirtualItems()
+  const loadedPlayers = sections.reduce((total, section) => total + section.players.length, 0)
 
   useEffect(() => {
-    if (!hasMore || loadingMore || items.length === 0) return
+    if (!hasMore || loadingMore || loadedPlayers === 0) return
     const last = virtualItems.at(-1)
-    if (last && last.index >= items.length - 80) onLoadMore()
-  }, [virtualItems, hasMore, loadingMore, items.length, onLoadMore])
+    if (last && last.index >= loadedPlayers - 80) onLoadMore()
+  }, [virtualItems, hasMore, loadingMore, loadedPlayers, onLoadMore])
 
   const selectedIndex = items.findIndex(
     (item) => item.kind === 'player' && item.player.puuid === selected,
@@ -237,6 +252,25 @@ export const PlayerList = ({
           {virtualItems.map((item) => {
             const row = items[item.index]
             if (!row) return null
+
+            if (row.kind === 'placeholder') {
+              return (
+                <div
+                  key={row.key}
+                  aria-hidden="true"
+                  data-list-placeholder
+                  className="absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] px-3"
+                  style={{ transform: `translateY(${item.start}px)` }}
+                >
+                  <Skeleton className="size-9 shrink-0 rounded-sm" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-3.5 w-40" />
+                    <Skeleton className="h-2.5 w-24" />
+                  </div>
+                  <Skeleton className="h-2.5 w-12" />
+                </div>
+              )
+            }
 
             if (row.kind === 'header') {
               const count = row.truncated
