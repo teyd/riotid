@@ -394,14 +394,14 @@ Before the CI efficiency pass, `analyze` took 21–25 s, `test` 43 s, `build`
 2.5 min when Docker was slow.
 
 The pass folded `build` and `db` into `analyze` and stopped exporting Docker cache
-from pull requests. Two PR runs, 44699982462 and 44700448675, measured:
+from pull requests. Three PR runs measured:
 
 | Job            |    Time |
 | -------------- | ------: |
-| `analyze`      | 33–38 s |
-| `test`         | 44–48 s |
+| `analyze`      | 30–38 s |
+| `test`         | 39–48 s |
 | `docker`       | 15–21 s |
-| **Wall clock** | 47–52 s |
+| **Wall clock** | 41–52 s |
 
 These are warm-cache runs; the Docker drop from 61 s to 15–21 s is partly cache
 warmth, so the structural saving is the two removed setup jobs. See
@@ -411,7 +411,7 @@ Recommendation for the new tests:
 
 - **E2E:** add it to `analyze` after the web build, serve the existing `dist`,
   and use the runner's Google Chrome (`channel: 'chrome'`). It should add 5–10 s,
-  keeping PR wall clock around 50–60 s. Do not create a new job.
+  keeping PR wall clock around 45–60 s. Do not create a new job.
 - **Strobe `--check`:** run on pushes to `main` or weekly, not on PRs. It takes
   about 45 s and would become the new critical path.
 - **Timed A/B:** local only.
