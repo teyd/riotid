@@ -94,24 +94,33 @@ const meterTones = {
   critical: { bar: 'bg-red-500', text: 'text-red-400' },
 }
 
-const RateLimitMeter = ({ now }: { now: number }) => {
-  const rate = useSyncExternalStore(subscribeRateLimit, getRateLimit)
+const RateLimitMeter = ({ scope, label, now }: { scope: string; label: string; now: number }) => {
+  const rate = useSyncExternalStore(subscribeRateLimit, () => getRateLimit(scope))
 
-  if (!rate || now >= rate.resetAt) return null
+  if (!rate) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="shrink-0 tracking-wide">{label}</span>
+        <div className="h-1 flex-1 rounded-full bg-white/10" />
+        <span className="shrink-0 tabular-nums">—</span>
+      </div>
+    )
+  }
 
-  const tone = rateLimitTone(rate)
+  const current = now < rate.resetAt ? rate : { ...rate, remaining: rate.limit }
+  const tone = rateLimitTone(current)
 
   return (
     <Meter
-      value={rate.remaining}
-      max={rate.limit}
-      format={(value) => `${value} / ${rate.limit} left`}
+      value={current.remaining}
+      max={current.limit}
+      format={(value) => `${value} / ${current.limit} left`}
       getValueLabel={(value) =>
-        `${value} of ${rate.limit} ${rate.scope} API requests left this minute`
+        `${value} of ${current.limit} ${label} API requests left this minute`
       }
       className="flex items-center gap-3"
     >
-      <MeterLabel className="shrink-0 tracking-wide">rate limit · {rate.scope}</MeterLabel>
+      <MeterLabel className="shrink-0 tracking-wide">{label}</MeterLabel>
       <MeterTrack className="h-1 flex-1 rounded-full bg-white/10">
         <MeterIndicator
           className={`h-full rounded-full motion-safe:transition-[width,background-color] motion-safe:duration-300 motion-safe:ease-out ${meterTones[tone].bar}`}
@@ -121,6 +130,13 @@ const RateLimitMeter = ({ now }: { now: number }) => {
     </Meter>
   )
 }
+
+const RateLimits = ({ now }: { now: number }) => (
+  <div className="grid gap-2 sm:grid-cols-[3fr_2fr] sm:gap-6">
+    <RateLimitMeter scope="browse" label="list" now={now} />
+    <RateLimitMeter scope="search" label="search" now={now} />
+  </div>
+)
 
 type ScanStatusProps = {
   players: number | null
@@ -226,7 +242,7 @@ const ScanStatus = ({
           </>
         )}
       </div>
-      <RateLimitMeter now={now} />
+      <RateLimits now={now} />
     </footer>
   )
 }
