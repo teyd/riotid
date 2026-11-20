@@ -7,6 +7,14 @@
       "computedHash": "c91331769b0cf9a9f5592d9ea5cf0998fdfcd81c4ed1fb0d8784ada819a797e9",
       "installMode": "copy"
     },
+    "github-actions-efficiency": {
+      "source": "github/awesome-copilot",
+      "commit": "f10fdb8b2660ce85c98f220b2f1ca24653768a5c",
+      "sourceType": "github",
+      "skillPath": "skills/github-actions-efficiency/SKILL.md",
+      "computedHash": "1e29703ead16150c7a746ba4eaba1680239636f3da1a616adf4a58b06943c874",
+      "installMode": "copy"
+    },
     "ui-sdk": {
       "source": "vercel-labs/ui",
       "commit": "3647512865fe0242b749dd8981c51c75ad5f486b",
