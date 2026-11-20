@@ -180,6 +180,13 @@ export const setMeta = (key: string, value: string): Effect.Effect<void, unknown
       .onConflictDoUpdate({ target: meta.key, set: { value, updatedAt: now } })
   })
 
+export const readMeta = (key: string): Effect.Effect<string | null, unknown, Database> =>
+  Effect.gen(function* () {
+    const db = yield* Database
+    const row = yield* db.get<{ value: string }>(sql`select value from meta where key = ${key}`)
+    return row?.value ?? null
+  })
+
 export const bumpIndexVersion: Effect.Effect<void, unknown, Database> = Effect.gen(function* () {
   const db = yield* Database
   const now = new Date()
@@ -207,6 +214,7 @@ export type DatabaseStats = {
     readonly id: number
     readonly status: string
     readonly trigger: string
+    readonly startedAt: string
     readonly finishedAt: string | null
     readonly durationMs: number | null
   } | null
@@ -249,6 +257,7 @@ export const databaseStats: Effect.Effect<DatabaseStats, unknown, Database> = Ef
         id: runs.id,
         status: runs.status,
         trigger: runs.trigger,
+        startedAt: runs.startedAt,
         finishedAt: runs.finishedAt,
         durationMs: runs.durationMs,
       })
@@ -276,6 +285,7 @@ export const databaseStats: Effect.Effect<DatabaseStats, unknown, Database> = Ef
             id: latest[0].id,
             status: latest[0].status,
             trigger: latest[0].trigger,
+            startedAt: latest[0].startedAt.toISOString(),
             finishedAt: latest[0].finishedAt?.toISOString() ?? null,
             durationMs: latest[0].durationMs,
           }

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vp test"
+    "test": "vp test --passWithNoTests"
   },
   "dependencies": {
     "@riotid/config": "workspace:*",

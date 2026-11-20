@@ -44,18 +44,18 @@ API change.
 
 ## App boundaries
 
-| App or package       | Owns                                                                 |
-| -------------------- | -------------------------------------------------------------------- |
-| `apps/api`           | HTTP routes, security headers, rate limits, index cache, SPA hosting |
-| `apps/cli`           | Auth, scans, identity passes, maintenance, takedowns, seeding        |
-| `apps/scheduler`     | API child process, schedules, Riot budget, backup and prune cadence  |
-| `apps/web`           | Browser UI; consumes contracts and the public API only               |
-| `packages/config`    | Resolved paths and environment contract shared by apps               |
-| `packages/contracts` | Effect schemas for index, detail, health, and errors                 |
-| `packages/db`        | Schema, migrations, read/write layers, maintenance queries           |
-| `packages/ingest`    | Leaderboard crawl, diffs, run evidence                               |
-| `packages/identity`  | Anonymous queue, match graph, exact-fingerprint linking              |
-| `packages/riot`      | QR/paste auth, token refresh, Riot HTTP adapters                     |
+| App or package       | Owns                                                                          |
+| -------------------- | ----------------------------------------------------------------------------- |
+| `apps/api`           | HTTP routes, security headers, rate limits, index cache, SPA hosting          |
+| `apps/cli`           | Auth, scans, identity passes, maintenance, takedowns, seeding, due-job policy |
+| `apps/scheduler`     | API child process, one-minute `work:tick` cadence                             |
+| `apps/web`           | Browser UI; consumes contracts and the public API only                        |
+| `packages/config`    | Resolved paths and environment contract shared by apps                        |
+| `packages/contracts` | Effect schemas for index, detail, health, and errors                          |
+| `packages/db`        | Schema, migrations, read/write layers, maintenance queries                    |
+| `packages/ingest`    | Leaderboard crawl, diffs, run evidence                                        |
+| `packages/identity`  | Anonymous queue, match graph, exact-fingerprint linking                       |
+| `packages/riot`      | QR/paste auth, token refresh, Riot HTTP adapters                              |
 
 ## Read-only API
 
@@ -146,20 +146,27 @@ link stores `match_id`, `method`, `confidence`, and fingerprint evidence in
 ## Scheduler behavior
 
 In production the scheduler is the container entrypoint. It starts the API as a
-child process and spawns CLI jobs instead of running Riot work inside the API.
+child process, then spawns `work:tick --json` once a minute and waits for it to
+exit. The CLI decides what is due from SQLite state and runs at most one job per
+tick; the scheduler holds no scan, identity, auth, or backup policy.
 
-- Scan: catch up on boot when the last success is older than
-  `SCAN_INTERVAL_HOURS`, then repeat on that interval.
-- Identity: bounded `anon:resolve` batches; pause while a scan runs and resume
-  after midnight UTC when the daily Riot budget is spent.
-- Auth: refresh the cookie jar before Riot work and while the process runs.
-- Maintenance: create a backup shortly after boot and at most once per 24 hours,
-  then prune runs older than `RUN_RETENTION_DAYS`.
+- Scan: due when the latest attempt (success or failure) is older than
+  `SCAN_INTERVAL_HOURS`; the CLI records `trigger: schedule`.
+- Maintenance: first backup after `SCHEDULER_MAINTENANCE_DELAY_MINUTES`, then
+  once per `SCHEDULER_MAINTENANCE_INTERVAL_HOURS`; a failed backup retries after
+  ten minutes.
+- Identity: bounded `anon:resolve` batches; waits `SCHEDULER_IDENTITY_ACTIVE_MINUTES`
+  after work, `SCHEDULER_IDENTITY_IDLE_MINUTES` after an idle or failed pass,
+  and until 00:05 UTC when the daily Riot budget is spent.
+- Auth: refreshes the cookie jar when it is older than `AUTH_REFRESH_MINUTES`.
+- A running scan blocks every other job; one tick never overlaps another.
 
-The scheduler and API share the same volume and environment. Do not run a second
-scheduler, and do not run CLI write commands against production while it is
-active. `SCHEDULER_DRY_RUN=true` logs jobs instead of spawning them;
-`SCHEDULER_JOBS=false` keeps the API supervised with no scheduled work.
+Policy lives in `apps/cli/src/work.ts` as pure functions over a state snapshot,
+so it is tested without waiting on timers. The scheduler and API share the same
+volume and environment. Do not run a second scheduler, and do not run CLI write
+commands against production while it is active. `SCHEDULER_DRY_RUN=true` logs
+ticks instead of spawning them; `SCHEDULER_JOBS=false` keeps the API supervised
+with no scheduled work.
 
 ## Contracts
 
