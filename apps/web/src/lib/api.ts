@@ -1,29 +1,25 @@
 import type {
   PlayerDetail,
+  PlayerPage,
   PlayerSearch,
+  PlayerSort,
   SearchMatch,
   SearchPlayer,
   ServiceStatus,
-  SiteIndex,
+  SiteOverview,
 } from '@riotid/contracts'
 
-export type { PlayerDetail, PlayerSearch, SearchMatch, SearchPlayer, ServiceStatus, SiteIndex }
+export type {
+  PlayerDetail,
+  PlayerPage,
+  PlayerSearch,
+  PlayerSort,
+  SearchMatch,
+  SearchPlayer,
+  ServiceStatus,
+  SiteOverview,
+}
 
-export const P = {
-  puuid: 0,
-  name: 1,
-  tag: 2,
-  region: 3,
-  flags: 4,
-  nameChanges: 5,
-  regionChanges: 6,
-  firstSeenAt: 7,
-  lastSeenAt: 8,
-  cardId: 9,
-  lastNameChangeAt: 10,
-} as const
-
-export type IndexRow = SiteIndex['players'][number]
 export type Region = 'na' | 'eu' | 'ap' | 'kr'
 
 export type PlayerListItem = {
@@ -54,22 +50,6 @@ export type PlayerSection = {
   readonly total: number
   readonly truncated: boolean
   readonly players: ReadonlyArray<PlayerListItem>
-}
-
-export const indexRowToPlayer = (row: IndexRow, cards: ReadonlyArray<string>): PlayerListItem => {
-  const cardIndex = row[P.cardId]
-  return {
-    puuid: row[P.puuid],
-    name: row[P.name],
-    tag: row[P.tag],
-    region: row[P.region],
-    cardId: cardIndex === null ? null : (cards[cardIndex] ?? null),
-    nameChanges: row[P.nameChanges],
-    regionChanges: row[P.regionChanges],
-    firstSeenAt: row[P.firstSeenAt],
-    lastSeenAt: row[P.lastSeenAt],
-    former: null,
-  }
 }
 
 export const searchPlayerToItem = (player: SearchPlayer): PlayerListItem => ({
@@ -206,8 +186,11 @@ export const displayName = (player: Pick<PlayerListItem, 'name' | 'tag'>): strin
   return player.tag ? `${player.name}#${player.tag}` : player.name
 }
 
-const fetchJson = async <A>(path: string): Promise<A> => {
-  const response = await fetch(path, { headers: { accept: 'application/json' } })
+const fetchJson = async <A>(path: string, signal?: AbortSignal): Promise<A> => {
+  const response = await fetch(path, {
+    headers: { accept: 'application/json' },
+    ...(signal ? { signal } : {}),
+  })
 
   if (!response.ok) {
     throw new Error(`API ${response.status} ${response.statusText}`)
@@ -216,12 +199,28 @@ const fetchJson = async <A>(path: string): Promise<A> => {
   return response.json() as Promise<A>
 }
 
-export const fetchIndex = () => fetchJson<SiteIndex>('/api/v1/index')
+export const fetchOverview = (signal?: AbortSignal) =>
+  fetchJson<SiteOverview>('/api/v1/overview', signal)
 export const fetchStatus = () => fetchJson<ServiceStatus>('/api/v1/status')
-export const fetchPlayer = (puuid: string) =>
-  fetchJson<PlayerDetail>(`/api/v1/players/${encodeURIComponent(puuid)}`)
-export const fetchSearch = (query: string, region?: Region | null) => {
+export const fetchPlayer = (puuid: string, signal?: AbortSignal) =>
+  fetchJson<PlayerDetail>(`/api/v1/players/${encodeURIComponent(puuid)}`, signal)
+export const fetchPlayersPage = (
+  options: {
+    sort: PlayerSort
+    region?: Region | null
+    cursor?: string | null
+    limit?: number
+  },
+  signal?: AbortSignal,
+) => {
+  const params = new URLSearchParams({ sort: options.sort })
+  if (options.region) params.set('region', options.region)
+  if (options.cursor) params.set('cursor', options.cursor)
+  if (options.limit) params.set('limit', String(options.limit))
+  return fetchJson<PlayerPage>(`/api/v1/players?${params.toString()}`, signal)
+}
+export const fetchSearch = (query: string, region?: Region | null, signal?: AbortSignal) => {
   const params = new URLSearchParams({ q: query })
   if (region) params.set('region', region)
-  return fetchJson<PlayerSearch>(`/api/v1/search?${params.toString()}`)
+  return fetchJson<PlayerSearch>(`/api/v1/search?${params.toString()}`, signal)
 }

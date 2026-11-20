@@ -20,6 +20,9 @@ type Props = {
   readonly loading: boolean
   readonly emptyTitle: string
   readonly emptyHint: string
+  readonly hasMore: boolean
+  readonly loadingMore: boolean
+  readonly onLoadMore: () => void
   readonly focusSelectedOnMount: boolean
   readonly searchRef: RefObject<HTMLInputElement | null>
   readonly onSelect: (puuid: string | null) => void
@@ -42,15 +45,20 @@ type PlayerItem = {
   readonly player: PlayerListItem
 }
 
-type ListItem = HeaderItem | PlayerItem
+type FooterItem = {
+  readonly kind: 'footer'
+  readonly key: 'more'
+}
+
+type ListItem = HeaderItem | PlayerItem | FooterItem
 
 const interactiveRoles =
   '[data-slot="select-trigger"],[role="combobox"],[role="radiogroup"],[role="toolbar"],[role="list"],[role="menu"],[role="listbox"],[role="dialog"],[role="separator"]'
 
 const navigationKeys = new Set(['ArrowDown', 'ArrowUp', 'j', 'k', 'Home', 'End'])
 
-const buildItems = (sections: ReadonlyArray<PlayerSection>): ListItem[] =>
-  sections.flatMap((section) => [
+const buildItems = (sections: ReadonlyArray<PlayerSection>, hasMore: boolean): ListItem[] => {
+  const items: ListItem[] = sections.flatMap((section) => [
     ...(section.label
       ? [
           {
@@ -70,12 +78,22 @@ const buildItems = (sections: ReadonlyArray<PlayerSection>): ListItem[] =>
     })),
   ])
 
+  if (hasMore && items.some((item) => item.kind === 'player')) {
+    items.push({ kind: 'footer', key: 'more' })
+  }
+
+  return items
+}
+
 export const PlayerList = ({
   sections,
   selected,
   loading,
   emptyTitle,
   emptyHint,
+  hasMore,
+  loadingMore,
+  onLoadMore,
   focusSelectedOnMount,
   searchRef,
   onSelect,
@@ -86,7 +104,7 @@ export const PlayerList = ({
   const pendingFocus = useRef<string | null>(null)
   const focusedOnMount = useRef(false)
   const [keyboardNavigation, setKeyboardNavigation] = useState(false)
-  const items = useMemo(() => buildItems(sections), [sections])
+  const items = useMemo(() => buildItems(sections, hasMore), [sections, hasMore])
   const firstPlayerIndex = items.findIndex((item) => item.kind === 'player')
   // TanStack Virtual returns functions the compiler cannot safely memoize.
   // eslint-disable-next-line react/incompatible-library
@@ -223,6 +241,25 @@ export const PlayerList = ({
           {virtualizer.getVirtualItems().map((item) => {
             const row = items[item.index]
             if (!row) return null
+
+            if (row.kind === 'footer') {
+              return (
+                <div
+                  key={row.key}
+                  className="absolute top-0 left-0 flex h-14 w-full items-center justify-center border-b border-white/[0.05]"
+                  style={{ transform: `translateY(${item.start}px)` }}
+                >
+                  <button
+                    type="button"
+                    onClick={onLoadMore}
+                    disabled={loadingMore}
+                    className="rounded border border-white/30 px-3 py-2 font-mono text-[11px] uppercase tracking-wide text-zinc-300 hover:bg-white/10 disabled:opacity-60"
+                  >
+                    {loadingMore ? 'Loading more…' : 'Load more players'}
+                  </button>
+                </div>
+              )
+            }
 
             if (row.kind === 'header') {
               const count = row.truncated

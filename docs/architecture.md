@@ -50,19 +50,23 @@ serves the built SPA from the same origin with a fallback for client routes.
 
 ## Read-only API
 
-- Endpoints are `GET /api/v1/index`, `GET /api/v1/search`,
-  `GET /api/v1/players/:puuid`, `GET /api/v1/status`, and `GET /healthz`.
+- Endpoints are `GET /api/v1/overview`, `GET /api/v1/players`,
+  `GET /api/v1/search`, `GET /api/v1/players/:puuid`,
+  `GET /api/v1/index`, `GET /api/v1/status`, and `GET /healthz`.
   Everything else is a `404` JSON error or the SPA fallback. Status exposes
   only the cookie jar mtime and the staleness threshold; it never reads cookie
   values.
-- The index is versioned by `meta.indexVersion`, built in memory, and
-  pre-compressed. `index:rebuild` bumps the version; the next request rebuilds.
-  It holds the most recently seen `INDEX_PLAYER_LIMIT` public players (50k by
-  default) and reports the public total; search covers every visible player.
+- The overview is versioned by `meta.indexVersion` and cached in memory; it
+  carries counts, season, and scan timing without the player rows.
+- Browse uses keyset pagination on `/api/v1/players` with 250-row pages and an
+  opaque cursor containing the sort keys plus puuid. Indexes on each sort keep
+  deep pages cheap; search is independent of the page cursor.
+- The legacy tuple index is still versioned, pre-compressed, and capped at
+  `INDEX_PLAYER_LIMIT` (50k by default). The SPA no longer downloads it.
 - Index and detail responses carry `ETag` and honor `If-None-Match` with `304`.
-- Limits are 30 requests/min/IP for the index, 120/min/IP for search and
-  details. Cloudflare is expected to cache the index (`s-maxage=300`) in front
-  of these.
+- Limits are 30 requests/min/IP for the index, 60 for the overview, and 120
+  for browse, search, and details. Cloudflare is expected to cache the index
+  and overview (`s-maxage=300`) in front of these.
 - Search is an FTS5 trigram index (`player_search`) over current and closed
   `player_names` intervals. Triggers keep it in sync; the API only reads it.
   Results are grouped into current and past names, deduplicated within each

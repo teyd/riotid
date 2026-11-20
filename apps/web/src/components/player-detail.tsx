@@ -248,7 +248,7 @@ export const PlayerDetailPanel = ({
 }: Props) => {
   const query = useQuery({
     queryKey: ['player', puuid],
-    queryFn: () => fetchPlayer(puuid),
+    queryFn: ({ signal }) => fetchPlayer(puuid, signal),
     staleTime: 60_000,
   })
   const backRef = useRef<HTMLButtonElement>(null)

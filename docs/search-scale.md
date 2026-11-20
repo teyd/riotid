@@ -62,9 +62,9 @@ The search index adds disk: this synthetic database is 834 MB for 500k players,
 900k past names, indexes, and FTS. The migration's one-time FTS rebuild took
 5.6 s at 1.4M terms on the benchmark machine.
 
-## Next step if 50k is not enough
+## Browse now pages too
 
-Replace the capped preview with a cursor-paginated browse endpoint
-(`/api/v1/players?sort=...&cursor=...`) and request pages as the user scrolls.
-Search already works independently of the preview, so it does not need to
-change.
+The SPA no longer downloads the index preview. It requests `/api/v1/overview`
+for counts and `/api/v1/players?sort=...&cursor=...` for 250-row keyset pages,
+with the full sort key plus puuid in the cursor. The capped index remains for
+API consumers; search stays independent and complete.

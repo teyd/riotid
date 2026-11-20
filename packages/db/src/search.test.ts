@@ -3,12 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { isNotNull } from 'drizzle-orm'
+import type { PlayerPage } from '@riotid/contracts'
 import { Effect } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import { Database, migrateDatabase, writeDatabase } from './client.ts'
 import { migrationsFolder } from './paths.ts'
-import { searchPlayers } from './read-model.ts'
+import { decodePlayerCursor, listPlayersPage, searchPlayers } from './read-model.ts'
 import { playerNames, players } from './schema.ts'
 import { seedDatabase } from './seed.ts'
 
@@ -129,6 +130,37 @@ describe('player search', () => {
       const removed = await runDb(path, searchPlayers('alpha old'))
       expect(removed.current.total).toBe(0)
       expect(removed.past.total).toBe(0)
+    })
+  })
+
+  it('pages every browse sort with stable cursors', async () => {
+    await withDatabase('riotid-browse-', async (path) => {
+      await runDb(
+        path,
+        Effect.gen(function* () {
+          yield* migrateDatabase(migrationsFolder)
+          yield* seedDatabase
+        }),
+      )
+
+      for (const sort of ['recentChanges', 'changes', 'recent', 'new', 'name'] as const) {
+        const seen: string[] = []
+        let cursor: ReturnType<typeof decodePlayerCursor> = null
+
+        for (let page = 0; page < 5; page += 1) {
+          const result: PlayerPage = await runDb(path, listPlayersPage({ sort, limit: 1, cursor }))
+          seen.push(...result.players.map((player) => player.puuid))
+          cursor = result.nextCursor ? decodePlayerCursor(result.nextCursor) : null
+          if (!cursor) break
+        }
+
+        expect(seen).toHaveLength(2)
+        expect(new Set(seen).size).toBe(2)
+      }
+
+      const empty = await runDb(path, listPlayersPage({ sort: 'recent', region: 'na' }))
+      expect(empty.players).toEqual([])
+      expect(empty.nextCursor).toBeNull()
     })
   })
 
