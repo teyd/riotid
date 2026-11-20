@@ -39,19 +39,18 @@ Date: 2026-11-20. Scope: `.github/workflows/ci.yml`. Tool: the
 
 ## Validation
 
-PR #2, run
-[44699982462](https://github.com/teyd/riotid/actions/runs/44699982462):
+Two post-change runs on PR #2:
 
-| Job            |     Time |
-| -------------- | -------: |
-| `analyze`      |     38 s |
-| `test`         |     44 s |
-| `docker`       |     15 s |
-| **Wall clock** | **47 s** |
+| Job            | Run 44699982462 | Run 44700448675 |
+| -------------- | --------------: | --------------: |
+| `analyze`      |            38 s |            33 s |
+| `test`         |            44 s |            48 s |
+| `docker`       |            15 s |            21 s |
+| **Wall clock** |        **47 s** |        **52 s** |
 
-The Docker build step itself was 2 s because every layer was cached. The PR run
-passed no `cache-to` flag; it only read the GHA cache. `provenance: false` is
-visible in the build command.
+The Docker build step itself was 2 s in the first run because every layer was
+cached. The PR runs passed no `cache-to` flag; they only read the GHA cache.
+`provenance: false` is visible in the build command.
 
 Baselines from `main` before the change:
 
@@ -65,15 +64,16 @@ gating, so no skip test was run.
 
 ## Impact
 
-One measured post-change run:
+Two measured post-change runs, warm cache:
 
-- Total runner time: 173 s → 97 s on the fast-cache baseline (about −44%).
-- PR wall clock: 63 s → 47 s (about −16 s).
+- Total runner time: 173 s → 97–102 s on the fast-cache baseline (about −41% to
+  −44%).
+- PR wall clock: 63 s → 47–52 s (about −11 to −16 s).
 - Slow-Docker runs should keep roughly the same wall clock but lose about 40 s
   of runner time from the two removed setup jobs.
 
-This is one warm-cache PR run, not a statistical sample. The Docker jump from
-61 s to 15 s is partly cache warmth, so do not attribute all of it to the
+These are two warm-cache PR runs, not a statistical sample. The Docker jump from
+61 s to 15–21 s is partly cache warmth, so do not attribute all of it to the
 workflow change. The setup-job removal is structural and repeats on every run.
 
 ## Recommendation
