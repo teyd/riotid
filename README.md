@@ -1,6 +1,6 @@
 # Riot ID History
 
-Track Riot ID, region, and ban changes for competitive VALORANT leaderboard players — live at [riotid.teyd.dev](https://riotid.teyd.dev).
+Track Riot ID, region, and ban changes for competitive VALORANT leaderboard players.
 
 [![CI](https://github.com/teyd/riotid/actions/workflows/ci.yml/badge.svg)](https://github.com/teyd/riotid/actions/workflows/ci.yml)
 [![Node 26](https://img.shields.io/badge/node-26-5FA04E?logo=node.js&logoColor=white)](https://nodejs.org)
