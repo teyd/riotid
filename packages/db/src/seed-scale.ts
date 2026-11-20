@@ -4,7 +4,9 @@ import { Effect } from 'effect'
 
 import { Database } from './client.ts'
 import {
+  anonymousRows,
   bannedPlayers,
+  identityLinks,
   meta,
   playerNames,
   playerRegions,
@@ -451,6 +453,9 @@ const leetLetters: Record<string, string> = {
 }
 const dayMs = 86_400_000
 const seasonUuid = '00000000-0000-4000-8000-000000000003'
+const titleId = '00000000-0000-4000-8000-000000000011'
+// Riot anonymizes roughly 10-15% of leaderboard entries.
+const anonymizedFraction = 0.15
 
 const mulberry32 = (seed: number) => {
   let state = seed >>> 0
@@ -650,6 +655,7 @@ export const seedScaleDatabase = (
 
     const run = yield* db.transaction((tx) =>
       Effect.gen(function* () {
+        yield* tx.delete(anonymousRows).where(eq(anonymousRows.seasonId, seasonUuid))
         yield* tx.delete(players).where(like(players.puuid, 'seed-scale-%'))
         yield* tx.delete(runs).where(eq(runs.clientVersion, 'scale'))
 
@@ -706,6 +712,10 @@ export const seedScaleDatabase = (
           const nameBatch: Array<typeof playerNames.$inferInsert> = []
           const regionBatch: Array<typeof playerRegions.$inferInsert> = []
           const banBatch: Array<typeof bannedPlayers.$inferInsert> = []
+          const anonymousBatch: Array<typeof anonymousRows.$inferInsert> = []
+          const linkBatch: Array<
+            Omit<typeof identityLinks.$inferInsert, 'anonymousRowId'> & { leaderboardRank: number }
+          > = []
 
           for (let index = start; index < end; index += 1) {
             const puuid = `seed-scale-${String(index).padStart(9, '0')}`
@@ -857,14 +867,17 @@ export const seedScaleDatabase = (
               isBanned = true
             }
 
+            const cardId = pick(cards, random)
+            const isAnonymized = random() < anonymizedFraction
+
             playerBatch.push({
               puuid,
               name: currentName,
               tag: currentTag,
-              cardId: pick(cards, random),
+              cardId,
               region,
               isBanned,
-              isAnonymized: random() < 0.03,
+              isAnonymized,
               firstSeenAt: new Date(firstSeenAt),
               lastSeenAt: new Date(lastSeenAt),
               firstSeenRunId: runId,
@@ -886,12 +899,63 @@ export const seedScaleDatabase = (
               lastUnbanAt: lastUnbanAt === null ? null : new Date(lastUnbanAt),
               updatedAt: now,
             })
+
+            if (isAnonymized) {
+              const leaderboardRank = index + 1
+              const fingerprint = {
+                leaderboardRank,
+                rankedRating: 600 + (index % 400),
+                numberOfWins: 40 + (index % 200),
+                competitiveTier: 24 + (index % 3),
+                cardId,
+                titleId,
+              }
+
+              anonymousBatch.push({
+                region,
+                seasonId: seasonUuid,
+                ...fingerprint,
+                resolvedPuuid: puuid,
+                status: 'linked',
+                firstSeenAt: new Date(firstSeenAt),
+                lastSeenAt: new Date(lastSeenAt),
+                updatedAt: now,
+              })
+              linkBatch.push({
+                leaderboardRank,
+                puuid,
+                region,
+                seasonId: seasonUuid,
+                matchId: `seed-scale-match-${index}`,
+                method: 'match_graph',
+                confidence: 9_995,
+                evidence: fingerprint,
+                updatedAt: now,
+              })
+            }
           }
 
           yield* tx.insert(players).values(playerBatch)
           yield* tx.insert(playerNames).values(nameBatch)
           if (regionBatch.length > 0) yield* tx.insert(playerRegions).values(regionBatch)
           if (banBatch.length > 0) yield* tx.insert(bannedPlayers).values(banBatch)
+          if (anonymousBatch.length > 0) {
+            const inserted = yield* tx
+              .insert(anonymousRows)
+              .values(anonymousBatch)
+              .returning({ id: anonymousRows.id, leaderboardRank: anonymousRows.leaderboardRank })
+            const idByRank = new Map(inserted.map((row) => [row.leaderboardRank, row.id]))
+
+            yield* tx.insert(identityLinks).values(
+              linkBatch.map(({ leaderboardRank, ...link }) => {
+                const anonymousRowId = idByRank.get(leaderboardRank)
+                if (anonymousRowId === undefined) {
+                  throw new Error(`missing anonymous row for scale rank ${leaderboardRank}`)
+                }
+                return { ...link, anonymousRowId }
+              }),
+            )
+          }
         }
 
         yield* tx
