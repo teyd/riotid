@@ -168,11 +168,10 @@ Hetzner VPS behind Cloudflare (orange cloud), which terminates TLS and proxies
 the container entrypoint is the scheduler:
 
 - It starts the API as a child process and exposes `PORT=3000`.
-- On boot it catches up a missed scan, refreshes auth, then scans every
-  `SCAN_INTERVAL_HOURS`.
-- It runs identity passes in bounded batches, pausing while a scan runs and
-  resuming after midnight UTC when `ANON_RESOLVE_BUDGET` is spent.
-- It backs up shortly after boot and at most once per 24 hours, then prunes runs.
+- Every minute it spawns one `work:tick --json` child and waits for it to exit;
+  the CLI decides what is due and runs at most one job per tick.
+- On boot the first tick catches up a missed scan; later ticks handle identity
+  batches, auth refresh, and the daily backup/prune.
 
 The database, cookie jar, and backups live on the `/app/data` volume. Run
 maintenance commands from the Dokploy container terminal using the
@@ -182,7 +181,12 @@ replicas, no second scheduler.
 Locally, `mise run scheduler` supervises the API but does not run scheduled jobs
 unless `NODE_ENV=production`. To exercise the schedule without Riot calls, run
 with `NODE_ENV=production SCHEDULER_DRY_RUN=true mise run scheduler`; set
-`SCHEDULER_JOBS=false` when you only need the API process.
+`SCHEDULER_JOBS=false` when you only need the API process. Inspect the next due
+job without running it:
+
+```bash
+node apps/cli/src/main.ts work:tick --plan --json
+```
 
 Health check after deploy:
 

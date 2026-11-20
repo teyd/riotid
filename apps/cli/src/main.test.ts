@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
-import { seedDatabase } from '@riotid/db'
+import { seedDatabase, setMeta } from '@riotid/db'
 import { migrate, runDb, withDatabase } from '@riotid/test-utils'
 import { describe, expect, it } from 'vite-plus/test'
 
@@ -64,6 +64,7 @@ describe('cli', () => {
       'player:show',
       'player:remove',
       'status',
+      'work:tick',
       'help',
     ]) {
       expect(stdout).toContain(command)
@@ -165,6 +166,38 @@ describe('cli', () => {
       } finally {
         await fs.rm(directory, { recursive: true, force: true })
       }
+    })
+  })
+
+  it('plans one due job at a time from database state', async () => {
+    await withDatabase('riotid-cli-work-', async (path) => {
+      await migrate(path)
+      await runDb(path, seedDatabase)
+      const cookieFile = join(path, '..', 'cookies.json')
+      const now = Date.now()
+
+      await runDb(path, setMeta('lastBackupAt', new Date(now).toISOString()))
+
+      const env = {
+        DATABASE_PATH: path,
+        COOKIE_FILE: cookieFile,
+        SCAN_INTERVAL_HOURS: '1000',
+      }
+      const plan = (at: number) =>
+        runCli(['work:tick', '--plan', '--json', '--booted-at', String(at)], env)
+
+      const identity = await plan(now)
+      expect(identity.code).toBe(0)
+      expect(parseSingleJson(identity.stdout)).toMatchObject({ job: 'identity', ok: true })
+
+      await runDb(path, setMeta('work:identity', JSON.stringify({ at: now, ok: true, tried: 0 })))
+
+      const auth = await plan(now)
+      expect(parseSingleJson(auth.stdout)).toMatchObject({ job: 'auth' })
+
+      await fs.writeFile(cookieFile, '{}')
+      const idle = await plan(now + 1_000)
+      expect(parseSingleJson(idle.stdout)).toMatchObject({ job: null, reason: 'nothing due' })
     })
   })
 })
