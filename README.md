@@ -111,8 +111,8 @@ the full operator flow and the in-container forms.
 Production runs on a Hetzner VPS with Dokploy, proxied by Cloudflare (orange
 cloud), with a named volume at `/app/data` holding the database, cookie jar, and
 backups. The scheduler is the container entrypoint and starts the API as a child
-process. Deploy with `mise run deploy`; do not scale replicas or run two writers.
-Full procedure:
+process. Deploy through the Dokploy MCP server or dashboard; do not scale
+replicas or run two writers. Full procedure:
 [runbook](docs/runbook.md#deployment-and-scheduler).
 
 ## Documentation
@@ -128,3 +128,8 @@ Full procedure:
 `mise run ci` runs static checks, tests, the web build, and migration
 verification. The test suites use temporary databases and fake Riot sources;
 they never call Riot.
+
+## License
+
+MIT. The vendored skills under `.agents/skills/` keep their own upstream
+licenses; see their `LICENSE` files and `skills-lock.json`.

@@ -161,8 +161,8 @@ Other windows:
 
 ## Deployment and scheduler
 
-Deploy with `mise run deploy`, which calls the Dokploy API. Production runs on a
-Hetzner VPS behind Cloudflare (orange cloud), which terminates TLS and proxies
+Deploy through the Dokploy MCP server or dashboard. Production runs on a Hetzner
+VPS behind Cloudflare (orange cloud), which terminates TLS and proxies
 `riotid.teyd.dev` to Dokploy/Traefik. Keep the origin closed to direct traffic so
 `cf-connecting-ip` cannot be spoofed. The build uses the repository `Dockerfile`;
 the container entrypoint is the scheduler:
