@@ -1,5 +1,4 @@
 export type RateLimit = {
-  readonly scope: string
   readonly limit: number
   readonly remaining: number
   readonly resetAt: number
@@ -20,9 +19,8 @@ export const rateLimitTone = ({
 
 const buckets = new Map<string, RateLimit>()
 const listeners = new Set<() => void>()
-let snapshot: RateLimit | null = null
 
-const parse = (headers: Headers): Omit<RateLimit, 'scope'> | null => {
+const parse = (headers: Headers): RateLimit | null => {
   const limitValue = headers.get('ratelimit-limit')
   const remainingValue = headers.get('ratelimit-remaining')
   const resetValue = headers.get('ratelimit-reset')
@@ -43,36 +41,15 @@ const parse = (headers: Headers): Omit<RateLimit, 'scope'> | null => {
   }
 }
 
-const recompute = () => {
-  const now = Date.now()
-  let tightest: RateLimit | null = null
-
-  for (const [scope, bucket] of buckets) {
-    if (bucket.resetAt <= now) {
-      buckets.delete(scope)
-      continue
-    }
-
-    if (!tightest || bucket.remaining / bucket.limit < tightest.remaining / tightest.limit) {
-      tightest = bucket
-    }
-  }
-
-  if (tightest === snapshot) return
-
-  snapshot = tightest
-  for (const listener of listeners) listener()
-}
-
 export const trackRateLimit = (scope: string, headers: Headers) => {
   const next = parse(headers)
   if (!next) return
 
-  buckets.set(scope, { ...next, scope })
-  recompute()
+  buckets.set(scope, next)
+  for (const listener of listeners) listener()
 }
 
-export const getRateLimit = () => snapshot
+export const getRateLimit = (scope: string) => buckets.get(scope) ?? null
 
 export const subscribeRateLimit = (listener: () => void) => {
   listeners.add(listener)

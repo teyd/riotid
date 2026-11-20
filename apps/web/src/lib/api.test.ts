@@ -179,6 +179,6 @@ describe('request errors', () => {
 
     await fetchPlayer('puuid')
 
-    expect(getRateLimit()).toMatchObject({ limit: 120, remaining: 7 })
+    expect(getRateLimit('players')).toMatchObject({ limit: 120, remaining: 7 })
   })
 })
