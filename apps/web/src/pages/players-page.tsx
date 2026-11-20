@@ -8,7 +8,7 @@ import {
 } from '@ui-sdk/react/select'
 import { Input } from '@ui-sdk/react/input'
 import { Meter, MeterIndicator, MeterLabel, MeterTrack, MeterValue } from '@ui-sdk/react/meter'
-import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Resizable, ResizableHandle, ResizablePanel } from '@ui-sdk/react/resizable'
 import {
   SegmentedControl,
@@ -16,15 +16,7 @@ import {
   SegmentedControlItem,
 } from '@ui-sdk/react/segmented-control'
 import { useNavigate } from '@tanstack/react-router'
-import {
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type SVGProps,
-} from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type SVGProps } from 'react'
 
 import { PlayerDetailLoader } from '../components/player-detail-loader.tsx'
 import { PlayerList } from '../components/player-list.tsx'
@@ -265,7 +257,6 @@ export function PlayersPage({ selected }: { selected?: string }) {
   const [region, setRegionState] = useState<'all' | Region>(lastRegion)
   const [sort, setSortState] = useState<Sort>(lastSort)
   const [loadingMore, setLoadingMore] = useState(false)
-  const deferredQuery = useDeferredValue(query)
   const setQuery = (next: string) => {
     lastQuery = next
     setQueryState(next)
@@ -323,17 +314,17 @@ export function PlayersPage({ selected }: { selected?: string }) {
     refetchIntervalInBackground: true,
   })
 
-  const needle = deferredQuery.trim()
+  const needle = query.trim()
   const searchMode = needle.length >= 3
-  const requestedQuery = useDebouncedValue(needle, 180)
+  const requestedQuery = useDebouncedValue(needle, 100)
   const search = useQuery({
     queryKey: ['search', requestedQuery, region],
     queryFn: ({ signal }) => fetchSearch(requestedQuery, region === 'all' ? null : region, signal),
     enabled: searchMode && requestedQuery.length >= 3,
     staleTime: 30_000,
+    placeholderData: keepPreviousData,
   })
-  const searchData =
-    searchMode && requestedQuery === needle && search.data?.query === needle ? search.data : null
+  const searchData = searchMode ? (search.data ?? null) : null
   const searchFailed = searchMode && !searchData && search.isError
   const typing = needle.length > 0 && !searchMode
   const publicPlayers = overview.data?.stats.publicPlayers ?? 0
