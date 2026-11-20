@@ -138,7 +138,9 @@ describe('api', () => {
       const current = (await (await request(app, '/api/v1/search?q=seed')).json()) as PlayerSearch
       expect(current.current.total).toBe(2)
       expect(current.current.players.map((player) => player.puuid)).not.toContain('seed-player-3')
-      expect(current.past.total).toBe(0)
+      expect(current.past.total).toBe(1)
+      expect(current.past.matches[0]?.player.puuid).toBe('seed-player-1')
+      expect(current.past.matches[0]?.name).toBe('Seed One Old')
 
       const banned = (await (await request(app, '/api/v1/search?q=banned')).json()) as PlayerSearch
       expect(banned.current.total).toBe(0)

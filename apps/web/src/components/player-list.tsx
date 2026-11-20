@@ -243,6 +243,9 @@ export const PlayerList = ({
 
             const player = row.player
             const active = player.puuid === selected
+            const past = player.former
+            const rowName = past ? past.name : player.name
+            const rowTag = past ? past.tag : player.tag
             const art = cardArt(player.cardId)
 
             return (
@@ -264,7 +267,7 @@ export const PlayerList = ({
               >
                 <CardArt
                   art={art}
-                  name={player.name}
+                  name={rowName}
                   width={36}
                   height={36}
                   fetchPriority="low"
@@ -274,25 +277,25 @@ export const PlayerList = ({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline gap-1.5">
                     <span className="truncate text-[16px] font-medium tracking-tight text-zinc-100">
-                      {player.name || 'Anonymous'}
+                      {rowName || 'Anonymous'}
                     </span>
-                    {player.tag ? (
+                    {rowTag ? (
                       <span className="shrink-0 font-mono text-xs font-medium text-zinc-300">
-                        #{player.tag}
+                        #{rowTag}
                       </span>
                     ) : null}
                   </div>
                   <div className="mt-1 flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-400">
                     <span className="shrink-0">{regionShort(player.region)}</span>
-                    {player.former ? (
+                    {past ? (
                       <>
-                        <span className="shrink-0 text-zinc-500">formerly</span>
+                        <span className="shrink-0 text-zinc-500">now</span>
                         <span
                           className="truncate text-zinc-300"
-                          title={`${player.former.name}#${player.former.tag}`}
+                          title={`${player.name}#${player.tag}`}
                         >
-                          {player.former.name}
-                          {player.former.tag ? `#${player.former.tag}` : ''}
+                          {player.name || 'Anonymous'}
+                          {player.tag ? `#${player.tag}` : ''}
                         </span>
                       </>
                     ) : (
@@ -318,11 +321,9 @@ export const PlayerList = ({
       </div>
       <p role="status" className="sr-only">
         {activePlayer
-          ? `Selected ${displayName(activePlayer)}, ${regionLabel(activePlayer.region)}${
-              activePlayer.former
-                ? `, formerly ${activePlayer.former.name}#${activePlayer.former.tag}`
-                : ''
-            }`
+          ? activePlayer.former
+            ? `Selected ${activePlayer.former.name}#${activePlayer.former.tag}, now ${displayName(activePlayer)}, ${regionLabel(activePlayer.region)}`
+            : `Selected ${displayName(activePlayer)}, ${regionLabel(activePlayer.region)}`
           : ''}
       </p>
     </>

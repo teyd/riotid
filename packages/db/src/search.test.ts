@@ -61,6 +61,11 @@ describe('player search', () => {
         }),
       )
 
+      const both = await runDb(path, searchPlayers('alpha'))
+      expect(both.current.total).toBe(1)
+      expect(both.past.total).toBe(1)
+      expect(both.past.matches[0]?.player.puuid).toBe(both.current.players[0]?.puuid)
+
       const oldName = await runDb(path, searchPlayers('alpha old'))
       expect(oldName.current.total).toBe(0)
       expect(oldName.past.total).toBe(1)
@@ -139,7 +144,8 @@ describe('player search', () => {
 
       const current = await runDb(path, searchPlayers('seed'))
       expect(current.current.players.map((player) => player.puuid)).not.toContain('seed-player-3')
-      expect(current.past.total).toBe(0)
+      expect(current.past.total).toBe(1)
+      expect(current.past.matches[0]?.player.puuid).toBe('seed-player-1')
 
       const banned = await runDb(path, searchPlayers('banned'))
       expect(banned.current.total).toBe(0)

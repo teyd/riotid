@@ -65,8 +65,9 @@ serves the built SPA from the same origin with a fallback for client routes.
   of these.
 - Search is an FTS5 trigram index (`player_search`) over current and closed
   `player_names` intervals. Triggers keep it in sync; the API only reads it.
-  Results are grouped into current and past names, deduplicated per puuid, and
-  filtered by the same public/retention predicate as the index. Counts are
+  Results are grouped into current and past names, deduplicated within each
+  group, and filtered by the same public/retention predicate as the index. A
+  player can appear in both groups when the query matches both names. Counts are
   lower bounds because each group returns a capped top set.
 - Errors use `{ "error": { "code", "message", "requestId" } }`.
 - The index excludes banned players and unresolved anonymous rows, and only
