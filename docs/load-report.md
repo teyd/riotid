@@ -1,9 +1,11 @@
 # Load test — 2026-11-19
 
 > [!NOTE]
-> Historical report. The stats and status endpoints and their pages were removed
+> Historical report. The stats and crawler endpoints and their pages were removed
 > after this measurement. The numbers are kept as a record of the old read path;
-> the current API serves only the index, player detail, and `/healthz`.
+> the current API serves overview, cursor-paged players, search, index, player
+> detail, status, and `/healthz`. The index is now capped at
+> `INDEX_PLAYER_LIMIT` and browse is cursor-paged.
 
 Target: p95 < 150 ms for API reads on the target VPS, with 50 concurrent readers.
 
@@ -63,5 +65,5 @@ DATABASE_PATH=./data/riotid.db PORT=8795 mise run serve
 ```
 
 The rate limiter is intentionally left at production values in the shipped app:
-index 30/min/IP and detail 120/min/IP. The removed stats and status endpoints
-were limited to 60/min/IP at the time of the test.
+index 30/min/IP, overview/search/status 60/min/IP, and browse/detail 120/min/IP.
+The removed stats endpoint was limited to 60/min/IP at the time of the test.

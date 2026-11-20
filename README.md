@@ -41,18 +41,20 @@ mise run dev
 
 ```mermaid
 flowchart LR
+  U[Browser] --> CF[Cloudflare]
+  CF --> T[Dokploy / Traefik]
+  T --> A[API]
   S[Scheduler] -->|spawns work:tick| C[CLI]
-  S -->|starts and supervises| A[API]
+  S -->|starts and supervises| A
   C -->|Riot APIs| R[Riot]
   C -->|single writer| DB[(SQLite WAL)]
   A -->|read-only| DB
   A -->|serves| W[Built web SPA]
-  U[Browser] --> W
 ```
 
 | Path                  | Role                                                         |
 | --------------------- | ------------------------------------------------------------ |
-| `apps/api`            | Read-only Hono API and SPA host                              |
+| `apps/api`            | Read-only Hono API, rate limits, and SPA host                |
 | `apps/cli`            | Operator CLI for auth, scans, identity, data, and takedowns  |
 | `apps/scheduler`      | Production daemon: supervises the API, one tick per minute   |
 | `apps/web`            | React 19 + TanStack Router/Query/Virtual SPA                 |
@@ -69,13 +71,17 @@ flowchart LR
 
 | Endpoint                     | Purpose                                                   |
 | ---------------------------- | --------------------------------------------------------- |
-| `GET /api/v1/index`          | Capped tuple preview; banned and unresolved rows excluded |
+| `GET /api/v1/overview`       | Counts, season, and scan timing without player rows       |
+| `GET /api/v1/players`        | Cursor-paged browse with sort and region filters          |
 | `GET /api/v1/search`         | Grouped current and past name search over visible players |
+| `GET /api/v1/index`          | Capped tuple preview; banned and unresolved rows excluded |
 | `GET /api/v1/players/:puuid` | Timelines, counters, and identity evidence                |
 | `GET /api/v1/status`         | Cookie jar freshness for the scan status bar              |
 | `GET /healthz`               | Database readiness                                        |
 
-Responses are ETagged and support `If-None-Match`. The API never calls Riot.
+Index, overview, and detail responses are ETagged and support `If-None-Match`.
+Limited endpoints send `RateLimit-Limit`, `RateLimit-Remaining`, and
+`RateLimit-Reset`; a `429` also sends `Retry-After`. The API never calls Riot.
 
 </details>
 
