@@ -2,8 +2,10 @@
 
 > [!NOTE]
 > Historical report. The UI, endpoints, and build have changed since this
-> measurement. Timings are preserved; see the [runbook](runbook.md) for current
-> commands and [architecture](architecture.md) for the current surface.
+> measurement. The SPA now loads a capped overview plus cursor-paged players
+> instead of the full index. Timings are preserved; see the [runbook](runbook.md)
+> for current commands and [architecture](architecture.md) for the current
+> surface.
 
 Decision: keep the full public index and optimize the browser/client path. The
 target is p95 < 150 ms for normal API reads (already met) and a first usable

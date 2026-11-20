@@ -43,18 +43,18 @@ response is `cf-cache-status: DYNAMIC`.
 
 ## App boundaries
 
-| App or package       | Owns                                                                          |
-| -------------------- | ----------------------------------------------------------------------------- |
-| `apps/api`           | HTTP routes, security headers, rate limits, index cache, SPA hosting          |
-| `apps/cli`           | Auth, scans, identity passes, maintenance, takedowns, seeding, due-job policy |
-| `apps/scheduler`     | API child process, one-minute `work:tick` cadence                             |
-| `apps/web`           | Browser UI; consumes contracts and the public API only                        |
-| `packages/config`    | Resolved paths and environment contract shared by apps                        |
-| `packages/contracts` | Effect schemas for index, detail, health, and errors                          |
-| `packages/db`        | Schema, migrations, read/write layers, maintenance queries                    |
-| `packages/ingest`    | Leaderboard crawl, diffs, run evidence                                        |
-| `packages/identity`  | Anonymous queue, match graph, exact-fingerprint linking                       |
-| `packages/riot`      | QR/paste auth, token refresh, Riot HTTP adapters                              |
+| App or package       | Owns                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------- |
+| `apps/api`           | HTTP routes, security headers, rate limits and quota headers, read caches, SPA hosting |
+| `apps/cli`           | Auth, scans, identity passes, maintenance, takedowns, seeding, due-job policy          |
+| `apps/scheduler`     | API child process, one-minute `work:tick` cadence                                      |
+| `apps/web`           | Browser UI; consumes contracts and the public API only                                 |
+| `packages/config`    | Resolved paths and environment contract shared by apps                                 |
+| `packages/contracts` | Effect schemas for index, overview, browse, search, detail, status, health, and errors |
+| `packages/db`        | Schema, migrations, read/write layers, maintenance queries                             |
+| `packages/ingest`    | Leaderboard crawl, diffs, run evidence                                                 |
+| `packages/identity`  | Anonymous queue, match graph, exact-fingerprint linking                                |
+| `packages/riot`      | QR/paste auth, token refresh, Riot HTTP adapters                                       |
 
 ## Read-only API
 
@@ -67,21 +67,27 @@ response is `cf-cache-status: DYNAMIC`.
 - The overview is versioned by `meta.indexVersion` and cached in memory; it
   carries counts, season, and scan timing without the player rows.
 - Browse uses keyset pagination on `/api/v1/players` with 250-row pages and an
-  opaque cursor containing the sort keys plus puuid. Indexes on each sort keep
-  deep pages cheap; search is independent of the page cursor.
+  opaque cursor containing the sort keys plus puuid. The sort is one of
+  `recentChanges`, `changes`, `recent`, `new`, or `name`; indexes on each keep
+  deep pages cheap, and search is independent of the page cursor.
 - The legacy tuple index is still versioned, pre-compressed, and capped at
   `INDEX_PLAYER_LIMIT` (50k by default). The SPA no longer downloads it.
-- Index and detail responses carry `ETag` and honor `If-None-Match` with `304`.
-- Limits are 30 requests/min/IP for the index, 60 for the overview, and 120
-  for browse, search, and details. Cloudflare caches `/api/v1/index` through the
-  `riotid-index` Cache Rule (`s-maxage=300`); other responses are `DYNAMIC` and
-  reach the origin.
+- Index, overview, and detail responses carry `ETag` and honor `If-None-Match`
+  with `304`.
+- Limits are per IP per minute: 30 for the index, 60 for the overview, search,
+  and status, and 120 for browse and details. Every limited endpoint sends
+  `RateLimit-Limit`, `RateLimit-Remaining`, and `RateLimit-Reset`; a `429` adds
+  `Retry-After` and `error.code: rate_limited`. Cloudflare caches
+  `/api/v1/index` through the `riotid-index` Cache Rule (`s-maxage=300`); other
+  responses are `DYNAMIC` and reach the origin.
 - Search is an FTS5 trigram index (`player_search`) over current and closed
   `player_names` intervals. Triggers keep it in sync; the API only reads it.
-  Results are grouped into current and past names, deduplicated within each
-  group, and filtered by the same public/retention predicate as the index. A
-  player can appear in both groups when the query matches both names. Counts are
-  lower bounds because each group returns a capped top set.
+  Queries shorter than three characters return empty groups; `limit` defaults
+  to 20 and caps at 50. Results are grouped into current and past names,
+  deduplicated within each group, and filtered by the same public/retention
+  predicate as the index. A player can appear in both groups when the query
+  matches both names. Counts are lower bounds because each group returns a
+  capped top set.
 - Errors use `{ "error": { "code", "message", "requestId" } }`.
 - The index excludes banned players and unresolved anonymous rows, and only
   includes players seen within `INDEX_RETENTION_DAYS`.
@@ -93,11 +99,11 @@ commits, so the API stays available during a scan. `readDatabase` opens the file
 read-only with a five-second busy timeout; `writeDatabase` is used by the CLI
 and migrations.
 
-Exactly one process may hold the write connection: the scheduler or a single
-operator command. Never run a manual `scan` while the production scheduler is
-active, and never scale the service to two replicas. The `runs` table enforces a
-unique `running` row, which surfaces accidental concurrency instead of hiding
-it.
+Exactly one process may write at a time: a CLI job spawned by the scheduler or a
+single operator command. The scheduler itself only reads state and spawns the
+CLI. Never run a manual `scan` while the production scheduler is active, and
+never scale the service to two replicas. The `runs` table enforces a unique
+`running` row, which surfaces accidental concurrency instead of hiding it.
 
 Backups use SQLite's online backup API while the database is live, then prune
 files older than `BACKUP_KEEP_DAYS`. Restore is an offline operation: stop the
@@ -122,9 +128,10 @@ timestamps, JSON stats, and an error message. Each region gets a `run_regions`
 row with pages, players, overlaps, stale or unresolved names, bans, anonymized
 counts, and its own error.
 
-On boot, interrupted `running` rows are marked failed with a restart error so the
-unique running lock cannot stick. Inspect failures in `runs` and `run_regions`;
-a failed run leaves the previous data intact.
+On boot, the production scheduler runs `db:recover`, which marks interrupted
+`running` rows failed with a restart error so the unique running lock cannot
+stick. Run the same command after a local crash. Inspect failures in `runs` and
+`run_regions`; a failed run leaves the previous data intact.
 
 ## Identity policy
 
@@ -144,10 +151,11 @@ link stores `match_id`, `method`, `confidence`, and fingerprint evidence in
 
 ## Scheduler behavior
 
-In production the scheduler is the container entrypoint. It starts the API as a
-child process, then spawns `work:tick --json` once a minute and waits for it to
-exit. The CLI decides what is due from SQLite state and runs at most one job per
-tick; the scheduler holds no scan, identity, auth, or backup policy.
+In production the scheduler is the container entrypoint. It runs `db:migrate`,
+then `db:recover`, starts the API as a child process, and then spawns
+`work:tick --json` once a minute and waits for it to exit. The CLI decides what
+is due from SQLite state and runs at most one job per tick; the scheduler holds
+no scan, identity, auth, or backup policy.
 
 - Scan: due when the latest attempt (success or failure) is older than
   `SCAN_INTERVAL_HOURS`; the CLI records `trigger: schedule`.
@@ -169,12 +177,12 @@ with no scheduled work.
 
 ## Contracts
 
-`packages/contracts` defines the wire shapes with Effect schemas: the tuple index,
-search groups, player detail with timelines and identity evidence, health, and
-API errors. The
-API and web both type against those shapes, so a change to a field name or tuple
-position is a breaking API change. Bump `meta.indexVersion` or coordinate
-the change; never silently reshape the index.
+`packages/contracts` defines the wire shapes with Effect schemas: the tuple
+index, overview, cursor-paged player summaries, search groups, player detail with
+timelines and identity evidence, status, health, and API errors. The API and web
+both type against those shapes, so a change to a field name or tuple position is
+a breaking API change. Bump `meta.indexVersion` or coordinate the change; never
+silently reshape the index.
 
 ## What not to change
 

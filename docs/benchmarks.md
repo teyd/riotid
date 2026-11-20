@@ -32,10 +32,11 @@ comparison is slower than later ones.
 | `scroll` | 8,000 px through the virtualizer | `main.work`    | `dom.nodes` |
 | `search` | Type `player 0` into the filter  | `main.work`    | `dom.nodes` |
 
-`perf/fixture.ts` mocks `/api/v1/index`, player details, and card art with 35,000
-deterministic rows. The bench needs no database, API server, or network. A
-DOM-node regression such as rendering the whole list shows in `dom.nodes` even
-when the time verdict is noisy.
+`perf/fixture.ts` mocks `/api/v1/overview`, `/api/v1/players`,
+`/api/v1/search`, player details, and card art with 35,000 deterministic rows.
+The bench needs no database, API server, or network. A DOM-node regression such
+as rendering the whole list shows in `dom.nodes` even when the time verdict is
+noisy.
 
 ## Reading a result
 
