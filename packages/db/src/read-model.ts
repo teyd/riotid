@@ -233,12 +233,6 @@ const matchBucket = (name: string, tag: string, needle: string): number => {
   return 6
 }
 
-const currentNameMatches = (player: SearchPlayer, needle: string): boolean => {
-  const name = player.name.toLowerCase()
-  const tag = player.tag.toLowerCase()
-  return name.includes(needle) || tag.includes(needle) || `${name}#${tag}`.includes(needle)
-}
-
 const sameName = (player: SearchPlayer, name: string, tag: string): boolean =>
   player.name.toLowerCase() === name.toLowerCase() && player.tag.toLowerCase() === tag.toLowerCase()
 
@@ -373,7 +367,7 @@ export const searchPlayers = (
     for (const row of [...pastPrefixRows, ...pastSubstringRows]) {
       const player = toSearchPlayer(row)
 
-      if (currentNameMatches(player, needle) || sameName(player, row.match_name, row.match_tag)) {
+      if (sameName(player, row.match_name, row.match_tag)) {
         continue
       }
 

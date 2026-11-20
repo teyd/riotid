@@ -29,8 +29,10 @@ time.
 - An FTS5 trigram table indexes those rows. Triggers keep it in sync on insert,
   update, and delete, so ingest and takedown paths need no extra job.
 - `/api/v1/search?q=...` returns two groups: current and past. A past result
-  carries the matched alias plus the player's current identity. One player
-  appears at most once per group.
+  carries the matched alias plus the player's current identity. Each group is
+  deduplicated per player, so the same player can appear in both groups when
+  the query matches both names. The past row shows the matched alias first and
+  `now <current name>` below it.
 - Exact and prefix matches use indexed `GLOB` ranges; substring matches use
   FTS5 with a `kind:` filter. Each group reads at most 100 candidates, ranks
   exact > name > tag > prefix > substring, then returns the top 20.
