@@ -37,10 +37,9 @@ serves the built SPA from the same origin with a fallback for client routes.
 Cloudflare (orange cloud) terminates TLS and proxies `riotid.teyd.dev` to the
 Dokploy/Traefik origin on the Hetzner VPS. The API rate-limits by
 `cf-connecting-ip`, so the origin must not be reachable directly; keep the
-firewall restricted to Cloudflare ranges. No Cache Rule is configured today, so
-API responses are `cf-cache-status: DYNAMIC` and reach the origin. The index
-response already sends `s-maxage=300` so a Cache Rule can be added without an
-API change.
+firewall restricted to Cloudflare ranges. A Cache Rule (`riotid-index`) caches
+`/api/v1/index` at the edge using the origin's `s-maxage=300`; every other API
+response is `cf-cache-status: DYNAMIC`.
 
 ## App boundaries
 
@@ -74,9 +73,9 @@ API change.
   `INDEX_PLAYER_LIMIT` (50k by default). The SPA no longer downloads it.
 - Index and detail responses carry `ETag` and honor `If-None-Match` with `304`.
 - Limits are 30 requests/min/IP for the index, 60 for the overview, and 120
-  for browse, search, and details. Responses carry `s-maxage` for Cloudflare,
-  but no Cache Rule is configured, so they are currently `DYNAMIC` and every
-  request hits the origin.
+  for browse, search, and details. Cloudflare caches `/api/v1/index` through the
+  `riotid-index` Cache Rule (`s-maxage=300`); other responses are `DYNAMIC` and
+  reach the origin.
 - Search is an FTS5 trigram index (`player_search`) over current and closed
   `player_names` intervals. Triggers keep it in sync; the API only reads it.
   Results are grouped into current and past names, deduplicated within each
