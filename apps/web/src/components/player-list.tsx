@@ -27,7 +27,6 @@ type Props = {
   readonly focusSelectedOnMount: boolean
   readonly searchRef: RefObject<HTMLInputElement | null>
   readonly onSelect: (puuid: string | null) => void
-  readonly onPrefetch: (puuid: string) => void
   readonly onEscape: () => void
 }
 
@@ -99,7 +98,6 @@ export const PlayerList = ({
   focusSelectedOnMount,
   searchRef,
   onSelect,
-  onPrefetch,
   onEscape,
 }: Props) => {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -306,8 +304,6 @@ export const PlayerList = ({
                 aria-current={active ? 'true' : undefined}
                 tabIndex={active || (selectedIndex < 0 && item.index === firstPlayerIndex) ? 0 : -1}
                 onClick={() => onSelect(player.puuid)}
-                onMouseEnter={() => onPrefetch(player.puuid)}
-                onFocus={() => onPrefetch(player.puuid)}
                 className={`absolute top-0 left-0 flex h-14 w-full items-center gap-3 border-b border-white/[0.05] py-2 pr-4 pl-3 text-left focus-visible:outline-none data-[selected=true]:bg-white/10 ${
                   keyboardNavigation ? '' : 'hover:bg-white/[0.035]'
                 }`}
